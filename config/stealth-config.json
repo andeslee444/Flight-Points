@@ -1,0 +1,9 @@
+{
+  "enabled": true,
+  "minDelayMs": 2000,
+  "maxDelayMs": 5000,
+  "jitterPercent": 20,
+  "rotateFingerprint": true,
+  "sessionReuseMs": 1800000,
+  "cookieClearIntervalMs": 3600000
+}

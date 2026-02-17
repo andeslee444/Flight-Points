@@ -1,0 +1,23 @@
+{
+  "ana": {
+    "airline": "ANA Mileage Club",
+    "membership_number": "4143187975",
+    "email": "harbortheoctopus@gmail.com",
+    "web_password": "Cheeseslice8",
+    "amc_password": "8888",
+    "name": "HARBOR OCTOPUS",
+    "phone": "+14255336828",
+    "member_since": "Feb 2026",
+    "notes": "Second registration (first was 4143187802). Digital card selected."
+  },
+  "krisflyer": {
+    "airline": "Singapore Airlines KrisFlyer",
+    "membership_number": "8749296547",
+    "email": "harbortheoctopus@gmail.com",
+    "password": "Cheeseslice8!",
+    "name": "Harbor Octopus",
+    "phone": "+14255336828",
+    "member_since": "Feb 2026",
+    "notes": "Account activated via email verification link."
+  }
+}
