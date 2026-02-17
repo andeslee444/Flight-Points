@@ -285,8 +285,8 @@ async function searchPlaywright(params: SearchParams): Promise<FlightResult[]> {
       }
       try {
         const { mkdirSync } = await import('fs');
-        mkdirSync('/Users/andeslee/Documents/cursor-projects/class-sniper/data', { recursive: true });
-        await page.screenshot({ path: '/Users/andeslee/Documents/cursor-projects/class-sniper/data/united-debug.png', fullPage: true });
+        mkdirSync('/Users/andeslee/Documents/cursor-projects/Fitness-Sniper/data', { recursive: true });
+        await page.screenshot({ path: '/Users/andeslee/Documents/cursor-projects/Fitness-Sniper/data/united-debug.png', fullPage: true });
       } catch {}
     }
 

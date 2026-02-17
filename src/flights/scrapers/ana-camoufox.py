@@ -54,7 +54,11 @@ def main():
     results = []
 
     try:
-        with Camoufox(headless=True, humanize=True) as browser:
+        # Route through Cloudflare WARP SOCKS5 proxy for fresh IP
+        proxy_cfg = {"server": "socks5://127.0.0.1:1080"} if os.path.exists("/tmp/wireproxy.pid") else None
+        if proxy_cfg:
+            log("Using WARP proxy (SOCKS5 127.0.0.1:1080)")
+        with Camoufox(headless=True, humanize=True, proxy=proxy_cfg) as browser:
             page = browser.new_page()
 
             # ── Step 1: Warm up on main ANA site ──
