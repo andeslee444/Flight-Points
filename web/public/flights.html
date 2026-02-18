@@ -482,7 +482,7 @@
       <a href="/flights" class="nav-logo">flight points</a>
       <div class="nav-links">
         <a href="/flights" class="active">Flights</a>
-        <a href="/flights#sweet-spots">Sweet Spots</a>
+        <a href="/flights#live-deals">Live Deals</a>
         <a href="/flights#alerts" class="nav-cta">search flights</a>
       </div>
     </div>
@@ -540,20 +540,19 @@
 
   <hr class="divider">
 
-  <!-- Sweet Spots -->
-  <div class="section" id="sweet-spots">
+  <!-- Live Deals -->
+  <div class="section" id="live-deals">
     <div class="container">
-      <div class="section-heading"><h2>Sweet Spot Deals</h2></div>
-      <p class="section-sub">the best redemptions in points travel</p>
+      <div class="section-heading"><h2>Live Deals</h2></div>
+      <p class="section-sub">real award availability found by our scrapers</p>
 
       <div class="filter-bar" id="filterBar">
         <button class="filter-btn active" data-filter="all">All</button>
-        <button class="filter-btn" data-filter="S">S-Tier</button>
-        <button class="filter-btn" data-filter="A">A-Tier</button>
-        <button class="filter-btn" data-filter="B">B-Tier</button>
+        <button class="filter-btn" data-filter="hot">Hot Deals</button>
+        <button class="filter-btn" data-filter="good">Good Deals</button>
       </div>
 
-      <div id="sweetSpotsContainer">
+      <div id="dealsContainer">
         <div class="spot-grid">
           <div class="skeleton" style="height:170px;"></div>
           <div class="skeleton" style="height:170px;"></div>
@@ -663,7 +662,7 @@
   <div class="section" id="programs">
     <div class="container">
       <div class="section-heading"><h2>Supported Programs</h2></div>
-      <p class="section-sub">click a program to filter sweet spots</p>
+      <p class="section-sub">click a program to filter deals</p>
       <div class="programs-grid" id="programsGrid"></div>
     </div>
   </div>
@@ -862,69 +861,86 @@
       return Math.floor(hrs / 24) + 'd ago';
     }
 
-    // === Sweet Spots ===
-    let allSpots = [];
+    // === Live Deals ===
+    let allDeals = [];
     let activeFilter = 'all';
     let activeProgram = null;
 
-    fetch('/api/flights/sweet-spots')
-      .then(r => r.json())
-      .then(data => { allSpots = data.sweetSpots || []; renderSpots(); })
-      .catch(() => {
-        document.getElementById('sweetSpotsContainer').innerHTML =
-          '<p style="text-align:center;padding:40px;color:var(--text-dim);">Could not load sweet spots.</p>';
-      });
+    function getSelectedProgram() {
+      return document.getElementById('s-program').value || 'amex-mr';
+    }
 
-    function renderSpots() {
-      const container = document.getElementById('sweetSpotsContainer');
-      let filtered = allSpots;
-      if (activeFilter !== 'all') filtered = filtered.filter(s => s.tier === activeFilter);
-      if (activeProgram) {
-        filtered = filtered.filter(s =>
-          s.transferFrom.some(t => t.toLowerCase().includes(activeProgram.toLowerCase()))
-        );
-      }
+    function loadDeals() {
+      const program = activeProgram || getSelectedProgram();
+      fetch(`/api/flights/deals?program=${encodeURIComponent(program)}`)
+        .then(r => r.json())
+        .then(data => { allDeals = data.deals || []; renderDeals(); })
+        .catch(() => {
+          document.getElementById('dealsContainer').innerHTML =
+            '<p style="text-align:center;padding:40px;color:var(--text-dim);">Could not load deals.</p>';
+        });
+    }
+
+    loadDeals();
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '';
+      const d = new Date(dateStr + 'T00:00:00');
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    function renderDeals() {
+      const container = document.getElementById('dealsContainer');
+      let filtered = allDeals;
+      if (activeFilter !== 'all') filtered = filtered.filter(d => d.dealRating === activeFilter);
 
       if (filtered.length === 0) {
-        container.innerHTML = '<p style="text-align:center;padding:40px;color:var(--text-dim);">No sweet spots match your filter.</p>';
+        container.innerHTML = `<p style="text-align:center;padding:40px;color:var(--text-dim);line-height:1.8;">
+          No live deals yet — deals appear here as our scrapers find award availability.<br>
+          <a href="#" onclick="document.getElementById('s-from').focus();return false;" style="color:var(--accent);">Search a route</a> to get started.
+        </p>`;
         return;
       }
 
-      const tiers = { S: [], A: [], B: [] };
-      filtered.forEach(s => { if (tiers[s.tier]) tiers[s.tier].push(s); });
+      const groups = { hot: [], good: [] };
+      filtered.forEach(d => { if (groups[d.dealRating]) groups[d.dealRating].push(d); });
 
-      const tierLabels = { S: 'Must-Book Deals', A: 'Excellent Value', B: 'Great Deals' };
-      const tierBadgeClass = { S: 'tier-badge-s', A: 'tier-badge-a', B: 'tier-badge-b' };
+      const groupLabels = { hot: 'Must-Book Deals', good: 'Great Value' };
+      const groupBadgeClass = { hot: 'tier-badge-s', good: 'tier-badge-a' };
+      const groupBadgeLabel = { hot: 'HOT', good: 'GOOD' };
 
       let html = '';
-      for (const [tier, spots] of Object.entries(tiers)) {
-        if (spots.length === 0) continue;
+      for (const [rating, deals] of Object.entries(groups)) {
+        if (deals.length === 0) continue;
         html += `<div class="tier-section">
           <div class="tier-heading">
-            <span class="tier-badge ${tierBadgeClass[tier]}">${tier}</span>
-            <h3>${tierLabels[tier]}</h3>
+            <span class="tier-badge ${groupBadgeClass[rating]}">${groupBadgeLabel[rating]}</span>
+            <h3>${groupLabels[rating]}</h3>
           </div>
           <div class="spot-grid">`;
-        spots.forEach(s => {
-          const kPts = s.pointsRequired >= 1000 ? Math.round(s.pointsRequired / 1000) + 'K' : s.pointsRequired.toLocaleString();
-          const pills = s.transferFrom.slice(0, 3).map(t => `<span class="pill">${t}</span>`).join('');
-          const moreCount = s.transferFrom.length - 3;
-          const morePill = moreCount > 0 ? `<span class="pill">+${moreCount}</span>` : '';
+        deals.forEach(d => {
+          const kPts = d.points >= 1000 ? Math.round(d.points / 1000) + 'K' : d.points.toLocaleString();
+          const cabinBadge = `<span class="pill">${d.cabinDisplay}</span>`;
+          const stopsText = d.direct ? 'Nonstop' : (d.stops === 1 ? '1 stop' : (d.stops + ' stops'));
+          const durationText = d.duration ? ` · ${d.duration}` : '';
+          const dateText = formatDate(d.departureDate);
+          const cppColor = d.cpp >= 3.0 ? 'var(--red)' : 'var(--green)';
 
-          html += `<div class="spot-card" data-route="${s.route}" data-cabin="${s.cabin}" onclick="searchSpot(this)">
+          html += `<div class="spot-card" data-origin="${d.origin}" data-dest="${d.destination}" data-cabin="${d.cabin}" onclick="searchDeal(this)">
             <div class="spot-header">
               <div>
-                <div class="spot-product">${s.product}</div>
-                <div class="spot-airline">${s.bookingProgram}</div>
+                <div class="spot-product">${d.airline} ${cabinBadge}</div>
+                <div class="spot-airline">${d.route}</div>
               </div>
-              <span class="tier-badge ${tierBadgeClass[s.tier]}">${s.tier}</span>
+              <span class="tier-badge ${groupBadgeClass[d.dealRating]}">${d.cpp}\u00A2/pt</span>
             </div>
-            <div class="spot-route">${s.originRegion || '*'} \u2192 ${s.destinationRegion || '*'}</div>
+            <div class="spot-route">${dateText}${dateText ? ' · ' : ''}${stopsText}${durationText}</div>
             <div class="spot-stats">
               <div class="spot-stat"><strong>${kPts}</strong> pts</div>
-              <div class="spot-stat"><strong class="cpp">${s.centsPerPoint}\u00A2</strong>/pt</div>
+              <div class="spot-stat"><strong style="color:${cppColor}">${d.cpp}\u00A2</strong>/pt</div>
+              ${d.cashPrice ? `<div class="spot-stat">vs <strong>$${d.cashPrice.toLocaleString()}</strong> cash</div>` : ''}
             </div>
-            <div class="spot-transfers">${pills}${morePill}</div>
+            <div class="spot-transfers"><span class="pill">${d.programDisplay}</span></div>
           </div>`;
         });
         html += `</div></div>`;
@@ -938,18 +954,15 @@
       document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       activeFilter = btn.dataset.filter;
-      renderSpots();
+      renderDeals();
     });
 
-    function searchSpot(card) {
-      const route = card.dataset.route;
+    function searchDeal(card) {
+      const origin = card.dataset.origin;
+      const dest = card.dataset.dest;
       const cabin = card.dataset.cabin === 'suites' ? 'first' : card.dataset.cabin;
-      const [from, to] = route.split('-');
-      const fromVal = from === '*' ? 'JFK' : from;
-      const toVal = to === '*' ? '' : to;
-      if (toVal) {
-        window.location.href = `/flight-results?from=${fromVal}&to=${toVal}&class=${cabin}&program=${document.getElementById('s-program').value}`;
-      }
+      const program = getSelectedProgram();
+      window.location.href = `/flight-results?from=${origin}&to=${dest}&class=${cabin}&program=${program}`;
     }
 
     // === Programs ===
@@ -970,8 +983,8 @@
       document.querySelectorAll('.program-card').forEach(c => {
         c.classList.toggle('active', c.dataset.slug === activeProgram);
       });
-      renderSpots();
-      document.getElementById('sweet-spots').scrollIntoView({ behavior: 'smooth' });
+      loadDeals();
+      document.getElementById('live-deals').scrollIntoView({ behavior: 'smooth' });
     }
 
     // === Alert Form ===

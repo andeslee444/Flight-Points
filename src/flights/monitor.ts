@@ -205,18 +205,32 @@ function estimateCashPrice(origin: string, destination: string, cabin: string): 
   return routes[routeType]?.[cabin];
 }
 
-function getBookingUrl(programCode: string, origin: string, destination: string, date: string): string {
+function getBookingUrl(programCode: string, origin: string, destination: string, date: string, cabin?: string): string {
+  // United cabin code mapping: economy→2, premium economy→4, business→5, first→6
+  const unitedCabin = cabin === 'F' ? '6' : cabin === 'J' ? '5' : cabin === 'W' ? '4' : '2';
+
   const urls: Record<string, string> = {
-    'united': `https://www.united.com/en/us/fsr/choose-flights?f=${origin}&t=${destination}&d=${date}&tt=1&at=1&sc=7&px=1&taxng=1&newHP=True&clm=7`,
-    'aeroplan': `https://www.aircanada.com/aeroplan/redeem/availability/outbound?org0=${origin}&dest0=${destination}&departureDate0=${date}&ADT=1&tripType=O&lang=en-CA`,
+    // Airlines that support pre-filled search params
     'american': `https://www.aa.com/booking/search?locale=en_US&pax=1&type=OneWay&searchType=Award&origin=${origin}&destination=${destination}&departDate=${date}`,
-    'ba-avios': `https://www.britishairways.com/travel/book/public/en_us?from=${origin}&to=${destination}&depDate=${date}&cabin=J&adult=1&type=AVIOS`,
-    'delta': `https://www.delta.com/flight-search/book-a-flight?tripType=ONE_WAY&awardTravel=true&originCity=${origin}&destinationCity=${destination}&departureDate=${date}`,
-    'ana': `https://www.ana.co.jp/en/us/amc/award-reservation/`,
-    'virgin-atlantic': `https://www.virginatlantic.com/`,
-    'singapore': `https://www.singaporeair.com/en_UK/plan-and-book/your-booking/`,
-    'turkish': `https://www.turkishairlines.com/en-us/flights/booking/availability/`,
-    'emirates': `https://www.emirates.com/us/english/`,
+    'united': `https://www.united.com/ual/en/us/flight-search/book-a-flight/results/awd?f=${origin}&t=${destination}&d=${date}&tt=1&at=1&sc=7&px=1&taxng=1&newHP=True&clm=7&cbm=${unitedCabin}&cbm2=${unitedCabin}`,
+    'aeroplan': `https://www.aeroplan.com/aeroplan/redeem/availability/outbound?org0=${origin}&dest0=${destination}&departureDate0=${date}&ADT=1&tripType=O&lang=en-CA`,
+    'delta': `https://www.delta.com/flight-search/book-a-flight?tripType=ONE_WAY&awardTravel=true&originCity=${origin}&destinationCity=${destination}&departureDate=${date}&paxCount=1`,
+    'jetblue': `https://www.jetblue.com/booking/flights?from=${origin}&to=${destination}&depart=${date}&isMultiCity=false&noOfRoute=1&lang=en&adults=1&children=0&infants=0&shared498=true&fare=award`,
+    // Airlines with SPA award pages (no deep-link params)
+    'ana': 'https://www.ana.co.jp/en/us/plan-book/',
+    'singapore': 'https://www.singaporeair.com/en_UK/us/ppsclub-krisflyer/use-miles/redeem-miles/',
+    'ba-avios': 'https://www.britishairways.com/travel/redeem/execclub/_gf/en_us',
+    'virgin-atlantic': 'https://www.virginatlantic.com/reward-flights/book',
+    'air-france-klm': 'https://www.flyingblue.com/en/spend/flights',
+    'turkish': 'https://www.turkishairlines.com/en-us/flights/booking/availability/',
+    'emirates': 'https://www.emirates.com/us/english/book/',
+    'cathay': 'https://www.cathaypacific.com/cx/en_US/book-a-trip/redeem-flights.html',
+    'qatar': 'https://www.qatarairways.com/en-us/privilege-club/use-qmiles/book-flights.html',
+    'avianca-lifemiles': 'https://www.lifemiles.com/en/book-flights',
+    'alaska': 'https://www.alaskaair.com/shopping/flights?showAward=true',
+    'etihad': 'https://www.etihad.com/en-us/guest/flights',
+    'iberia': 'https://www.iberia.com/us/avios/',
+    'qantas': 'https://www.qantas.com/au/en/book-a-trip/redeem-points/flights.html',
   };
   return urls[programCode] || '#';
 }
@@ -392,7 +406,60 @@ export function signupToSearchParams(signup: FlightSignup): MonitorSearchParams 
 }
 
 // ============================================================
+// AIRLINE NAME NORMALIZATION
+// ============================================================
+
+const AIRLINE_ALIASES: Record<string, string> = {
+  'All Nippon Airways': 'ANA',
+  'All Nippon': 'ANA',
+  'Japan Airlines': 'JAL',
+  'Singapore Airlines': 'Singapore Airlines',
+  'British Airways': 'British Airways',
+  'Cathay Pacific Airways': 'Cathay Pacific',
+  'Cathay Pacific': 'Cathay Pacific',
+  'American Airlines': 'American Airlines',
+  'United Airlines': 'United Airlines',
+  'Delta Air Lines': 'Delta Air Lines',
+  'Korean Air Lines': 'Korean Air',
+  'Korean Air': 'Korean Air',
+  'EVA Air': 'EVA Air',
+  'EVA Airways': 'EVA Air',
+  'Turkish Airlines': 'Turkish Airlines',
+  'Air France': 'Air France',
+  'KLM Royal Dutch Airlines': 'KLM',
+  'KLM': 'KLM',
+  'Lufthansa': 'Lufthansa',
+  'Swiss International Air Lines': 'SWISS',
+  'SWISS': 'SWISS',
+  'Asiana Airlines': 'Asiana Airlines',
+  'Qatar Airways': 'Qatar Airways',
+  'Emirates': 'Emirates',
+  'Etihad Airways': 'Etihad Airways',
+  'Etihad': 'Etihad Airways',
+  'Philippine Airlines': 'Philippine Airlines',
+  'Air Canada': 'Air Canada',
+  'Qantas': 'Qantas',
+  'Virgin Atlantic': 'Virgin Atlantic',
+  'Iberia': 'Iberia',
+  'Finnair': 'Finnair',
+  'SAS': 'SAS',
+  'Scandinavian Airlines': 'SAS',
+};
+
+function normalizeAirlineName(name: string): string {
+  if (!name) return '';
+  // Direct match
+  if (AIRLINE_ALIASES[name]) return AIRLINE_ALIASES[name];
+  // Case-insensitive match
+  const lower = name.toLowerCase();
+  for (const [alias, normalized] of Object.entries(AIRLINE_ALIASES)) {
+    if (alias.toLowerCase() === lower) return normalized;
+  }
+  return name;
+}
+
+// ============================================================
 // EXPORTS
 // ============================================================
 
-export { cabinDisplayName, computeDealRating, findPartnerForSource, estimateCashPrice, getBookingUrl };
+export { cabinDisplayName, computeDealRating, findPartnerForSource, estimateCashPrice, getBookingUrl, normalizeAirlineName };

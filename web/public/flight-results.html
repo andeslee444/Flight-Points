@@ -164,6 +164,21 @@
     .row-details .sep { opacity: 0.3; font-size: 0.6rem; }
     .row-details .val { color: var(--text); font-weight: 500; }
 
+    .row-route {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      margin-top: 2px;
+      letter-spacing: 0.02em;
+    }
+    .row-cash {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      font-variant-numeric: tabular-nums;
+      transition: color 0.2s;
+    }
+    .row-cash.real-price { color: var(--text); font-weight: 500; }
+    .row-cash.loading-price { opacity: 0.6; }
+
     .row-transfer {
       font-size: 0.72rem;
       color: var(--text-dim);
@@ -408,6 +423,7 @@
         text.textContent = `${allResults.length} results \u00B7 cached ${lastUp}`;
         document.getElementById('controls').style.display = 'flex';
         renderResults();
+        fetchCashPrices(); // async — updates cards when Google Flights data arrives
       } catch (err) {
         document.getElementById('statusDot').className = 'status-dot error';
         document.getElementById('statusText').textContent = err.message;
@@ -504,6 +520,8 @@
         document.getElementById('controls').style.display = 'flex';
       }
       renderResults();
+      cashPriceFetched = false; // reset so live results also get real prices
+      fetchCashPrices();
       cleanupLiveScrape();
     }
 
@@ -594,9 +612,10 @@
             <div class="row-main">
               <div class="row-headline">
                 <span class="row-airline">${r.airline || 'Unknown'}</span>
-                ${r.flightNumber ? `<span class="row-flight-num">${r.flightNumber}</span>` : ''}
+                ${r.flightNumber && !r.flightNumber.includes('---') ? `<span class="row-flight-num">${r.flightNumber}</span>` : ''}
                 <span class="row-cabin-badge">${r.cabinDisplay || r.cabin || ''}</span>
               </div>
+              <div class="row-route">${r.origin || ''} \u2192 ${r.destination || ''}</div>
               <div class="row-details">
                 ${details.map((d, i) => (i > 0 ? `<span class="sep">\u00B7</span>` : '') + `<span${i === 0 ? ' class="val"' : ''}>${d}</span>`).join('')}
               </div>
@@ -604,7 +623,8 @@
             </div>
             <div class="row-price">
               <div class="row-points">${r.points ? r.points.toLocaleString() : '\u2014'}</div>
-              ${r.cpp ? `<div class="row-cpp ${cppClass}">${r.cpp}\u00A2/pt</div>` : ''}
+              ${r.cashPrice ? `<div class="row-cash" data-flight-id="${r.origin}-${r.destination}-${(r.airline||'').replace(/\s+/g,'-')}-${r.stops}">~$${r.cashPrice.toLocaleString()} cash</div>` : ''}
+              ${r.cpp ? `<div class="row-cpp ${cppClass}" data-points="${r.points || 0}" data-taxes="${r.taxes || 0}">${r.cpp}\u00A2/pt</div>` : ''}
               ${r.bookingUrl ? `<a href="${r.bookingUrl}" target="_blank" class="row-book">Book \u2192</a>` : ''}
             </div>
           </div>`;
@@ -625,6 +645,99 @@
       document.getElementById('liveScrapePanel').style.display = 'none';
       search();
     });
+
+    // ── Async cash price update ─────────────────────────────────
+
+    const AIRLINE_NORMALIZE = {
+      'All Nippon Airways': 'ANA', 'All Nippon': 'ANA',
+      'Japan Airlines': 'JAL', 'Cathay Pacific Airways': 'Cathay Pacific',
+      'Delta Air Lines': 'Delta Air Lines', 'Korean Air Lines': 'Korean Air',
+      'EVA Airways': 'EVA Air', 'KLM Royal Dutch Airlines': 'KLM',
+      'Swiss International Air Lines': 'SWISS',
+      'Scandinavian Airlines': 'SAS', 'Etihad Airways': 'Etihad Airways',
+    };
+
+    function normAirline(name) {
+      if (!name) return '';
+      if (AIRLINE_NORMALIZE[name]) return AIRLINE_NORMALIZE[name];
+      return name;
+    }
+
+    let cashPriceFetched = false;
+
+    async function fetchCashPrices() {
+      if (cashPriceFetched || allResults.length === 0) return;
+
+      // Get unique dates from results, use first one
+      const dates = [...new Set(allResults.map(r => r.departureDate).filter(Boolean))];
+      if (dates.length === 0) return;
+
+      cashPriceFetched = true;
+
+      for (const date of dates) {
+        try {
+          const resp = await fetch(
+            `/api/flights/cash-prices?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&date=${encodeURIComponent(date)}&class=${encodeURIComponent(cabin)}`
+          );
+          if (!resp.ok) continue;
+          const data = await resp.json();
+          if (!data.cashFlights || data.cashFlights.length === 0) continue;
+
+          // Build a lookup: normalized airline + stops → cheapest cash price
+          const cashLookup = new Map();
+          for (const cf of data.cashFlights) {
+            const key = `${normAirline(cf.airline)}-${cf.stops}`;
+            const existing = cashLookup.get(key);
+            if (!existing || cf.cashPrice < existing.cashPrice) {
+              cashLookup.set(key, cf);
+            }
+          }
+
+          // Also build a "any airline with same stops" fallback by stops only
+          const stopsFallback = new Map();
+          for (const cf of data.cashFlights) {
+            const existing = stopsFallback.get(cf.stops);
+            if (!existing || cf.cashPrice < existing.cashPrice) {
+              stopsFallback.set(cf.stops, cf);
+            }
+          }
+
+          // Update displayed cards
+          document.querySelectorAll('.row-cash').forEach(el => {
+            const flightId = el.getAttribute('data-flight-id') || '';
+            const parts = flightId.split('-');
+            // flightId format: ORIGIN-DEST-AIRLINE-STOPS
+            if (parts.length < 4) return;
+            const cardAirline = parts.slice(2, -1).join(' ');
+            const cardStops = parseInt(parts[parts.length - 1]) || 0;
+
+            const matchKey = `${normAirline(cardAirline)}-${cardStops}`;
+            const match = cashLookup.get(matchKey) || stopsFallback.get(cardStops);
+
+            if (match && match.cashPrice > 0) {
+              el.textContent = `$${match.cashPrice.toLocaleString()} cash`;
+              el.classList.add('real-price');
+              el.classList.remove('loading-price');
+
+              // Recalculate CPP on the sibling
+              const cppEl = el.parentElement?.querySelector('.row-cpp');
+              if (cppEl) {
+                const points = parseFloat(cppEl.getAttribute('data-points') || '0');
+                const taxes = parseFloat(cppEl.getAttribute('data-taxes') || '0');
+                if (points > 0) {
+                  const newCpp = Math.round(((match.cashPrice * 100 - taxes * 100) / points) * 10) / 10;
+                  const rating = newCpp >= 3.0 ? 'hot' : newCpp >= 1.5 ? 'good' : 'fair';
+                  cppEl.textContent = newCpp + '\u00A2/pt';
+                  cppEl.className = 'row-cpp ' + rating;
+                }
+              }
+            }
+          });
+        } catch (err) {
+          console.warn('[CashPrices] Failed to fetch for date', date, err);
+        }
+      }
+    }
 
     search();
   </script>

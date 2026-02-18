@@ -24,11 +24,13 @@ import {
   findPartnerForSource,
   estimateCashPrice,
   getBookingUrl,
+  normalizeAirlineName,
 } from './monitor.js';
 import { atomicWriteFile } from './utils.js';
 import { getSweetSpotsByTier, getSweetSpotsForProgram, SWEET_SPOTS } from './sweet-spots.js';
 import { runLiveScrape, canStartLiveScrape } from './live-scraper.js';
-import type { FlightResult } from './types.js';
+import type { FlightResult, SearchParams } from './types.js';
+import { searchGoogleFlights } from './scrapers/google-flights.js';
 
 const app = express();
 app.use(cors());
@@ -38,6 +40,9 @@ const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '../../data');
 const CACHE_FILE = process.env.WEB_CACHE_PATH || path.join(DATA_DIR, 'flight-cache.json');
 const SIGNUPS_FILE = path.join(DATA_DIR, 'flight-signups.json');
 const PUBLIC_DIR = path.join(__dirname, '../../web/public');
+
+// Sources that are chart estimates, not confirmed availability — never show to users
+const NON_BOOKABLE_SOURCES = new Set(['ana-estimated', 'ana-chart']);
 
 // ── Shared enrichment helper ─────────────────────────────────
 
@@ -67,6 +72,7 @@ function enrichFlightResult(
     f.origin,
     f.destination,
     f.departureDate,
+    f.cabin,
   );
 
   return {
@@ -92,6 +98,7 @@ function enrichFlightResult(
     programDisplay: transferTarget,
     transferPath,
     cashPrice,
+    cashPriceSource: 'estimate',
     cpp,
     dealRating: computeDealRating(cppVal),
     direct: f.stops === 0,
@@ -175,6 +182,7 @@ app.get('/api/flights/search', (req, res) => {
 
   const enriched = rawFlights
     .filter(f => f.pointsRequired && f.pointsRequired > 0)
+    .filter(f => !NON_BOOKABLE_SOURCES.has(f.source))
     .map(f => enrichFlightResult(f, programSlug, partners, programName));
 
   // Sort by CPP descending (best deals first)
@@ -226,6 +234,58 @@ app.post('/api/flights/signup', async (req, res) => {
 
   await atomicWriteFile(SIGNUPS_FILE, JSON.stringify(signups, null, 2));
   res.json({ ok: true });
+});
+
+// ── GET /api/flights/deals ───────────────────────────────────
+app.get('/api/flights/deals', (req, res) => {
+  const programSlug = (req.query.program as string) || 'amex-mr';
+
+  // Read entire flight cache
+  let cache: { version?: number; entries: Record<string, any>; lastUpdated?: string } = { entries: {} };
+  try {
+    if (fs.existsSync(CACHE_FILE)) {
+      cache = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf-8'));
+    }
+  } catch { /* proceed with empty */ }
+
+  // Collect ALL award flights from every cache entry (skip non-bookable estimates)
+  const rawFlights: any[] = [];
+  for (const entry of Object.values(cache.entries)) {
+    for (const f of (entry.awardFlights || [])) {
+      if (f.pointsRequired && f.pointsRequired > 0 && !NON_BOOKABLE_SOURCES.has(f.source)) {
+        rawFlights.push(f);
+      }
+    }
+  }
+
+  // Enrich with transfer partner info
+  const partners = getTransferPartnersForProgram(programSlug);
+  const programName = POINTS_PROGRAMS.find(p => p.slug === programSlug)?.name || programSlug;
+
+  const enriched = rawFlights
+    .map(f => enrichFlightResult(f, programSlug, partners, programName))
+    .filter(f => f.dealRating === 'hot' || f.dealRating === 'good');
+
+  // Deduplicate by route+cabin+airline — keep best CPP per combo
+  const deduped = new Map<string, any>();
+  for (const f of enriched) {
+    const key = `${f.origin}-${f.destination}-${f.cabin}-${f.airline}`;
+    const existing = deduped.get(key);
+    if (!existing || (f.cpp || 0) > (existing.cpp || 0)) {
+      deduped.set(key, f);
+    }
+  }
+
+  // Sort by CPP descending, limit to top 20
+  const deals = Array.from(deduped.values())
+    .sort((a, b) => (b.cpp || 0) - (a.cpp || 0))
+    .slice(0, 20);
+
+  res.json({
+    deals,
+    lastUpdated: cache.lastUpdated || null,
+    totalCached: rawFlights.length,
+  });
 });
 
 // ── GET /api/flights/sweet-spots ─────────────────────────────
@@ -301,6 +361,45 @@ app.get('/api/flights/routes', (_req, res) => {
   });
 });
 
+// ── GET /api/flights/cash-prices ─────────────────────────────
+
+app.get('/api/flights/cash-prices', async (req, res) => {
+  const origin = ((req.query.from as string) || '').trim().toUpperCase();
+  const destination = ((req.query.to as string) || '').trim().toUpperCase();
+  const date = (req.query.date as string) || '';
+  const cabinRaw = (req.query.class as string) || 'business';
+
+  if (!origin || !destination || !date) {
+    return res.status(400).json({ error: 'Missing from, to, or date parameters' });
+  }
+
+  const cabinMap: Record<string, string> = {
+    business: 'business', first: 'first', economy: 'economy',
+    'Business': 'business', 'First': 'first', 'Economy': 'economy',
+    'any': 'business',
+  };
+  const cabin = (cabinMap[cabinRaw] || 'business') as 'economy' | 'business' | 'first';
+
+  try {
+    const params: SearchParams = { origin, destination, date, cabin };
+    const results = await searchGoogleFlights(params);
+
+    const cashFlights = results.map(r => ({
+      airline: normalizeAirlineName(r.airline),
+      cashPrice: r.cashPrice,
+      departureTime: r.departureTime,
+      arrivalTime: r.arrivalTime,
+      duration: r.duration,
+      stops: r.stops,
+    }));
+
+    res.json({ cashFlights, source: 'google-flights', origin, destination, date, cabin });
+  } catch (err: any) {
+    console.error('[CashPrices] Error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch cash prices', message: err.message });
+  }
+});
+
 // ── GET /api/flights/live-search (SSE) ──────────────────────
 
 app.get('/api/flights/live-search', (req, res) => {
@@ -372,7 +471,7 @@ app.get('/api/flights/live-search', (req, res) => {
     },
     onResult(flight) {
       liveResults.push(flight);
-      if (flight.pointsRequired && flight.pointsRequired > 0) {
+      if (flight.pointsRequired && flight.pointsRequired > 0 && !NON_BOOKABLE_SOURCES.has(flight.source)) {
         const enriched = enrichFlightResult(flight, programSlug, partners, programName);
         sendEvent('result', { flight: enriched });
       }
