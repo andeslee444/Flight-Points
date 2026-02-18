@@ -4,4 +4,7 @@ __pycache__/
 *.pyc
 data/
 config/keys/
+config/airline-accounts.json
 dist/
+.venv/
+logs/

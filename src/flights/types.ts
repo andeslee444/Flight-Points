@@ -36,6 +36,18 @@ export interface FlightResult {
   // Metadata
   scrapedAt: string;
   bookingUrl?: string;
+
+  // Extended fields (populated by monitor/daemon, optional for scrapers)
+  id?: string;
+  cabinDisplay?: string;
+  program?: string;
+  programDisplay?: string;
+  transferPath?: string;
+  cpp?: number;
+  dealRating?: 'hot' | 'good' | 'fair' | 'unknown';
+  direct?: boolean;
+  route?: string;
+  lastSeen?: string;
 }
 
 export interface PriceHistory {

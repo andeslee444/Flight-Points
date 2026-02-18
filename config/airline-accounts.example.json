@@ -1,0 +1,23 @@
+{
+  "ana": {
+    "airline": "ANA Mileage Club",
+    "membership_number": "",
+    "email": "",
+    "web_password": "",
+    "amc_password": "",
+    "name": "",
+    "phone": "",
+    "member_since": "",
+    "notes": ""
+  },
+  "krisflyer": {
+    "airline": "Singapore Airlines KrisFlyer",
+    "membership_number": "",
+    "email": "",
+    "password": "",
+    "name": "",
+    "phone": "",
+    "member_since": "",
+    "notes": ""
+  }
+}

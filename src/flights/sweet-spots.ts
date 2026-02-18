@@ -11,6 +11,8 @@
  * Created: 2026-02-16
  */
 
+import { EUROPE_AIRPORTS, JAPAN_AIRPORTS } from './airports.js';
+
 export interface SweetSpotEntry {
   id: string;
   route: string;              // Origin-Destination or wildcard (e.g., '*-NRT', 'JFK-DOH')
@@ -431,15 +433,13 @@ export function getSweetSpotsForProgram(creditCardProgram: string): SweetSpotEnt
   );
 }
 
-// Helpers
+// Helpers — delegate to shared airport sets
 function isEuropean(code: string): boolean {
-  const euAirports = ['LHR', 'CDG', 'FRA', 'MUC', 'FCO', 'BCN', 'MAD', 'AMS', 'ZRH', 'VIE', 'IST', 'ATH', 'LIS', 'CPH', 'ARN', 'HEL', 'OSL', 'DUB', 'BRU', 'GVA'];
-  return euAirports.includes(code);
+  return EUROPE_AIRPORTS.has(code);
 }
 
 function isJapanese(code: string): boolean {
-  const jpAirports = ['NRT', 'HND', 'KIX', 'NGO', 'FUK', 'CTS', 'OKA'];
-  return jpAirports.includes(code);
+  return JAPAN_AIRPORTS.has(code);
 }
 
 export default { SWEET_SPOTS, matchSweetSpots, getSweetSpotsByTier, getSweetSpotsForProgram };

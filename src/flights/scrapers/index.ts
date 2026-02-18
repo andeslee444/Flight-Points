@@ -142,9 +142,6 @@ export const SCRAPER_REGISTRY: Record<string, ScraperEntry> = {
   },
 };
 
-// Also export as SCRAPERS for backward compat
-export const SCRAPERS = SCRAPER_REGISTRY;
-
 // ============================================================
 // ALLIANCE → SCRAPER MAPPING
 // ============================================================
@@ -280,4 +277,4 @@ export function getScraperStatus(): Record<string, { name: string; status: strin
   return status;
 }
 
-export default { SCRAPER_REGISTRY, getScraperForPartner, getScrapersForProgram, searchAll, deduplicateResults };
+export default { SCRAPER_REGISTRY, getScraperForPartner, getScrapersForProgram, searchAll, deduplicateResults, getScraperStatus };

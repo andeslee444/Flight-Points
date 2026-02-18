@@ -3,175 +3,543 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Flight Results — Harbor Flights 🐙✈️</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <title>Flight Results — Flight Points</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Sacramento&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --accent: #3b82f6; --accent-dim: #2563eb; --accent-glow: rgba(59,130,246,0.15);
-      --bg: #0a0a0a; --bg-card: #141414; --bg-card-hover: #1a1a1a;
-      --border: #222; --text: #e5e5e5; --text-dim: #888; --text-bright: #fff;
-      --green: #22c55e; --red: #ef4444; --orange: #f59e0b;
+    /* ── Page header ─────────────────────────────────────── */
+    .page-header {
+      padding: 28px 0 20px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
     }
-    body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; -webkit-font-smoothing: antialiased; }
-    .container { max-width: 1000px; margin: 0 auto; padding: 0 24px; }
+    .page-header-left { flex: 1; }
+    .back-link {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 6px;
+      transition: color 0.15s;
+    }
+    .back-link:hover { color: var(--accent); text-decoration: none; }
+    .route-display {
+      font-family: var(--font-serif);
+      font-size: 2rem;
+      font-weight: 400;
+      color: var(--text-bright);
+      letter-spacing: -0.01em;
+    }
+    .route-chips {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+    .chip {
+      font-size: 0.7rem;
+      font-weight: 500;
+      padding: 3px 9px;
+      border-radius: var(--radius-pill);
+      background: var(--bg-elevated);
+      color: var(--text-dim);
+      letter-spacing: 0.02em;
+    }
+    .chip-accent { background: var(--accent-glow); color: var(--accent); }
 
-    /* Header */
-    .header { padding: 40px 0 24px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
-    .header h1 { font-size: 1.5rem; font-weight: 700; color: var(--text-bright); }
-    .header h1 .accent { color: var(--accent); }
-    .header .route { font-size: 2rem; font-weight: 800; color: var(--text-bright); margin: 8px 0; }
-    .header .meta { color: var(--text-dim); font-size: 0.9rem; display: flex; gap: 16px; flex-wrap: wrap; }
-    .header .meta span { display: flex; align-items: center; gap: 4px; }
-    .back-link { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
-    .back-link:hover { text-decoration: underline; }
-
-    /* Status bar */
-    .status-bar { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; margin-bottom: 24px; display: flex; align-items: center; gap: 12px; }
-    .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+    /* ── Status line (subtle, no box) ────────────────────── */
+    .status-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 16px;
+    }
+    .status-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
     .status-dot.loading { background: var(--orange); animation: pulse 1.5s infinite; }
     .status-dot.done { background: var(--green); }
     .status-dot.error { background: var(--red); }
-    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
-    .status-text { flex: 1; font-size: 0.85rem; color: var(--text-dim); }
+    .status-text { font-size: 0.78rem; color: var(--text-dim); }
 
-    /* Controls */
-    .controls { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; align-items: center; }
-    .controls select, .controls button {
-      background: var(--bg-card); border: 1px solid var(--border); color: var(--text);
-      padding: 8px 12px; border-radius: 6px; font-size: 0.85rem; cursor: pointer;
+    /* ── Controls (minimal) ──────────────────────────────── */
+    .controls {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      align-items: center;
     }
-    .controls select:hover, .controls button:hover { border-color: var(--accent); }
-    .controls label { font-size: 0.85rem; color: var(--text-dim); display: flex; align-items: center; gap: 6px; }
-    .result-count { margin-left: auto; color: var(--text-dim); font-size: 0.85rem; }
-
-    /* Results */
-    .results { display: flex; flex-direction: column; gap: 12px; }
-    .result-card {
-      background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;
-      padding: 20px; transition: border-color 0.2s;
+    .controls select {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 6px 10px;
+      border-radius: var(--radius-pill);
+      font-size: 0.78rem;
+      color: var(--text);
+      cursor: pointer;
+      transition: border-color 0.15s;
+      -webkit-appearance: none;
+      appearance: none;
+      padding-right: 24px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23999'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
     }
-    .result-card:hover { border-color: #333; }
-    .result-card.hot { border-left: 3px solid var(--red); }
-    .result-card.good { border-left: 3px solid var(--green); }
-    .result-card.fair { border-left: 3px solid var(--orange); }
-
-    .result-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
-    .result-airline { font-weight: 700; font-size: 1.1rem; color: var(--text-bright); }
-    .result-badge { font-size: 0.75rem; font-weight: 600; padding: 4px 8px; border-radius: 4px; }
-    .result-badge.hot { background: rgba(239,68,68,0.15); color: var(--red); }
-    .result-badge.good { background: rgba(34,197,94,0.15); color: var(--green); }
-    .result-badge.fair { background: rgba(245,158,11,0.15); color: var(--orange); }
-
-    .result-details { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 12px; }
-    .result-detail label { display: block; font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
-    .result-detail .value { font-weight: 600; color: var(--text-bright); font-size: 0.95rem; }
-    .result-detail .value.pts { color: var(--accent); }
-    .result-detail .value.cpp { font-size: 1.1rem; }
-
-    .result-transfer {
-      background: var(--accent-glow); border: 1px solid rgba(59,130,246,0.2); border-radius: 6px;
-      padding: 8px 12px; font-size: 0.85rem; color: var(--accent); margin-bottom: 12px;
+    .controls select:hover { border-color: var(--border-hover); }
+    .controls select:focus { border-color: var(--accent); outline: none; }
+    .controls label {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
     }
-    .result-actions { display: flex; gap: 8px; }
-    .result-actions a {
-      background: var(--accent); color: #fff; text-decoration: none; padding: 8px 16px;
-      border-radius: 6px; font-size: 0.85rem; font-weight: 600; transition: background 0.2s;
+    .controls input[type="checkbox"] { accent-color: var(--accent); width: 13px; height: 13px; }
+    .result-count { margin-left: auto; color: var(--text-dim); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
+
+    /* ── Results list ────────────────────────────────────── */
+    .results { display: flex; flex-direction: column; padding-bottom: 40px; }
+
+    /* ── Result row ──────────────────────────────────────── */
+    .result-row {
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: start;
+      transition: background 0.15s;
     }
-    .result-actions a:hover { background: var(--accent-dim); }
-    .result-actions a.secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
-    .result-actions a.secondary:hover { border-color: var(--accent); color: var(--accent); }
+    .result-row:first-child { padding-top: 4px; }
+    .result-row:hover { background: rgba(255,255,255,0.015); margin: 0 -24px; padding-left: 24px; padding-right: 24px; }
 
-    /* Empty state */
-    .empty { text-align: center; padding: 80px 20px; }
-    .empty .icon { font-size: 3rem; margin-bottom: 16px; }
-    .empty h3 { color: var(--text-bright); margin-bottom: 8px; }
-    .empty p { color: var(--text-dim); max-width: 400px; margin: 0 auto; }
+    /* Left content */
+    .row-main { min-width: 0; }
+    .row-headline {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .row-airline {
+      font-weight: 600;
+      font-size: 0.88rem;
+      color: var(--text-bright);
+    }
+    .row-flight-num {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+    }
+    .row-cabin-badge {
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 1px 6px;
+      border-radius: 3px;
+      background: var(--bg-elevated);
+      color: var(--text-dim);
+    }
 
-    /* No API key warning */
-    .warning-box { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); border-radius: 8px; padding: 16px; margin-bottom: 24px; }
-    .warning-box h4 { color: var(--orange); margin-bottom: 4px; }
-    .warning-box p { color: var(--text-dim); font-size: 0.85rem; }
-    .warning-box code { background: var(--bg); padding: 2px 6px; border-radius: 3px; font-size: 0.8rem; }
+    .row-details {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      margin-top: 3px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+    .row-details .sep { opacity: 0.3; font-size: 0.6rem; }
+    .row-details .val { color: var(--text); font-weight: 500; }
+
+    .row-transfer {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      margin-top: 4px;
+      opacity: 0.7;
+    }
+    .row-transfer span { color: var(--accent); opacity: 1; }
+
+    /* Right content — points + value */
+    .row-price {
+      text-align: right;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 3px;
+      flex-shrink: 0;
+      padding-top: 1px;
+    }
+    .row-points {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: var(--text-bright);
+      letter-spacing: -0.02em;
+      font-variant-numeric: tabular-nums;
+    }
+    .row-cpp {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 1px 7px;
+      border-radius: var(--radius-pill);
+    }
+    .row-cpp.hot { background: var(--red-soft); color: var(--red); }
+    .row-cpp.good { background: var(--green-soft); color: var(--green); }
+    .row-cpp.fair { background: var(--orange-soft); color: var(--orange); }
+    .row-cpp.unknown { background: var(--bg-elevated); color: var(--text-dim); }
+    .row-book {
+      font-size: 0.72rem;
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 500;
+      margin-top: 2px;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .result-row:hover .row-book { opacity: 1; }
+    .row-book:hover { text-decoration: underline; }
+
+    /* ── Empty state ─────────────────────────────────────── */
+    .empty-state {
+      text-align: center;
+      padding: 64px 20px;
+    }
+    .empty-state h3 {
+      font-family: var(--font-serif);
+      font-size: 1.15rem;
+      font-weight: 400;
+      margin-bottom: 6px;
+    }
+    .empty-state p { color: var(--text-dim); max-width: 380px; margin: 0 auto; font-size: 0.85rem; line-height: 1.5; }
+
+    /* ── Skeleton ────────────────────────────────────────── */
+    .skeleton-row { height: 56px; margin-bottom: 2px; }
+
+    /* ── Live scrape panel ───────────────────────────────── */
+    .live-panel {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      margin-bottom: 20px;
+      background: var(--bg-card);
+    }
+    .live-panel-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .live-panel-header .live-spinner {
+      width: 14px; height: 14px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    .live-panel-title { font-weight: 600; color: var(--text-bright); font-size: 0.85rem; }
+    .live-panel-timer { margin-left: auto; font-size: 0.75rem; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+
+    .scraper-list { margin-top: 10px; }
+    .scraper-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 0;
+      font-size: 0.78rem;
+    }
+    .scraper-row + .scraper-row { border-top: 1px solid rgba(255,255,255,0.04); }
+    .scraper-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .scraper-dot.running { background: var(--orange); animation: pulse 1.5s infinite; }
+    .scraper-dot.done { background: var(--green); }
+    .scraper-dot.error { background: var(--red); }
+    .scraper-dot.skipped { background: var(--text-dim); opacity: 0.4; }
+    .scraper-name { font-weight: 600; color: var(--text); min-width: 140px; }
+    .scraper-message { color: var(--text-dim); flex: 1; }
   </style>
 </head>
 <body>
+
+  <!-- Nav -->
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/flights" class="nav-logo">flight points</a>
+      <div class="nav-links">
+        <a href="/flights">Flights</a>
+        <a href="/flights#sweet-spots">Sweet Spots</a>
+        <a href="/flights#alerts" class="nav-cta">search flights</a>
+      </div>
+    </div>
+  </nav>
+
   <div class="container">
-    <div class="header">
-      <a href="/flights" class="back-link">← Back to Harbor Flights</a>
-      <h1>🐙✈️ Harbor <span class="accent">Flights</span></h1>
-      <div class="route" id="routeDisplay">Loading...</div>
-      <div class="meta" id="metaDisplay"></div>
+    <!-- Header -->
+    <div class="page-header">
+      <div class="page-header-left">
+        <a href="/flights" class="back-link">&larr; Search</a>
+        <div class="route-display" id="routeDisplay">Loading...</div>
+        <div class="route-chips" id="routeChips"></div>
+      </div>
     </div>
 
-    <div class="status-bar" id="statusBar">
+    <!-- Status -->
+    <div class="status-line" id="statusBar">
       <div class="status-dot loading" id="statusDot"></div>
-      <div class="status-text" id="statusText">Searching for award availability...</div>
+      <div class="status-text" id="statusText">Searching cache...</div>
     </div>
 
-    <div id="warningBox" style="display:none" class="warning-box">
-      <h4>⚠️ No seats.aero API Key</h4>
-      <p>To get real award flight data, add your seats.aero Pro API key ($9.99/mo) to <code>.env</code>:<br>
-      <code>SEATS_AERO_API_KEY=pro_your_key_here</code></p>
+    <!-- Live Scrape Progress -->
+    <div id="liveScrapePanel" class="live-panel" style="display:none;">
+      <div class="live-panel-header">
+        <div class="live-spinner" id="liveSpinner"></div>
+        <span class="live-panel-title">Live search</span>
+        <span class="live-panel-timer" id="liveTimer">0s</span>
+      </div>
+      <div class="scraper-list" id="scraperStatusList"></div>
     </div>
 
-    <div class="controls" id="controls" style="display:none">
+    <!-- Controls -->
+    <div class="controls" id="controls" style="display:none;">
       <select id="sortBy">
-        <option value="cpp">Sort: Best Value (CPP)</option>
-        <option value="points">Sort: Lowest Points</option>
-        <option value="date">Sort: Date</option>
+        <option value="cpp">Best value</option>
+        <option value="points">Lowest points</option>
+        <option value="date">Date</option>
       </select>
       <select id="cabinFilter">
-        <option value="all">All Cabins</option>
-        <option value="first">First Class</option>
+        <option value="all">All cabins</option>
+        <option value="first">First</option>
         <option value="business">Business</option>
-        <option value="premium_economy">Premium Economy</option>
+        <option value="premium_economy">Premium Econ</option>
         <option value="economy">Economy</option>
+      </select>
+      <select id="programSwitcher">
+        <option value="amex-mr">Amex MR</option>
+        <option value="chase-ur">Chase UR</option>
+        <option value="capital-one">Capital One</option>
+        <option value="citi-typ">Citi TYP</option>
+        <option value="bilt">Bilt</option>
+        <option value="wells-fargo">Wells Fargo</option>
       </select>
       <label><input type="checkbox" id="directOnly"> Direct only</label>
       <span class="result-count" id="resultCount"></span>
     </div>
 
-    <div class="results" id="results"></div>
+    <!-- Results -->
+    <div class="results" id="results">
+      <div class="skeleton skeleton-row"></div>
+      <div class="skeleton skeleton-row"></div>
+      <div class="skeleton skeleton-row"></div>
+      <div class="skeleton skeleton-row"></div>
+    </div>
   </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-links">
+        <a href="/flights">Flights</a>
+      </div>
+      <p class="footer-tagline">powered by flight points</p>
+    </div>
+  </footer>
 
   <script>
     const params = new URLSearchParams(window.location.search);
     const from = params.get('from') || 'JFK';
     const to = params.get('to') || 'NRT';
     const cabin = params.get('class') || 'any';
-    const program = params.get('program') || 'amex-mr';
+    let program = params.get('program') || 'amex-mr';
 
-    document.getElementById('routeDisplay').textContent = `${from} → ${to}`;
-    document.getElementById('metaDisplay').innerHTML = `
-      <span>🪑 ${cabin === 'any' ? 'Any Cabin' : cabin.charAt(0).toUpperCase() + cabin.slice(1)}</span>
-      <span>💳 ${program.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
-    `;
+    document.getElementById('routeDisplay').textContent = `${from} \u2192 ${to}`;
+
+    const cabinLabel = cabin === 'any' ? 'Any cabin' : cabin.charAt(0).toUpperCase() + cabin.slice(1);
+    const programLabels = {
+      'amex-mr': 'Amex MR', 'chase-ur': 'Chase UR', 'capital-one': 'Capital One',
+      'citi-typ': 'Citi TYP', 'bilt': 'Bilt', 'wells-fargo': 'Wells Fargo'
+    };
+    const programLabel = programLabels[program] || program;
+
+    document.getElementById('routeChips').innerHTML =
+      `<span class="chip chip-accent">${cabinLabel}</span><span class="chip">${programLabel}</span>`;
+
+    const switcher = document.getElementById('programSwitcher');
+    switcher.value = program;
 
     let allResults = [];
+    let liveScrapeActive = false;
+    let liveEventSource = null;
+    let liveTimerInterval = null;
+
+    // ── Cache search ──────────────────────────────────────────
 
     async function search() {
       try {
         const resp = await fetch(`/api/flights/search?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&class=${encodeURIComponent(cabin)}&program=${encodeURIComponent(program)}`);
         const data = await resp.json();
 
-        if (data.warning) {
-          document.getElementById('warningBox').style.display = 'block';
+        allResults = data.results || [];
+        const dot = document.getElementById('statusDot');
+        const text = document.getElementById('statusText');
+
+        if (allResults.length === 0) {
+          dot.className = 'status-dot loading';
+          text.textContent = 'No cached results \u2014 starting live search...';
+          document.getElementById('results').innerHTML = '';
+          startLiveScrape();
+          return;
         }
 
-        allResults = data.results || [];
-        document.getElementById('statusDot').className = 'status-dot done';
-        document.getElementById('statusText').textContent = 
-          `Found ${allResults.length} result(s) • Source: ${data.source || 'seats.aero'} • Last updated: ${new Date().toLocaleTimeString()}`;
-        
-        if (allResults.length > 0) {
-          document.getElementById('controls').style.display = 'flex';
-        }
+        dot.className = 'status-dot done';
+        const lastUp = data.lastUpdated ? new Date(data.lastUpdated).toLocaleTimeString() : 'now';
+        text.textContent = `${allResults.length} results \u00B7 cached ${lastUp}`;
+        document.getElementById('controls').style.display = 'flex';
         renderResults();
       } catch (err) {
         document.getElementById('statusDot').className = 'status-dot error';
-        document.getElementById('statusText').textContent = `Error: ${err.message}`;
+        document.getElementById('statusText').textContent = err.message;
+        document.getElementById('results').innerHTML = '';
       }
+    }
+
+    // ── Live scrape via SSE ───────────────────────────────────
+
+    function startLiveScrape() {
+      if (liveScrapeActive) return;
+      liveScrapeActive = true;
+
+      const panel = document.getElementById('liveScrapePanel');
+      panel.style.display = 'block';
+      document.getElementById('scraperStatusList').innerHTML = '';
+      document.getElementById('results').innerHTML = '';
+
+      const startTime = Date.now();
+      liveTimerInterval = setInterval(() => {
+        const elapsed = Math.round((Date.now() - startTime) / 1000);
+        document.getElementById('liveTimer').textContent = elapsed + 's';
+      }, 1000);
+
+      const qs = `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&class=${encodeURIComponent(cabin)}&program=${encodeURIComponent(program)}`;
+      liveEventSource = new EventSource(`/api/flights/live-search?${qs}`);
+
+      liveEventSource.addEventListener('scraper-started', (e) => {
+        const d = JSON.parse(e.data);
+        addOrUpdateScraperRow(d.scraper, d.name, 'running', 'Starting...');
+      });
+
+      liveEventSource.addEventListener('scraper-progress', (e) => {
+        const d = JSON.parse(e.data);
+        addOrUpdateScraperRow(d.scraper, null, 'running', d.message);
+      });
+
+      liveEventSource.addEventListener('result', (e) => {
+        const d = JSON.parse(e.data);
+        allResults.push(d.flight);
+        document.getElementById('controls').style.display = 'flex';
+        renderResults();
+        document.getElementById('statusText').textContent =
+          `${allResults.length} results so far \u00B7 searching...`;
+      });
+
+      liveEventSource.addEventListener('scraper-done', (e) => {
+        const d = JSON.parse(e.data);
+        addOrUpdateScraperRow(d.scraper, d.name, 'done', `${d.resultCount} found`);
+      });
+
+      liveEventSource.addEventListener('scraper-error', (e) => {
+        const d = JSON.parse(e.data);
+        addOrUpdateScraperRow(d.scraper, d.name, 'error', d.error);
+      });
+
+      liveEventSource.addEventListener('scraper-skipped', (e) => {
+        const d = JSON.parse(e.data);
+        addOrUpdateScraperRow(d.scraper, d.name, 'skipped', d.reason);
+      });
+
+      liveEventSource.addEventListener('complete', (e) => {
+        const d = JSON.parse(e.data);
+        finishLiveScrape(d, startTime);
+      });
+
+      liveEventSource.addEventListener('search-error', (e) => {
+        const d = JSON.parse(e.data);
+        document.getElementById('statusDot').className = 'status-dot error';
+        document.getElementById('statusText').textContent = d.message || 'Live search error';
+        cleanupLiveScrape();
+      });
+
+      liveEventSource.onerror = () => {
+        if (!liveScrapeActive) return;
+        if (liveEventSource.readyState === EventSource.CLOSED) {
+          cleanupLiveScrape();
+        }
+      };
+    }
+
+    function finishLiveScrape(summary, startTime) {
+      const elapsed = Math.round((Date.now() - startTime) / 1000);
+      document.getElementById('statusDot').className = 'status-dot done';
+      document.getElementById('statusText').textContent =
+        `${summary.totalResults} results \u00B7 live search \u00B7 ${elapsed}s`;
+
+      const spinner = document.getElementById('liveSpinner');
+      spinner.style.animation = 'none';
+      spinner.style.borderColor = 'var(--green)';
+      document.querySelector('.live-panel-title').textContent = 'Search complete';
+
+      if (allResults.length > 0) {
+        document.getElementById('controls').style.display = 'flex';
+      }
+      renderResults();
+      cleanupLiveScrape();
+    }
+
+    function cleanupLiveScrape() {
+      liveScrapeActive = false;
+      if (liveEventSource) { liveEventSource.close(); liveEventSource = null; }
+      if (liveTimerInterval) { clearInterval(liveTimerInterval); liveTimerInterval = null; }
+    }
+
+    function addOrUpdateScraperRow(key, name, status, message) {
+      const list = document.getElementById('scraperStatusList');
+      let row = document.getElementById('scraper-' + key);
+      if (!row) {
+        row = document.createElement('div');
+        row.id = 'scraper-' + key;
+        row.className = 'scraper-row';
+        row.innerHTML = `
+          <div class="scraper-dot ${status}"></div>
+          <span class="scraper-name">${name || key}</span>
+          <span class="scraper-message">${message}</span>`;
+        list.appendChild(row);
+      } else {
+        row.querySelector('.scraper-dot').className = 'scraper-dot ' + status;
+        if (name) row.querySelector('.scraper-name').textContent = name;
+        row.querySelector('.scraper-message').textContent = message;
+      }
+    }
+
+    // ── Render results ────────────────────────────────────────
+
+    function formatDate(d) {
+      if (!d) return '';
+      try {
+        const dt = new Date(d + 'T00:00:00');
+        return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      } catch { return d; }
     }
 
     function renderResults() {
@@ -185,72 +553,78 @@
 
       if (sort === 'cpp') filtered.sort((a, b) => (b.cpp || 0) - (a.cpp || 0));
       else if (sort === 'points') filtered.sort((a, b) => a.points - b.points);
-      else if (sort === 'date') filtered.sort((a, b) => a.departureDate.localeCompare(b.departureDate));
+      else if (sort === 'date') filtered.sort((a, b) => (a.departureDate || '').localeCompare(b.departureDate || ''));
 
-      document.getElementById('resultCount').textContent = `${filtered.length} result(s)`;
+      document.getElementById('resultCount').textContent = filtered.length + ' results';
 
       if (filtered.length === 0) {
-        document.getElementById('results').innerHTML = `
-          <div class="empty">
-            <div class="icon">🔍</div>
-            <h3>No results found</h3>
-            <p>${allResults.length === 0 
-              ? 'No award availability found for this route. This could mean no seats.aero API key is configured, or there\'s simply no availability right now.' 
-              : 'No results match your current filters. Try adjusting cabin or direct-only filter.'}</p>
-          </div>`;
+        if (liveScrapeActive) {
+          document.getElementById('results').innerHTML = '';
+        } else {
+          document.getElementById('results').innerHTML = `
+            <div class="empty-state">
+              <h3>${allResults.length === 0 ? 'No availability found' : 'No results match filters'}</h3>
+              <p>${allResults.length === 0
+                ? 'Try a different route, cabin, or date range.'
+                : 'Try adjusting the cabin or direct-only filter.'}</p>
+              ${allResults.length === 0 ? '<button class="btn" style="margin-top:16px;padding:8px 20px;font-size:0.85rem;" onclick="startLiveScrape()">Search again</button>' : ''}
+            </div>`;
+        }
         return;
       }
 
       document.getElementById('results').innerHTML = filtered.map(r => {
-        const ratingEmoji = r.dealRating === 'hot' ? '🔥' : r.dealRating === 'good' ? '✅' : '⚠️';
-        const ratingLabel = r.dealRating === 'hot' ? 'Hot Deal' : r.dealRating === 'good' ? 'Good Value' : 'Fair';
+        const cppClass = r.dealRating || 'unknown';
+        const stopsText = r.direct ? 'Nonstop' : r.stops > 0 ? `${r.stops} stop${r.stops > 1 ? 's' : ''}` : '';
+
+        const details = [
+          formatDate(r.departureDate),
+          r.departureTime ? `${r.departureTime}\u2013${r.arrivalTime || '?'}` : '',
+          stopsText,
+          r.duration || '',
+          r.taxes ? `$${r.taxes.toFixed(0)} tax` : '',
+        ].filter(Boolean);
+
+        const transferShort = r.programDisplay
+          ? `<span>${r.programDisplay}</span>`
+          : (r.source || '');
+
         return `
-          <div class="result-card ${r.dealRating}">
-            <div class="result-top">
-              <div>
-                <span class="result-airline">${r.airline} ${r.cabinDisplay}</span>
-                ${r.flightNumber ? `<span style="color:var(--text-dim);font-size:0.85rem;margin-left:8px">${r.flightNumber}</span>` : ''}
+          <div class="result-row">
+            <div class="row-main">
+              <div class="row-headline">
+                <span class="row-airline">${r.airline || 'Unknown'}</span>
+                ${r.flightNumber ? `<span class="row-flight-num">${r.flightNumber}</span>` : ''}
+                <span class="row-cabin-badge">${r.cabinDisplay || r.cabin || ''}</span>
               </div>
-              <span class="result-badge ${r.dealRating}">${ratingEmoji} ${ratingLabel}</span>
+              <div class="row-details">
+                ${details.map((d, i) => (i > 0 ? `<span class="sep">\u00B7</span>` : '') + `<span${i === 0 ? ' class="val"' : ''}>${d}</span>`).join('')}
+              </div>
+              <div class="row-transfer">${transferShort}</div>
             </div>
-            <div class="result-details">
-              <div class="result-detail">
-                <label>Date</label>
-                <div class="value">${r.departureDate}</div>
-              </div>
-              <div class="result-detail">
-                <label>Route</label>
-                <div class="value">${r.route} ${r.direct ? '✈️ Direct' : r.stops > 0 ? `(${r.stops} stop)` : ''}</div>
-              </div>
-              <div class="result-detail">
-                <label>Points Required</label>
-                <div class="value pts">${r.points.toLocaleString()} pts</div>
-              </div>
-              <div class="result-detail">
-                <label>Taxes/Fees</label>
-                <div class="value">$${(r.taxes || 0).toFixed(0)}</div>
-              </div>
-              <div class="result-detail">
-                <label>Cash Price Est.</label>
-                <div class="value">${r.cashPrice ? '$' + r.cashPrice.toLocaleString() : '—'}</div>
-              </div>
-              <div class="result-detail">
-                <label>Value (CPP)</label>
-                <div class="value cpp">${r.cpp ? r.cpp + '¢' : '—'}</div>
-              </div>
-            </div>
-            <div class="result-transfer">${r.transferPath}</div>
-            <div class="result-actions">
-              ${r.bookingUrl ? `<a href="${r.bookingUrl}" target="_blank">Book Now →</a>` : ''}
-              <a href="https://seats.aero/" target="_blank" class="secondary">View on seats.aero</a>
+            <div class="row-price">
+              <div class="row-points">${r.points ? r.points.toLocaleString() : '\u2014'}</div>
+              ${r.cpp ? `<div class="row-cpp ${cppClass}">${r.cpp}\u00A2/pt</div>` : ''}
+              ${r.bookingUrl ? `<a href="${r.bookingUrl}" target="_blank" class="row-book">Book \u2192</a>` : ''}
             </div>
           </div>`;
       }).join('');
     }
 
+    // ── Event listeners ───────────────────────────────────────
+
     document.getElementById('sortBy').addEventListener('change', renderResults);
     document.getElementById('cabinFilter').addEventListener('change', renderResults);
     document.getElementById('directOnly').addEventListener('change', renderResults);
+    document.getElementById('programSwitcher').addEventListener('change', () => {
+      program = switcher.value;
+      // Update chip
+      document.querySelector('.route-chips').innerHTML =
+        `<span class="chip chip-accent">${cabinLabel}</span><span class="chip">${programLabels[program] || program}</span>`;
+      cleanupLiveScrape();
+      document.getElementById('liveScrapePanel').style.display = 'none';
+      search();
+    });
 
     search();
   </script>

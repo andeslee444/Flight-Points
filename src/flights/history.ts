@@ -2,13 +2,16 @@
  * Flight Search History Storage
  * Saves every search result for price tracking over time.
  * Created: 2026-02-16
+ * Updated: 2026-02-17 — atomic writes, history pruning (90-day cutoff)
  */
 
 import * as fs from 'fs';
 import * as path from 'path';
 import { FlightResult, PriceHistory } from './types.js';
+import { atomicWriteFileSync } from './utils.js';
 
-const DATA_DIR = path.join(__dirname, '../../data/flight-history');
+const BASE_DIR = process.env.DATA_DIR || path.join(__dirname, '../../data');
+const DATA_DIR = path.join(BASE_DIR, 'flight-history');
 
 function ensureDir(): void {
   if (!fs.existsSync(DATA_DIR)) {
@@ -18,6 +21,16 @@ function ensureDir(): void {
 
 function getFilePath(route: string, cabin: string): string {
   return path.join(DATA_DIR, `${route}-${cabin}.json`);
+}
+
+/**
+ * Prune data points older than 90 days from a history object.
+ */
+function pruneHistory(history: PriceHistory): void {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 90);
+  const cutoffStr = cutoff.toISOString();
+  history.dataPoints = history.dataPoints.filter(dp => dp.date >= cutoffStr);
 }
 
 /**
@@ -63,7 +76,10 @@ export function saveSearchResults(results: FlightResult[]): void {
       }
     }
 
-    fs.writeFileSync(filePath, JSON.stringify(history, null, 2));
+    // Prune old data points
+    pruneHistory(history);
+
+    atomicWriteFileSync(filePath, JSON.stringify(history, null, 2));
   }
 }
 

@@ -5,7 +5,8 @@
   "main": "dist/flights/monitor.js",
   "scripts": {
     "build": "tsc",
-    "dev": "tsx src/flights/monitor.ts",
+    "dev": "tsx src/flights/web-server.ts",
+    "serve": "tsx src/flights/web-server.ts",
     "daemon": "tsx src/flights/flight-daemon.ts",
     "search": "tsx src/flights/scrapers/index.ts"
   },

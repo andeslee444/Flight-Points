@@ -23,12 +23,30 @@ from datetime import datetime
 def log(msg):
     print(f"[BA-Camoufox {time.strftime('%H:%M:%S')}] {msg}", file=sys.stderr)
 
+def validate_params(params):
+    """Validate search params to prevent malformed input."""
+    for field in ("origin", "destination", "date"):
+        if field not in params or not isinstance(params[field], str):
+            raise ValueError(f"Missing or invalid field: {field}")
+    if not re.match(r'^[A-Z]{3}$', params["origin"]):
+        raise ValueError(f"Invalid origin airport code: {params['origin']}")
+    if not re.match(r'^[A-Z]{3}$', params["destination"]):
+        raise ValueError(f"Invalid destination airport code: {params['destination']}")
+    if not re.match(r'^\d{4}-\d{2}-\d{2}$', params["date"]):
+        raise ValueError(f"Invalid date format: {params['date']}")
+
 def main():
     if len(sys.argv) < 2:
         print("[]")
         sys.exit(0)
 
     params = json.loads(sys.argv[1])
+    try:
+        validate_params(params)
+    except ValueError as e:
+        log(f"Validation error: {e}")
+        print("[]")
+        sys.exit(0)
     origin = params["origin"]
     destination = params["destination"]
     date = params["date"]  # YYYY-MM-DD

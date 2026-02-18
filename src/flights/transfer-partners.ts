@@ -1,12 +1,15 @@
 /**
  * Transfer Partner Mappings
  * Maps credit card points programs to airline transfer partners
- * 
+ *
  * COMPLETE and CURRENT as of February 2026
  * Sources: NerdWallet, The Points Guy, official program pages
- * 
+ *
  * Created: 2026-02-16
  */
+
+import { SWEET_SPOTS as SWEET_SPOTS_DB } from './sweet-spots.js';
+import { REGION_LABELS } from './airports.js';
 
 export interface TransferPartner {
   program: string;          // Airline loyalty program name
@@ -33,76 +36,27 @@ export interface PointsProgram {
 }
 
 // ============================================================
-// SWEET SPOTS DATABASE
+// SWEET SPOTS — derived from canonical sweet-spots.ts database
 // ============================================================
 
-const SWEET_SPOTS: Record<string, SweetSpot[]> = {
-  'virgin-atlantic': [
-    { route: 'US → Japan', cabin: 'First', points: 110000, typicalCashPrice: 25000, cpp: 22.7, notes: 'ANA First Class via Virgin Atlantic — the holy grail' },
-    { route: 'US → Japan', cabin: 'Business', points: 90000, typicalCashPrice: 12000, cpp: 13.3, notes: 'ANA Business via Virgin Atlantic' },
-    { route: 'US → UK', cabin: 'Business', points: 29000, typicalCashPrice: 4000, cpp: 13.8, notes: 'Virgin Atlantic Upper Class — dynamic low price' },
-  ],
-  'ana': [
-    { route: 'US → Japan', cabin: 'First', points: 55000, typicalCashPrice: 25000, cpp: 45.5, notes: 'ANA First Class low season — best value in miles' },
-    { route: 'US → Japan', cabin: 'Business', points: 43000, typicalCashPrice: 12000, cpp: 27.9, notes: 'ANA Business low season' },
-    { route: 'Round the World', cabin: 'First', points: 180000, typicalCashPrice: 50000, cpp: 27.8, notes: 'ANA RTW in First Class' },
-  ],
-  'aeroplan': [
-    { route: 'US → Europe', cabin: 'Business', points: 70000, typicalCashPrice: 5000, cpp: 7.1, notes: 'Star Alliance business to Europe' },
-    { route: 'US → Asia', cabin: 'Business', points: 75000, typicalCashPrice: 8000, cpp: 10.7, notes: 'EVA/ANA business via Aeroplan' },
-    { route: 'US → Middle East', cabin: 'Business', points: 70000, typicalCashPrice: 6000, cpp: 8.6, notes: 'Turkish business via Aeroplan' },
-  ],
-  'avianca-lifemiles': [
-    { route: 'US → Europe', cabin: 'Business', points: 63000, typicalCashPrice: 5000, cpp: 7.9, notes: 'Star Alliance business, no fuel surcharges' },
-    { route: 'US → Asia', cabin: 'Business', points: 70000, typicalCashPrice: 8000, cpp: 11.4, notes: 'ANA/EVA business via LifeMiles' },
-  ],
-  'united': [
-    { route: 'US → Japan', cabin: 'Business', points: 80000, typicalCashPrice: 8000, cpp: 10.0, notes: 'United/ANA business saver' },
-    { route: 'US → Europe', cabin: 'Business', points: 60000, typicalCashPrice: 4000, cpp: 6.7, notes: 'United Polaris or partner J' },
-  ],
-  'singapore': [
-    { route: 'US → Singapore', cabin: 'Suites', points: 148000, typicalCashPrice: 18000, cpp: 12.2, notes: 'SQ Suites A380 — bucket list' },
-    { route: 'US → Singapore', cabin: 'Business', points: 92000, typicalCashPrice: 8000, cpp: 8.7, notes: 'SQ Business direct' },
-  ],
-  'turkish': [
-    { route: 'US → Europe', cabin: 'Business', points: 45000, typicalCashPrice: 4000, cpp: 8.9, notes: 'Star Alliance business to Europe — great value' },
-    { route: 'US → Asia', cabin: 'Business', points: 52500, typicalCashPrice: 8000, cpp: 15.2, notes: 'Star Alliance business to Asia' },
-  ],
-  'ba-avios': [
-    { route: 'US → Europe', cabin: 'Business', points: 57500, typicalCashPrice: 4000, cpp: 7.0, notes: 'oneworld business, watch for fuel surcharges on BA metal' },
-    { route: 'US → Japan', cabin: 'Business', points: 60000, typicalCashPrice: 6000, cpp: 10.0, notes: 'JAL business via Avios — no surcharges on JAL' },
-    { route: 'US → Middle East', cabin: 'Business', points: 42000, typicalCashPrice: 4000, cpp: 9.5, notes: 'Qatar QSuites short segment via Avios' },
-  ],
-  'american': [
-    { route: 'US → Asia', cabin: 'Business', points: 60000, typicalCashPrice: 6000, cpp: 10.0, notes: 'JAL/Cathay business web special' },
-    { route: 'US → Doha', cabin: 'Business', points: 70000, typicalCashPrice: 8000, cpp: 11.4, notes: 'Qatar QSuites via AA' },
-    { route: 'US → Japan', cabin: 'First', points: 80000, typicalCashPrice: 20000, cpp: 25.0, notes: 'JAL First Class via AA — great deal' },
-  ],
-  'air-france-klm': [
-    { route: 'US → Europe', cabin: 'Business', points: 53000, typicalCashPrice: 3500, cpp: 6.6, notes: 'AF/KLM business promo awards' },
-  ],
-  'emirates': [
-    { route: 'US → Dubai', cabin: 'First', points: 136000, typicalCashPrice: 15000, cpp: 11.0, notes: 'Emirates First Class A380' },
-    { route: 'US → Dubai', cabin: 'Business', points: 97000, typicalCashPrice: 7000, cpp: 7.2, notes: 'Emirates Business' },
-  ],
-  'delta': [
-    { route: 'US → Europe', cabin: 'Business', points: 50000, typicalCashPrice: 3000, cpp: 6.0, notes: 'Delta One flash sales' },
-  ],
-  'alaska': [
-    { route: 'US → Asia', cabin: 'Business', points: 50000, typicalCashPrice: 6000, cpp: 12.0, notes: 'Cathay Pacific business via Alaska' },
-    { route: 'US → Japan', cabin: 'First', points: 70000, typicalCashPrice: 20000, cpp: 28.6, notes: 'JAL First Class via Alaska (pre-merger pricing)' },
-  ],
-  'cathay': [
-    { route: 'US → HK', cabin: 'Business', points: 70000, typicalCashPrice: 6000, cpp: 8.6, notes: 'Cathay Pacific business direct' },
-    { route: 'US → HK', cabin: 'First', points: 105000, typicalCashPrice: 15000, cpp: 14.3, notes: 'Cathay Pacific first direct' },
-  ],
-  'qatar': [
-    { route: 'US → Doha', cabin: 'Business', points: 70000, typicalCashPrice: 8000, cpp: 11.4, notes: 'QSuites — frequently rated best business class' },
-  ],
-  'etihad': [
-    { route: 'US → Abu Dhabi', cabin: 'Business', points: 60000, typicalCashPrice: 5000, cpp: 8.3, notes: 'Etihad Business Studios' },
-  ],
-};
+/**
+ * Convert canonical SweetSpotEntry[] → per-partner SweetSpot[] lookup.
+ * Bridges field name differences: pointsRequired → points, note → notes, etc.
+ */
+function getSweetSpotsForPartnerCode(partnerCode: string): SweetSpot[] {
+  return SWEET_SPOTS_DB
+    .filter(e => e.programCode === partnerCode)
+    .map(e => ({
+      route: e.originRegion && e.destinationRegion
+        ? `${REGION_LABELS[e.originRegion] || e.originRegion} → ${REGION_LABELS[e.destinationRegion] || e.destinationRegion}`
+        : e.route,
+      cabin: e.cabin.charAt(0).toUpperCase() + e.cabin.slice(1),
+      points: e.pointsRequired,
+      typicalCashPrice: e.typicalCashPrice,
+      cpp: e.centsPerPoint,
+      notes: e.note,
+    }));
+}
 
 // ============================================================
 // POINTS PROGRAMS — COMPLETE AND CURRENT (Feb 2026)
@@ -114,25 +68,25 @@ export const POINTS_PROGRAMS: PointsProgram[] = [
     slug: 'amex-mr',
     partners: [
       // Star Alliance
-      { program: 'ANA Mileage Club', programCode: 'ana', alliance: 'star', ratio: 1.0, transferTime: '2-3 days', sweetSpots: SWEET_SPOTS['ana'] || [] },
-      { program: 'Air Canada Aeroplan', programCode: 'aeroplan', alliance: 'star', ratio: 1.0, transferTime: 'Instant', sweetSpots: SWEET_SPOTS['aeroplan'] || [] },
-      { program: 'Singapore KrisFlyer', programCode: 'singapore', alliance: 'star', ratio: 1.0, transferTime: '1-2 days', sweetSpots: SWEET_SPOTS['singapore'] || [] },
-      { program: 'Avianca LifeMiles', programCode: 'avianca-lifemiles', alliance: 'star', ratio: 1.0, transferTime: 'Instant', sweetSpots: SWEET_SPOTS['avianca-lifemiles'] || [] },
+      { program: 'ANA Mileage Club', programCode: 'ana', alliance: 'star', ratio: 1.0, transferTime: '2-3 days', sweetSpots: getSweetSpotsForPartnerCode('ana') },
+      { program: 'Air Canada Aeroplan', programCode: 'aeroplan', alliance: 'star', ratio: 1.0, transferTime: 'Instant', sweetSpots: getSweetSpotsForPartnerCode('aeroplan') },
+      { program: 'Singapore KrisFlyer', programCode: 'singapore', alliance: 'star', ratio: 1.0, transferTime: '1-2 days', sweetSpots: getSweetSpotsForPartnerCode('singapore') },
+      { program: 'Avianca LifeMiles', programCode: 'avianca-lifemiles', alliance: 'star', ratio: 1.0, transferTime: 'Instant', sweetSpots: getSweetSpotsForPartnerCode('avianca-lifemiles') },
       // oneworld
-      { program: 'British Airways Avios', programCode: 'ba-avios', alliance: 'oneworld', ratio: 1.0, transferTime: 'Instant', sweetSpots: SWEET_SPOTS['ba-avios'] || [] },
-      { program: 'Cathay Pacific Asia Miles', programCode: 'cathay', alliance: 'oneworld', ratio: 0.8, transferTime: '1-2 days', sweetSpots: SWEET_SPOTS['cathay'] || [] },
+      { program: 'British Airways Avios', programCode: 'ba-avios', alliance: 'oneworld', ratio: 1.0, transferTime: 'Instant', sweetSpots: getSweetSpotsForPartnerCode('ba-avios') },
+      { program: 'Cathay Pacific Asia Miles', programCode: 'cathay', alliance: 'oneworld', ratio: 0.8, transferTime: '1-2 days', sweetSpots: getSweetSpotsForPartnerCode('cathay') },
       { program: 'Iberia Plus Avios', programCode: 'iberia', alliance: 'oneworld', ratio: 1.0, transferTime: 'Instant', sweetSpots: [] },
       { program: 'Qantas Frequent Flyer', programCode: 'qantas', alliance: 'oneworld', ratio: 1.0, transferTime: '1-2 days', sweetSpots: [] },
-      { program: 'Qatar Airways Privilege Club', programCode: 'qatar', alliance: 'oneworld', ratio: 1.0, transferTime: '1-2 days', sweetSpots: SWEET_SPOTS['qatar'] || [] },
+      { program: 'Qatar Airways Privilege Club', programCode: 'qatar', alliance: 'oneworld', ratio: 1.0, transferTime: '1-2 days', sweetSpots: getSweetSpotsForPartnerCode('qatar') },
       { program: 'Aer Lingus AerClub', programCode: 'aer-lingus', alliance: 'oneworld', ratio: 1.0, transferTime: 'Instant', sweetSpots: [] },
       // SkyTeam
-      { program: 'Delta SkyMiles', programCode: 'delta', alliance: 'skyteam', ratio: 1.0, transferTime: 'Instant', sweetSpots: SWEET_SPOTS['delta'] || [] },
-      { program: 'Air France/KLM Flying Blue', programCode: 'air-france-klm', alliance: 'skyteam', ratio: 1.0, transferTime: 'Instant', sweetSpots: SWEET_SPOTS['air-france-klm'] || [] },
+      { program: 'Delta SkyMiles', programCode: 'delta', alliance: 'skyteam', ratio: 1.0, transferTime: 'Instant', sweetSpots: getSweetSpotsForPartnerCode('delta') },
+      { program: 'Air France/KLM Flying Blue', programCode: 'air-france-klm', alliance: 'skyteam', ratio: 1.0, transferTime: 'Instant', sweetSpots: getSweetSpotsForPartnerCode('air-france-klm') },
       { program: 'Aeromexico Rewards', programCode: 'aeromexico', alliance: 'skyteam', ratio: 1.6, transferTime: 'Instant', sweetSpots: [] },
-      { program: 'Virgin Atlantic Flying Club', programCode: 'virgin-atlantic', alliance: 'skyteam', ratio: 1.0, transferTime: 'Instant', sweetSpots: SWEET_SPOTS['virgin-atlantic'] || [] },
+      { program: 'Virgin Atlantic Flying Club', programCode: 'virgin-atlantic', alliance: 'skyteam', ratio: 1.0, transferTime: 'Instant', sweetSpots: getSweetSpotsForPartnerCode('virgin-atlantic') },
       // Independent
-      { program: 'Emirates Skywards', programCode: 'emirates', alliance: 'independent', ratio: 0.8, transferTime: 'Instant', sweetSpots: SWEET_SPOTS['emirates'] || [] },
-      { program: 'Etihad Guest', programCode: 'etihad', alliance: 'independent', ratio: 1.0, transferTime: '1-2 days', sweetSpots: SWEET_SPOTS['etihad'] || [] },
+      { program: 'Emirates Skywards', programCode: 'emirates', alliance: 'independent', ratio: 0.8, transferTime: 'Instant', sweetSpots: getSweetSpotsForPartnerCode('emirates') },
+      { program: 'Etihad Guest', programCode: 'etihad', alliance: 'independent', ratio: 1.0, transferTime: '1-2 days', sweetSpots: getSweetSpotsForPartnerCode('etihad') },
       { program: 'JetBlue TrueBlue', programCode: 'jetblue', alliance: 'independent', ratio: 0.8, transferTime: 'Instant', sweetSpots: [] },
     ],
   },
@@ -141,16 +95,16 @@ export const POINTS_PROGRAMS: PointsProgram[] = [
     slug: 'chase-ur',
     partners: [
       // Star Alliance
-      { program: 'United MileagePlus', programCode: 'united', alliance: 'star', ratio: 1.0, transferTime: 'Instant', sweetSpots: SWEET_SPOTS['united'] || [] },
-      { program: 'Singapore KrisFlyer', programCode: 'singapore', alliance: 'star', ratio: 1.0, transferTime: '1-2 days', sweetSpots: SWEET_SPOTS['singapore'] || [] },
-      { program: 'Air Canada Aeroplan', programCode: 'aeroplan', alliance: 'star', ratio: 1.0, transferTime: 'Instant', sweetSpots: SWEET_SPOTS['aeroplan'] || [] },
+      { program: 'United MileagePlus', programCode: 'united', alliance: 'star', ratio: 1.0, transferTime: 'Instant', sweetSpots: getSweetSpotsForPartnerCode('united') },
+      { program: 'Singapore KrisFlyer', programCode: 'singapore', alliance: 'star', ratio: 1.0, transferTime: '1-2 days', sweetSpots: getSweetSpotsForPartnerCode('singapore') },
+      { program: 'Air Canada Aeroplan', programCode: 'aeroplan', alliance: 'star', ratio: 1.0, transferTime: 'Instant', sweetSpots: getSweetSpotsForPartnerCode('aeroplan') },
       // oneworld
-      { program: 'British Airways Avios', programCode: 'ba-avios', alliance: 'oneworld', ratio: 1.0, transferTime: 'Instant', sweetSpots: SWEET_SPOTS['ba-avios'] || [] },
+      { program: 'British Airways Avios', programCode: 'ba-avios', alliance: 'oneworld', ratio: 1.0, transferTime: 'Instant', sweetSpots: getSweetSpotsForPartnerCode('ba-avios') },
       { program: 'Aer Lingus AerClub', programCode: 'aer-lingus', alliance: 'oneworld', ratio: 1.0, transferTime: 'Instant', sweetSpots: [] },
       { program: 'Iberia Plus Avios', programCode: 'iberia', alliance: 'oneworld', ratio: 1.0, transferTime: 'Instant', sweetSpots: [] },
       // SkyTeam
-      { program: 'Air France/KLM Flying Blue', programCode: 'air-france-klm', alliance: 'skyteam', ratio: 1.0, transferTime: 'Instant', sweetSpots: SWEET_SPOTS['air-france-klm'] || [] },
-      { program: 'Virgin Atlantic Flying Club', programCode: 'virgin-atlantic', alliance: 'skyteam', ratio: 1.0, transferTime: 'Instant', sweetSpots: SWEET_SPOTS['virgin-atlantic'] || [] },
+      { program: 'Air France/KLM Flying Blue', programCode: 'air-france-klm', alliance: 'skyteam', ratio: 1.0, transferTime: 'Instant', sweetSpots: getSweetSpotsForPartnerCode('air-france-klm') },
+      { program: 'Virgin Atlantic Flying Club', programCode: 'virgin-atlantic', alliance: 'skyteam', ratio: 1.0, transferTime: 'Instant', sweetSpots: getSweetSpotsForPartnerCode('virgin-atlantic') },
       // Independent
       { program: 'Southwest Rapid Rewards', programCode: 'southwest', alliance: 'independent', ratio: 1.0, transferTime: 'Instant', sweetSpots: [] },
       { program: 'JetBlue TrueBlue', programCode: 'jetblue', alliance: 'independent', ratio: 1.0, transferTime: 'Instant', sweetSpots: [] },
@@ -163,26 +117,26 @@ export const POINTS_PROGRAMS: PointsProgram[] = [
     slug: 'capital-one',
     partners: [
       // Star Alliance
-      { program: 'Air Canada Aeroplan', programCode: 'aeroplan', alliance: 'star', ratio: 1.0, transferTime: 'Instant', sweetSpots: SWEET_SPOTS['aeroplan'] || [] },
-      { program: 'Singapore KrisFlyer', programCode: 'singapore', alliance: 'star', ratio: 1.0, transferTime: 'Instant', sweetSpots: SWEET_SPOTS['singapore'] || [] },
-      { program: 'Turkish Miles&Smiles', programCode: 'turkish', alliance: 'star', ratio: 1.0, transferTime: '1-2 days', sweetSpots: SWEET_SPOTS['turkish'] || [] },
-      { program: 'Avianca LifeMiles', programCode: 'avianca-lifemiles', alliance: 'star', ratio: 1.0, transferTime: 'Instant', sweetSpots: SWEET_SPOTS['avianca-lifemiles'] || [] },
+      { program: 'Air Canada Aeroplan', programCode: 'aeroplan', alliance: 'star', ratio: 1.0, transferTime: 'Instant', sweetSpots: getSweetSpotsForPartnerCode('aeroplan') },
+      { program: 'Singapore KrisFlyer', programCode: 'singapore', alliance: 'star', ratio: 1.0, transferTime: 'Instant', sweetSpots: getSweetSpotsForPartnerCode('singapore') },
+      { program: 'Turkish Miles&Smiles', programCode: 'turkish', alliance: 'star', ratio: 1.0, transferTime: '1-2 days', sweetSpots: getSweetSpotsForPartnerCode('turkish') },
+      { program: 'Avianca LifeMiles', programCode: 'avianca-lifemiles', alliance: 'star', ratio: 1.0, transferTime: 'Instant', sweetSpots: getSweetSpotsForPartnerCode('avianca-lifemiles') },
       { program: 'TAP Miles&Go', programCode: 'tap', alliance: 'star', ratio: 1.0, transferTime: 'Instant', sweetSpots: [] },
       { program: 'Finnair Plus', programCode: 'finnair', alliance: 'oneworld', ratio: 1.0, transferTime: '1-2 days', sweetSpots: [] },
       { program: 'EVA Air Infinity MileageLands', programCode: 'eva', alliance: 'star', ratio: 0.75, transferTime: '1-2 days', sweetSpots: [] },
       // oneworld
-      { program: 'British Airways Avios', programCode: 'ba-avios', alliance: 'oneworld', ratio: 1.0, transferTime: 'Instant', sweetSpots: SWEET_SPOTS['ba-avios'] || [] },
-      { program: 'Cathay Pacific Asia Miles', programCode: 'cathay', alliance: 'oneworld', ratio: 1.0, transferTime: '1-2 days', sweetSpots: SWEET_SPOTS['cathay'] || [] },
+      { program: 'British Airways Avios', programCode: 'ba-avios', alliance: 'oneworld', ratio: 1.0, transferTime: 'Instant', sweetSpots: getSweetSpotsForPartnerCode('ba-avios') },
+      { program: 'Cathay Pacific Asia Miles', programCode: 'cathay', alliance: 'oneworld', ratio: 1.0, transferTime: '1-2 days', sweetSpots: getSweetSpotsForPartnerCode('cathay') },
       { program: 'Qantas Frequent Flyer', programCode: 'qantas', alliance: 'oneworld', ratio: 1.0, transferTime: '1-2 days', sweetSpots: [] },
-      { program: 'Qatar Airways Privilege Club', programCode: 'qatar', alliance: 'oneworld', ratio: 1.0, transferTime: '1-2 days', sweetSpots: SWEET_SPOTS['qatar'] || [] },
+      { program: 'Qatar Airways Privilege Club', programCode: 'qatar', alliance: 'oneworld', ratio: 1.0, transferTime: '1-2 days', sweetSpots: getSweetSpotsForPartnerCode('qatar') },
       { program: 'JAL Mileage Bank', programCode: 'jal', alliance: 'oneworld', ratio: 0.75, transferTime: '1-2 days', sweetSpots: [] },
       // SkyTeam
-      { program: 'Air France/KLM Flying Blue', programCode: 'air-france-klm', alliance: 'skyteam', ratio: 1.0, transferTime: 'Instant', sweetSpots: SWEET_SPOTS['air-france-klm'] || [] },
+      { program: 'Air France/KLM Flying Blue', programCode: 'air-france-klm', alliance: 'skyteam', ratio: 1.0, transferTime: 'Instant', sweetSpots: getSweetSpotsForPartnerCode('air-france-klm') },
       { program: 'Aeromexico Rewards', programCode: 'aeromexico', alliance: 'skyteam', ratio: 1.0, transferTime: 'Instant', sweetSpots: [] },
       // Independent
-      { program: 'Emirates Skywards', programCode: 'emirates', alliance: 'independent', ratio: 0.75, transferTime: 'Instant', sweetSpots: SWEET_SPOTS['emirates'] || [] },
-      { program: 'Etihad Guest', programCode: 'etihad', alliance: 'independent', ratio: 1.0, transferTime: '1-2 days', sweetSpots: SWEET_SPOTS['etihad'] || [] },
-      { program: 'Virgin Red', programCode: 'virgin-atlantic', alliance: 'independent', ratio: 1.0, transferTime: 'Instant', sweetSpots: SWEET_SPOTS['virgin-atlantic'] || [] },
+      { program: 'Emirates Skywards', programCode: 'emirates', alliance: 'independent', ratio: 0.75, transferTime: 'Instant', sweetSpots: getSweetSpotsForPartnerCode('emirates') },
+      { program: 'Etihad Guest', programCode: 'etihad', alliance: 'independent', ratio: 1.0, transferTime: '1-2 days', sweetSpots: getSweetSpotsForPartnerCode('etihad') },
+      { program: 'Virgin Red', programCode: 'virgin-atlantic', alliance: 'independent', ratio: 1.0, transferTime: 'Instant', sweetSpots: getSweetSpotsForPartnerCode('virgin-atlantic') },
       { program: 'JetBlue TrueBlue', programCode: 'jetblue', alliance: 'independent', ratio: 0.6, transferTime: 'Instant', sweetSpots: [] },
     ],
   },
@@ -191,23 +145,23 @@ export const POINTS_PROGRAMS: PointsProgram[] = [
     slug: 'citi-typ',
     partners: [
       // Star Alliance
-      { program: 'Singapore KrisFlyer', programCode: 'singapore', alliance: 'star', ratio: 1.0, transferTime: 'Instant', sweetSpots: SWEET_SPOTS['singapore'] || [] },
-      { program: 'Turkish Miles&Smiles', programCode: 'turkish', alliance: 'star', ratio: 1.0, transferTime: '1-2 days', sweetSpots: SWEET_SPOTS['turkish'] || [] },
-      { program: 'Avianca LifeMiles', programCode: 'avianca-lifemiles', alliance: 'star', ratio: 1.0, transferTime: 'Instant', sweetSpots: SWEET_SPOTS['avianca-lifemiles'] || [] },
+      { program: 'Singapore KrisFlyer', programCode: 'singapore', alliance: 'star', ratio: 1.0, transferTime: 'Instant', sweetSpots: getSweetSpotsForPartnerCode('singapore') },
+      { program: 'Turkish Miles&Smiles', programCode: 'turkish', alliance: 'star', ratio: 1.0, transferTime: '1-2 days', sweetSpots: getSweetSpotsForPartnerCode('turkish') },
+      { program: 'Avianca LifeMiles', programCode: 'avianca-lifemiles', alliance: 'star', ratio: 1.0, transferTime: 'Instant', sweetSpots: getSweetSpotsForPartnerCode('avianca-lifemiles') },
       { program: 'EVA Air Infinity MileageLands', programCode: 'eva', alliance: 'star', ratio: 1.0, transferTime: '1-2 days', sweetSpots: [] },
       { program: 'Thai Airways Royal Orchid Plus', programCode: 'thai', alliance: 'star', ratio: 1.0, transferTime: '1-2 days', sweetSpots: [] },
       // oneworld
-      { program: 'American Airlines AAdvantage', programCode: 'american', alliance: 'oneworld', ratio: 1.0, transferTime: 'Instant', sweetSpots: SWEET_SPOTS['american'] || [] },
-      { program: 'Cathay Pacific Asia Miles', programCode: 'cathay', alliance: 'oneworld', ratio: 1.0, transferTime: '1-2 days', sweetSpots: SWEET_SPOTS['cathay'] || [] },
+      { program: 'American Airlines AAdvantage', programCode: 'american', alliance: 'oneworld', ratio: 1.0, transferTime: 'Instant', sweetSpots: getSweetSpotsForPartnerCode('american') },
+      { program: 'Cathay Pacific Asia Miles', programCode: 'cathay', alliance: 'oneworld', ratio: 1.0, transferTime: '1-2 days', sweetSpots: getSweetSpotsForPartnerCode('cathay') },
       { program: 'Qantas Frequent Flyer', programCode: 'qantas', alliance: 'oneworld', ratio: 1.0, transferTime: '1-2 days', sweetSpots: [] },
-      { program: 'Qatar Airways Privilege Club', programCode: 'qatar', alliance: 'oneworld', ratio: 1.0, transferTime: '1-2 days', sweetSpots: SWEET_SPOTS['qatar'] || [] },
+      { program: 'Qatar Airways Privilege Club', programCode: 'qatar', alliance: 'oneworld', ratio: 1.0, transferTime: '1-2 days', sweetSpots: getSweetSpotsForPartnerCode('qatar') },
       // SkyTeam
-      { program: 'Air France/KLM Flying Blue', programCode: 'air-france-klm', alliance: 'skyteam', ratio: 1.0, transferTime: 'Instant', sweetSpots: SWEET_SPOTS['air-france-klm'] || [] },
+      { program: 'Air France/KLM Flying Blue', programCode: 'air-france-klm', alliance: 'skyteam', ratio: 1.0, transferTime: 'Instant', sweetSpots: getSweetSpotsForPartnerCode('air-france-klm') },
       { program: 'Aeromexico Rewards', programCode: 'aeromexico', alliance: 'skyteam', ratio: 1.0, transferTime: 'Instant', sweetSpots: [] },
-      { program: 'Virgin Atlantic Flying Club', programCode: 'virgin-atlantic', alliance: 'skyteam', ratio: 1.0, transferTime: 'Instant', sweetSpots: SWEET_SPOTS['virgin-atlantic'] || [] },
+      { program: 'Virgin Atlantic Flying Club', programCode: 'virgin-atlantic', alliance: 'skyteam', ratio: 1.0, transferTime: 'Instant', sweetSpots: getSweetSpotsForPartnerCode('virgin-atlantic') },
       // Independent
-      { program: 'Emirates Skywards', programCode: 'emirates', alliance: 'independent', ratio: 1.0, transferTime: 'Instant', sweetSpots: SWEET_SPOTS['emirates'] || [] },
-      { program: 'Etihad Guest', programCode: 'etihad', alliance: 'independent', ratio: 1.0, transferTime: '1-2 days', sweetSpots: SWEET_SPOTS['etihad'] || [] },
+      { program: 'Emirates Skywards', programCode: 'emirates', alliance: 'independent', ratio: 1.0, transferTime: 'Instant', sweetSpots: getSweetSpotsForPartnerCode('emirates') },
+      { program: 'Etihad Guest', programCode: 'etihad', alliance: 'independent', ratio: 1.0, transferTime: '1-2 days', sweetSpots: getSweetSpotsForPartnerCode('etihad') },
       { program: 'JetBlue TrueBlue', programCode: 'jetblue', alliance: 'independent', ratio: 1.0, transferTime: 'Instant', sweetSpots: [] },
     ],
   },
@@ -216,23 +170,23 @@ export const POINTS_PROGRAMS: PointsProgram[] = [
     slug: 'bilt',
     partners: [
       // Star Alliance
-      { program: 'United MileagePlus', programCode: 'united', alliance: 'star', ratio: 1.0, transferTime: 'Instant', sweetSpots: SWEET_SPOTS['united'] || [] },
-      { program: 'Air Canada Aeroplan', programCode: 'aeroplan', alliance: 'star', ratio: 1.0, transferTime: 'Instant', sweetSpots: SWEET_SPOTS['aeroplan'] || [] },
-      { program: 'Turkish Miles&Smiles', programCode: 'turkish', alliance: 'star', ratio: 1.0, transferTime: '1-2 days', sweetSpots: SWEET_SPOTS['turkish'] || [] },
-      { program: 'Avianca LifeMiles', programCode: 'avianca-lifemiles', alliance: 'star', ratio: 1.0, transferTime: 'Instant', sweetSpots: SWEET_SPOTS['avianca-lifemiles'] || [] },
+      { program: 'United MileagePlus', programCode: 'united', alliance: 'star', ratio: 1.0, transferTime: 'Instant', sweetSpots: getSweetSpotsForPartnerCode('united') },
+      { program: 'Air Canada Aeroplan', programCode: 'aeroplan', alliance: 'star', ratio: 1.0, transferTime: 'Instant', sweetSpots: getSweetSpotsForPartnerCode('aeroplan') },
+      { program: 'Turkish Miles&Smiles', programCode: 'turkish', alliance: 'star', ratio: 1.0, transferTime: '1-2 days', sweetSpots: getSweetSpotsForPartnerCode('turkish') },
+      { program: 'Avianca LifeMiles', programCode: 'avianca-lifemiles', alliance: 'star', ratio: 1.0, transferTime: 'Instant', sweetSpots: getSweetSpotsForPartnerCode('avianca-lifemiles') },
       { program: 'TAP Miles&Go', programCode: 'tap', alliance: 'star', ratio: 1.0, transferTime: 'Instant', sweetSpots: [] },
       // oneworld
-      { program: 'American Airlines AAdvantage', programCode: 'american', alliance: 'oneworld', ratio: 1.0, transferTime: 'Instant', sweetSpots: SWEET_SPOTS['american'] || [] },
-      { program: 'Alaska/Hawaiian Atmos Rewards', programCode: 'alaska', alliance: 'oneworld', ratio: 1.0, transferTime: 'Instant', sweetSpots: SWEET_SPOTS['alaska'] || [] },
-      { program: 'British Airways Avios', programCode: 'ba-avios', alliance: 'oneworld', ratio: 1.0, transferTime: 'Instant', sweetSpots: SWEET_SPOTS['ba-avios'] || [] },
-      { program: 'Cathay Pacific Asia Miles', programCode: 'cathay', alliance: 'oneworld', ratio: 1.0, transferTime: '1-2 days', sweetSpots: SWEET_SPOTS['cathay'] || [] },
+      { program: 'American Airlines AAdvantage', programCode: 'american', alliance: 'oneworld', ratio: 1.0, transferTime: 'Instant', sweetSpots: getSweetSpotsForPartnerCode('american') },
+      { program: 'Alaska/Hawaiian Atmos Rewards', programCode: 'alaska', alliance: 'oneworld', ratio: 1.0, transferTime: 'Instant', sweetSpots: getSweetSpotsForPartnerCode('alaska') },
+      { program: 'British Airways Avios', programCode: 'ba-avios', alliance: 'oneworld', ratio: 1.0, transferTime: 'Instant', sweetSpots: getSweetSpotsForPartnerCode('ba-avios') },
+      { program: 'Cathay Pacific Asia Miles', programCode: 'cathay', alliance: 'oneworld', ratio: 1.0, transferTime: '1-2 days', sweetSpots: getSweetSpotsForPartnerCode('cathay') },
       { program: 'Aer Lingus AerClub', programCode: 'aer-lingus', alliance: 'oneworld', ratio: 1.0, transferTime: 'Instant', sweetSpots: [] },
       { program: 'Iberia Plus Avios', programCode: 'iberia', alliance: 'oneworld', ratio: 1.0, transferTime: 'Instant', sweetSpots: [] },
       // SkyTeam
-      { program: 'Air France/KLM Flying Blue', programCode: 'air-france-klm', alliance: 'skyteam', ratio: 1.0, transferTime: 'Instant', sweetSpots: SWEET_SPOTS['air-france-klm'] || [] },
-      { program: 'Virgin Atlantic Flying Club', programCode: 'virgin-atlantic', alliance: 'skyteam', ratio: 1.0, transferTime: 'Instant', sweetSpots: SWEET_SPOTS['virgin-atlantic'] || [] },
+      { program: 'Air France/KLM Flying Blue', programCode: 'air-france-klm', alliance: 'skyteam', ratio: 1.0, transferTime: 'Instant', sweetSpots: getSweetSpotsForPartnerCode('air-france-klm') },
+      { program: 'Virgin Atlantic Flying Club', programCode: 'virgin-atlantic', alliance: 'skyteam', ratio: 1.0, transferTime: 'Instant', sweetSpots: getSweetSpotsForPartnerCode('virgin-atlantic') },
       // Independent
-      { program: 'Emirates Skywards', programCode: 'emirates', alliance: 'independent', ratio: 1.0, transferTime: 'Instant', sweetSpots: SWEET_SPOTS['emirates'] || [] },
+      { program: 'Emirates Skywards', programCode: 'emirates', alliance: 'independent', ratio: 1.0, transferTime: 'Instant', sweetSpots: getSweetSpotsForPartnerCode('emirates') },
       { program: 'Southwest Rapid Rewards', programCode: 'southwest', alliance: 'independent', ratio: 1.0, transferTime: '1-3 days', sweetSpots: [] },
     ],
   },
@@ -241,14 +195,14 @@ export const POINTS_PROGRAMS: PointsProgram[] = [
     slug: 'wells-fargo',
     partners: [
       // oneworld
-      { program: 'British Airways Avios', programCode: 'ba-avios', alliance: 'oneworld', ratio: 1.0, transferTime: 'Instant', sweetSpots: SWEET_SPOTS['ba-avios'] || [] },
+      { program: 'British Airways Avios', programCode: 'ba-avios', alliance: 'oneworld', ratio: 1.0, transferTime: 'Instant', sweetSpots: getSweetSpotsForPartnerCode('ba-avios') },
       { program: 'Aer Lingus AerClub', programCode: 'aer-lingus', alliance: 'oneworld', ratio: 1.0, transferTime: 'Instant', sweetSpots: [] },
       { program: 'Iberia Plus Avios', programCode: 'iberia', alliance: 'oneworld', ratio: 1.0, transferTime: 'Instant', sweetSpots: [] },
       // SkyTeam
-      { program: 'Air France/KLM Flying Blue', programCode: 'air-france-klm', alliance: 'skyteam', ratio: 1.0, transferTime: 'Instant', sweetSpots: SWEET_SPOTS['air-france-klm'] || [] },
-      { program: 'Virgin Atlantic Flying Club', programCode: 'virgin-atlantic', alliance: 'skyteam', ratio: 1.0, transferTime: 'Instant', sweetSpots: SWEET_SPOTS['virgin-atlantic'] || [] },
+      { program: 'Air France/KLM Flying Blue', programCode: 'air-france-klm', alliance: 'skyteam', ratio: 1.0, transferTime: 'Instant', sweetSpots: getSweetSpotsForPartnerCode('air-france-klm') },
+      { program: 'Virgin Atlantic Flying Club', programCode: 'virgin-atlantic', alliance: 'skyteam', ratio: 1.0, transferTime: 'Instant', sweetSpots: getSweetSpotsForPartnerCode('virgin-atlantic') },
       // Star Alliance
-      { program: 'Avianca LifeMiles', programCode: 'avianca-lifemiles', alliance: 'star', ratio: 1.0, transferTime: 'Instant', sweetSpots: SWEET_SPOTS['avianca-lifemiles'] || [] },
+      { program: 'Avianca LifeMiles', programCode: 'avianca-lifemiles', alliance: 'star', ratio: 1.0, transferTime: 'Instant', sweetSpots: getSweetSpotsForPartnerCode('avianca-lifemiles') },
     ],
   },
 ];

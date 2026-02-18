@@ -3,763 +3,776 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Harbor Flights 🐙✈️ — Award Flight Alerts</title>
-  <meta name="description" content="AI-powered award flight alerts. Get instant WhatsApp notifications when business and first class award seats open up.">
+  <title>Flight Points — Award Flight Deals & Alerts</title>
+  <meta name="description" content="Find award flights worth 10x their points. Browse sweet spots, search routes, and get instant alerts when premium cabin seats open up.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Sacramento&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
+    /* ── Reset ────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    
+
+    /* ── Tokens ───────────────────────────────────────── */
     :root {
-      --accent: #3b82f6;
-      --accent-dim: #2563eb;
-      --accent-glow: rgba(59, 130, 246, 0.15);
-      --bg: #0a0a0a;
-      --bg-card: #141414;
-      --bg-card-hover: #1a1a1a;
-      --border: #222;
-      --text: #e5e5e5;
-      --text-dim: #888;
-      --text-bright: #fff;
-      --green: #22c55e;
-      --red: #ef4444;
+      --bg: #1a1714;
+      --bg-card: #242019;
+      --bg-elevated: #2e2a22;
+      --border: rgba(255,255,255,0.08);
+      --text: #e8e4de;
+      --text-dim: rgba(255,255,255,0.5);
+      --text-bright: #ffffff;
+      --accent: #c9a96e;
+      --accent-hover: #b8943f;
+      --green: #6fcf97;
+      --green-soft: rgba(111,207,151,0.12);
+      --red: #eb5757;
+      --red-soft: rgba(235,87,87,0.12);
+      --orange: #f2994a;
+      --orange-soft: rgba(242,153,74,0.12);
+      --radius: 12px;
+      --radius-sm: 8px;
+      --font-serif: 'DM Serif Display', Georgia, serif;
+      --font-script: 'Sacramento', cursive;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
     }
 
     body {
-      font-family: 'Inter', -apple-system, sans-serif;
-      background: var(--bg);
+      font-family: var(--font-sans);
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(201,169,110,0.07) 0%, transparent 60%),
+        var(--bg);
       color: var(--text);
       line-height: 1.6;
       -webkit-font-smoothing: antialiased;
+      font-weight: 400;
+      min-height: 100vh;
+    }
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      pointer-events: none;
+      opacity: 0.03;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-repeat: repeat;
+      background-size: 256px 256px;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Nav ──────────────────────────────────────────── */
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(26, 23, 20, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 40px;
+    }
+    .nav-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      height: 64px;
+    }
+    .nav-logo {
+      font-family: var(--font-script);
+      font-size: 1.6rem;
+      color: var(--text-bright);
+      text-decoration: none;
+      margin-right: auto;
+    }
+    .nav-logo:hover { text-decoration: none; }
+    .nav-links { display: flex; align-items: center; gap: 8px; }
+    .nav-links a {
+      padding: 7px 16px;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      font-weight: 400;
+      color: var(--text-dim);
+      text-decoration: none;
+      transition: color 0.15s;
+      letter-spacing: 0.01em;
+    }
+    .nav-links a:hover { color: var(--text-bright); text-decoration: none; }
+    .nav-links a.active { color: var(--text-bright); }
+    .nav-cta {
+      margin-left: 12px;
+      padding: 9px 24px !important;
+      background: var(--text-bright);
+      color: var(--bg) !important;
+      border-radius: 100px;
+      font-weight: 500 !important;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .nav-cta:hover { background: var(--text); transform: scale(1.02); }
+
+    /* ── Layout ───────────────────────────────────────── */
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 40px; }
+    .section { padding: 80px 0; }
+
+    /* ── Hero ─────────────────────────────────────────── */
+    .hero {
+      padding: 100px 0 64px;
+      text-align: center;
+    }
+    .hero-headline {
+      font-family: var(--font-serif);
+      font-size: clamp(2.8rem, 6vw, 4.5rem);
+      font-weight: 400;
+      color: var(--text-bright);
+      line-height: 1.1;
+      letter-spacing: -0.01em;
+      max-width: 780px;
+      margin: 0 auto 16px;
+    }
+    .hero-script {
+      font-family: var(--font-script);
+      font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+      color: var(--text-dim);
+      margin-bottom: 48px;
     }
 
-    .container { max-width: 800px; margin: 0 auto; padding: 0 24px; }
-
-    /* Hero */
-    .hero { padding: 80px 0 60px; text-align: center; }
-    .hero h1 { font-size: 2.5rem; font-weight: 800; color: var(--text-bright); margin-bottom: 8px; }
-    .hero h1 .accent { color: var(--accent); }
-    .hero .tagline { font-size: 1.25rem; color: var(--text-dim); margin-bottom: 12px; }
-    .hero .subtitle {
-      font-size: 1rem; color: var(--text-dim); max-width: 560px; margin: 0 auto;
-      border: 1px solid var(--border); border-radius: 8px; padding: 12px 20px; background: var(--bg-card);
+    /* ── Search ───────────────────────────────────────── */
+    .search-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px 28px;
+      max-width: 760px;
+      margin: 0 auto;
+      display: flex;
+      gap: 12px;
+      align-items: flex-end;
+      flex-wrap: wrap;
     }
-
-    /* Sections */
-    section { padding: 48px 0; }
-    section h2 { font-size: 1.5rem; font-weight: 700; color: var(--text-bright); margin-bottom: 20px; }
-    .accent { color: var(--accent); }
-
-    /* Three columns */
-    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-    @media (max-width: 640px) { .grid-3 { grid-template-columns: 1fr; } }
-    .card {
-      background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px;
+    .search-field { flex: 1; min-width: 130px; display: flex; flex-direction: column; gap: 5px; }
+    .search-field label {
+      font-size: 0.68rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-dim);
+    }
+    .search-field input,
+    .search-field select {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      font-size: 0.92rem;
+      font-family: var(--font-sans);
+      color: var(--text-bright);
+      outline: none;
       transition: border-color 0.2s;
+      width: 100%;
     }
-    .card:hover { border-color: var(--accent); }
-    .card .icon { font-size: 2rem; margin-bottom: 12px; }
-    .card h3 { font-size: 1.1rem; font-weight: 700; color: var(--text-bright); margin-bottom: 8px; }
-    .card p { font-size: 0.9rem; color: var(--text-dim); }
+    .search-field input::placeholder { color: var(--text-dim); }
+    .search-field input:focus,
+    .search-field select:focus { border-color: var(--accent); }
+    .search-field input { text-transform: uppercase; }
+    .search-field select { cursor: pointer; }
 
-    /* Programs grid */
-    .programs-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+    .search-btn {
+      background: var(--text-bright);
+      color: var(--bg);
+      border: none;
+      border-radius: 100px;
+      padding: 10px 32px;
+      font-family: var(--font-sans);
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      flex-shrink: 0;
     }
-    @media (max-width: 640px) { .programs-grid { grid-template-columns: repeat(2, 1fr); } }
-    .program-badge {
-      background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
-      padding: 14px 16px; text-align: center; font-size: 0.85rem; font-weight: 500; color: var(--text);
+    .search-btn:hover { background: var(--text); transform: scale(1.02); }
+
+    .live-stats {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      letter-spacing: 0.02em;
     }
-    .program-badge.more { color: var(--accent); font-weight: 600; }
-
-    /* Form styling */
-    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    @media (max-width: 640px) { .form-grid { grid-template-columns: 1fr; } }
-    .form-group { display: flex; flex-direction: column; gap: 6px; }
-    .form-group.full { grid-column: 1 / -1; }
-    label { font-size: 0.85rem; font-weight: 600; color: var(--text-dim); }
-    input, select, textarea {
-      background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
-      padding: 10px 14px; color: var(--text-bright); font-family: inherit; font-size: 0.95rem;
-      outline: none; transition: border-color 0.2s;
+    .live-stats .dot {
+      display: inline-block;
+      width: 6px; height: 6px;
+      background: var(--green);
+      border-radius: 50%;
+      margin-right: 5px;
+      vertical-align: 1px;
+      animation: pulse 2s infinite;
     }
-    input:focus, select:focus, textarea:focus { border-color: var(--accent); }
-    textarea { resize: vertical; min-height: 60px; }
-    .checkbox-row { flex-direction: row; align-items: center; gap: 8px; }
-    .checkbox-row input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
 
-    .btn {
-      display: inline-block; background: var(--accent); color: #fff; border: none; border-radius: 8px;
-      padding: 12px 28px; font-family: inherit; font-size: 1rem; font-weight: 600; cursor: pointer;
-      transition: background 0.2s; text-align: center;
-    }
-    .btn:hover { background: var(--accent-dim); }
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    /* WhatsApp bubbles */
-    .alert-bubbles { display: flex; flex-direction: column; gap: 16px; }
-    .bubble {
-      background: #1a2e1a; border: 1px solid #2a4a2a; border-radius: 12px 12px 12px 4px;
-      padding: 16px 20px; max-width: 600px; font-size: 0.9rem; line-height: 1.5;
-    }
-
-    /* Pricing */
-    .pricing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    @media (max-width: 640px) { .pricing-grid { grid-template-columns: 1fr; } }
-    .price-card {
-      background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 32px;
-    }
-    .price-card.featured { border-color: var(--accent); position: relative; }
-    .price-card.featured::before {
-      content: 'POPULAR'; position: absolute; top: -10px; left: 24px;
-      background: var(--accent); color: #fff; font-size: 0.7rem; font-weight: 700;
-      padding: 2px 10px; border-radius: 4px;
-    }
-    .price-card h3 { font-size: 1.2rem; font-weight: 700; color: var(--text-bright); margin-bottom: 4px; }
-    .price-amount { font-size: 2rem; font-weight: 800; color: var(--text-bright); margin: 12px 0; }
-    .price-amount span { font-size: 1rem; font-weight: 400; color: var(--text-dim); }
-    .price-card ul { list-style: none; margin: 16px 0; }
-    .price-card li { padding: 4px 0; font-size: 0.9rem; color: var(--text-dim); }
-    .price-card li::before { content: '✓ '; color: var(--green); }
-    .promo { text-align: center; margin-top: 20px; padding: 12px; background: var(--accent-glow); border: 1px solid var(--accent); border-radius: 8px; font-size: 0.9rem; font-weight: 600; color: var(--accent); }
-
-    /* Steps */
-    .steps { counter-reset: step; }
-    .step { display: flex; gap: 16px; margin-bottom: 20px; align-items: flex-start; }
-    .step::before {
-      counter-increment: step; content: counter(step);
-      flex-shrink: 0; width: 36px; height: 36px; background: var(--accent); color: #fff;
-      border-radius: 50%; display: flex; align-items: center; justify-content: center;
-      font-weight: 700; font-size: 0.9rem;
-    }
-    .step p { font-size: 0.95rem; padding-top: 6px; }
-
-    /* FAQ */
-    .faq-item { border-bottom: 1px solid var(--border); padding: 20px 0; }
-    .faq-q { font-weight: 600; color: var(--text-bright); margin-bottom: 8px; cursor: pointer; }
-    .faq-a { color: var(--text-dim); font-size: 0.9rem; }
-
-    /* Footer */
-    footer { padding: 48px 0; text-align: center; color: var(--text-dim); font-size: 0.85rem; border-top: 1px solid var(--border); }
-    footer p { margin-bottom: 8px; }
-    footer a { color: var(--accent); text-decoration: none; }
-    footer a:hover { text-decoration: underline; }
-
-    /* Success message */
-    .success-msg { display: none; background: #1a2e1a; border: 1px solid var(--green); border-radius: 8px; padding: 16px; text-align: center; color: var(--green); font-weight: 600; }
-    .success-msg.show { display: block; }
-
-    /* Radio group */
-    .radio-group { display: flex; gap: 12px; }
-    .radio-group label { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.95rem; color: var(--text); font-weight: 400; }
-    .radio-group input[type="radio"] { accent-color: var(--accent); }
-
-    /* Airport autocomplete */
+    /* ── Airport autocomplete ─────────────────────────── */
     .airport-wrap { position: relative; }
-    .airport-wrap input { width: 100%; text-transform: uppercase; }
+    .airport-wrap input { width: 100%; }
     .airport-dropdown {
-      display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 100;
-      background: var(--bg-card); border: 1px solid var(--border); border-top: none;
-      border-radius: 0 0 8px 8px; max-height: 260px; overflow-y: auto;
-      scrollbar-width: thin; scrollbar-color: #333 transparent;
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0; right: 0;
+      z-index: 200;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+      max-height: 260px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: #444 transparent;
     }
     .airport-dropdown.open { display: block; }
-    .airport-dropdown .group-header:hover { background: rgba(59,130,246,0.1); color: var(--accent); }
     .airport-dropdown .group-header {
-      padding: 6px 14px; font-size: 0.75rem; font-weight: 700; color: var(--text-dim);
-      text-transform: uppercase; letter-spacing: 0.05em; background: #111;
-      position: sticky; top: 0;
+      padding: 6px 14px;
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      background: var(--bg);
+      position: sticky;
+      top: 0;
+      cursor: pointer;
     }
+    .airport-dropdown .group-header:hover { color: var(--accent); }
     .airport-dropdown .airport-option {
-      padding: 8px 14px; font-size: 0.9rem; color: var(--text); cursor: pointer;
+      padding: 8px 14px;
+      font-size: 0.88rem;
+      color: var(--text);
+      cursor: pointer;
     }
     .airport-dropdown .airport-option:hover,
-    .airport-dropdown .airport-option.active {
-      background: var(--accent); color: #fff;
-    }
-    .airport-dropdown .airport-option .code { font-weight: 700; }
+    .airport-dropdown .airport-option.active { background: var(--accent); color: var(--bg); }
+    .airport-dropdown .airport-option .code { font-weight: 600; }
     .airport-dropdown .airport-option .name { color: var(--text-dim); margin-left: 4px; }
     .airport-dropdown .airport-option:hover .name,
-    .airport-dropdown .airport-option.active .name { color: rgba(255,255,255,0.8); }
-    .airport-dropdown .no-results { padding: 12px 14px; color: var(--text-dim); font-size: 0.85rem; }
+    .airport-dropdown .airport-option.active .name { color: rgba(26,23,20,0.7); }
+    .airport-dropdown .no-results { padding: 10px 14px; color: var(--text-dim); font-size: 0.82rem; }
+
+    /* ── Section chrome ───────────────────────────────── */
+    .divider { border: none; height: 1px; background: var(--border); margin: 0; }
+
+    .section-heading {
+      text-align: center;
+      margin-bottom: 8px;
+    }
+    .section-heading h2 {
+      font-family: var(--font-serif);
+      font-size: 2.2rem;
+      font-weight: 400;
+      color: var(--text-bright);
+      letter-spacing: -0.01em;
+    }
+    .section-sub {
+      text-align: center;
+      font-family: var(--font-script);
+      font-size: 1.3rem;
+      color: var(--text-dim);
+      margin-bottom: 48px;
+    }
+
+    /* ── Sweet spots ──────────────────────────────────── */
+    .filter-bar {
+      display: flex; gap: 6px; justify-content: center; margin-bottom: 36px; flex-wrap: wrap;
+    }
+    .filter-btn {
+      padding: 7px 18px;
+      border-radius: 100px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: var(--font-sans);
+    }
+    .filter-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .filter-btn.active { background: var(--text-bright); color: var(--bg); border-color: var(--text-bright); }
+
+    .tier-section { margin-bottom: 48px; }
+    .tier-heading { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+    .tier-heading h3 { font-size: 1rem; font-weight: 500; color: var(--text); }
+    .tier-badge {
+      font-size: 0.62rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.06em; padding: 2px 8px; border-radius: 4px;
+    }
+    .tier-badge-s { background: var(--red-soft); color: var(--red); }
+    .tier-badge-a { background: rgba(201,169,110,0.15); color: var(--accent); }
+    .tier-badge-b { background: var(--orange-soft); color: var(--orange); }
+
+    .spot-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 14px;
+    }
+    .spot-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      cursor: pointer;
+      transition: border-color 0.2s, transform 0.15s;
+    }
+    .spot-card:hover { border-color: rgba(255,255,255,0.15); transform: translateY(-2px); }
+    .spot-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+    .spot-product { font-weight: 600; color: var(--text-bright); font-size: 0.92rem; line-height: 1.3; }
+    .spot-airline { font-size: 0.76rem; color: var(--text-dim); margin-top: 2px; }
+    .spot-route { font-size: 0.82rem; color: var(--text-dim); margin-bottom: 10px; }
+    .spot-stats { display: flex; gap: 16px; margin-bottom: 10px; }
+    .spot-stat { font-size: 0.78rem; color: var(--text-dim); }
+    .spot-stat strong { color: var(--text-bright); font-size: 0.92rem; font-weight: 600; }
+    .spot-stat .cpp { color: var(--green); }
+    .spot-transfers { display: flex; gap: 5px; flex-wrap: wrap; }
+    .pill {
+      font-size: 0.66rem; font-weight: 500; padding: 2px 8px;
+      border-radius: 100px; background: var(--bg-elevated); color: var(--text-dim);
+    }
+
+    /* ── Steps ────────────────────────────────────────── */
+    .steps-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 40px;
+      text-align: center;
+    }
+    .step-num {
+      font-family: var(--font-serif);
+      font-size: 2rem;
+      color: var(--accent);
+      margin-bottom: 14px;
+    }
+    .step-item h3 { font-size: 0.95rem; font-weight: 600; margin-bottom: 8px; color: var(--text-bright); }
+    .step-item p { font-size: 0.88rem; color: var(--text-dim); line-height: 1.6; }
+
+    /* ── Alert form ───────────────────────────────────── */
+    .alert-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-group.full { grid-column: 1 / -1; }
+    .form-group label { font-size: 0.76rem; font-weight: 500; color: var(--text-dim); }
+    .form-group input,
+    .form-group select {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      font-size: 0.92rem;
+      font-family: var(--font-sans);
+      color: var(--text-bright);
+      outline: none;
+      transition: border-color 0.2s;
+      width: 100%;
+    }
+    .form-group input:focus,
+    .form-group select:focus { border-color: var(--accent); }
+    .form-group select { cursor: pointer; }
+    .radio-group { display: flex; gap: 16px; }
+    .radio-group label {
+      display: flex; align-items: center; gap: 6px;
+      cursor: pointer; font-size: 0.88rem; color: var(--text); font-weight: 400;
+    }
+    .radio-group input[type="radio"] { accent-color: var(--accent); }
+
+    .btn-primary {
+      background: var(--text-bright);
+      color: var(--bg);
+      border: none;
+      border-radius: 100px;
+      padding: 12px 28px;
+      font-family: var(--font-sans);
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      width: 100%;
+    }
+    .btn-primary:hover { background: var(--text); transform: scale(1.01); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .success-msg {
+      display: none;
+      background: var(--green-soft);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      text-align: center;
+      color: var(--green);
+      font-weight: 500;
+      font-size: 0.9rem;
+    }
+    .success-msg.show { display: block; }
+
+    /* ── Programs ─────────────────────────────────────── */
+    .programs-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+    .program-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, transform 0.15s;
+    }
+    .program-card:hover { border-color: rgba(255,255,255,0.15); transform: translateY(-1px); }
+    .program-card.active { border-color: var(--accent); }
+    .program-card h3 { font-size: 0.92rem; font-weight: 600; margin-bottom: 4px; color: var(--text-bright); }
+    .program-partners { font-size: 0.76rem; color: var(--text-dim); }
+
+    /* ── Footer ───────────────────────────────────────── */
+    .footer {
+      padding: 56px 0;
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 0.82rem;
+      border-top: 1px solid var(--border);
+      margin-top: 20px;
+    }
+    .footer a { color: var(--text-dim); text-decoration: none; }
+    .footer a:hover { color: var(--text-bright); text-decoration: none; }
+    .footer-links { display: flex; justify-content: center; gap: 24px; flex-wrap: wrap; }
+
+    /* ── Skeleton ─────────────────────────────────────── */
+    .skeleton {
+      background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-elevated) 50%, var(--bg-card) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: var(--radius-sm);
+    }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    /* ── Responsive ───────────────────────────────────── */
+    @media (max-width: 768px) {
+      .nav { padding: 0 20px; }
+      .container { padding: 0 20px; }
+      .hero { padding: 64px 0 40px; }
+      .search-card { flex-direction: column; align-items: stretch; padding: 20px; }
+      .search-btn { width: 100%; }
+      .steps-row { grid-template-columns: 1fr; gap: 32px; }
+      .programs-grid { grid-template-columns: 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) {
+      .section { padding: 56px 0; }
+      .spot-grid { grid-template-columns: 1fr; }
+      .nav-links a { padding: 6px 10px; font-size: 0.82rem; }
+    }
   </style>
 </head>
 <body>
 
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/flights" class="nav-logo">flight points</a>
+      <div class="nav-links">
+        <a href="/flights" class="active">Flights</a>
+        <a href="/flights#sweet-spots">Sweet Spots</a>
+        <a href="/flights#alerts" class="nav-cta">search flights</a>
+      </div>
+    </div>
+  </nav>
+
   <!-- Hero -->
-  <div class="hero">
-    <div class="container">
-      <h1>Harbor Flights <span class="accent">🐙✈️</span></h1>
-      <p class="tagline">First class for economy prices. I watch, you fly.</p>
-      <p class="subtitle">Award seats disappear in hours. I check every 30 minutes and alert you instantly.</p>
+  <div class="container">
+    <div class="hero">
+      <h1 class="hero-headline">where the best award deals are</h1>
+      <p class="hero-script">points travel, simplified</p>
+
+      <form id="searchForm" class="search-card" autocomplete="off">
+        <div class="search-field">
+          <label>From</label>
+          <div class="airport-wrap">
+            <input type="text" id="s-from" placeholder="JFK" autocomplete="off" required>
+            <div class="airport-dropdown" id="s-from-dd"></div>
+          </div>
+        </div>
+        <div class="search-field">
+          <label>To</label>
+          <div class="airport-wrap">
+            <input type="text" id="s-to" placeholder="NRT" autocomplete="off" required>
+            <div class="airport-dropdown" id="s-to-dd"></div>
+          </div>
+        </div>
+        <div class="search-field" style="min-width:110px;">
+          <label>Class</label>
+          <select id="s-class">
+            <option value="business">Business</option>
+            <option value="first">First</option>
+            <option value="any">Any</option>
+          </select>
+        </div>
+        <div class="search-field" style="min-width:150px;">
+          <label>Program</label>
+          <select id="s-program">
+            <option value="amex-mr">Amex MR</option>
+            <option value="chase-ur">Chase UR</option>
+            <option value="capital-one">Capital One</option>
+            <option value="citi-typ">Citi TYP</option>
+            <option value="bilt">Bilt</option>
+            <option value="wells-fargo">Wells Fargo</option>
+          </select>
+        </div>
+        <button type="submit" class="search-btn">Search</button>
+      </form>
+
+      <div class="live-stats" id="liveStats">
+        <span class="dot"></span>
+        Loading monitoring status...
+      </div>
     </div>
   </div>
 
-  <!-- How It's Different -->
-  <section>
+  <hr class="divider">
+
+  <!-- Sweet Spots -->
+  <div class="section" id="sweet-spots">
     <div class="container">
-      <h2>How It's <span class="accent">Different</span></h2>
-      <div class="grid-3">
-        <div class="card">
-          <div class="icon">⚡</div>
-          <h3>Instant Alerts</h3>
-          <p>WhatsApp or SMS the moment a seat opens. Not email that sits in your inbox.</p>
-        </div>
-        <div class="card">
-          <div class="icon">🧮</div>
-          <h3>Transfer Optimizer</h3>
-          <p>"Transfer 90K Amex MR → ANA, book JFK→Tokyo first class. Worth $25,000." I do the math across all transfer partners.</p>
-        </div>
-        <div class="card">
-          <div class="icon">🔄</div>
-          <h3>24/7 Monitoring</h3>
-          <p>I never sleep. Set your routes once, I watch continuously until I find availability.</p>
+      <div class="section-heading"><h2>Sweet Spot Deals</h2></div>
+      <p class="section-sub">the best redemptions in points travel</p>
+
+      <div class="filter-bar" id="filterBar">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn" data-filter="S">S-Tier</button>
+        <button class="filter-btn" data-filter="A">A-Tier</button>
+        <button class="filter-btn" data-filter="B">B-Tier</button>
+      </div>
+
+      <div id="sweetSpotsContainer">
+        <div class="spot-grid">
+          <div class="skeleton" style="height:170px;"></div>
+          <div class="skeleton" style="height:170px;"></div>
+          <div class="skeleton" style="height:170px;"></div>
+          <div class="skeleton" style="height:170px;"></div>
+          <div class="skeleton" style="height:170px;"></div>
+          <div class="skeleton" style="height:170px;"></div>
         </div>
       </div>
     </div>
-  </section>
+  </div>
 
-  <!-- Supported Programs -->
-  <section>
-    <div class="container">
-      <h2>Supported <span class="accent">Programs</span></h2>
-      <div class="programs-grid">
-        <div class="program-badge">Amex Membership Rewards</div>
-        <div class="program-badge">Chase Ultimate Rewards</div>
-        <div class="program-badge">Capital One Miles</div>
-        <div class="program-badge">Citi ThankYou Points</div>
-        <div class="program-badge">Bilt Rewards</div>
-        <div class="program-badge">United MileagePlus</div>
-        <div class="program-badge">ANA Mileage Club</div>
-        <div class="program-badge">Virgin Atlantic Flying Club</div>
-        <div class="program-badge">Singapore KrisFlyer</div>
-        <div class="program-badge">British Airways Avios</div>
-        <div class="program-badge">Air Canada Aeroplan</div>
-        <div class="program-badge more">& 15+ more programs</div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Route Setup Tool -->
-  <section>
-    <div class="container">
-      <h2>Set Up a <span class="accent">Route Alert</span></h2>
-      <form id="routeForm" class="form-grid" style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:28px;">
-        <div class="form-group">
-          <label>From Airport</label>
-          <div class="airport-wrap">
-            <input type="text" id="rf-from" placeholder="JFK" autocomplete="off" required>
-            <div class="airport-dropdown" id="rf-from-dd"></div>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>To Airport</label>
-          <div class="airport-wrap">
-            <input type="text" id="rf-to" placeholder="NRT" autocomplete="off" required>
-            <div class="airport-dropdown" id="rf-to-dd"></div>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>Class</label>
-          <select id="rf-class">
-            <option>Business</option>
-            <option>First</option>
-            <option>Either</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Points Program</label>
-          <select id="rf-program">
-            
-              <option>Amex Membership Rewards</option>
-              <option>Chase Ultimate Rewards</option>
-              <option>Capital One Miles</option>
-              <option>Citi ThankYou Points</option>
-              <option>Bilt Rewards</option>
-              <option>Wells Fargo Rewards</option>
-            
-            <option>Other</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Preferred Airlines</label>
-          <select id="rf-airlines" multiple size="4" style="min-height:90px;">
-            <optgroup label="Star Alliance">
-              <option>ANA</option>
-              <option>United</option>
-              <option>Lufthansa</option>
-              <option>Singapore Airlines</option>
-              <option>Air Canada</option>
-              <option>EVA Air</option>
-              <option>Swiss</option>
-              <option>Turkish Airlines</option>
-              <option>Asiana</option>
-              <option>TAP Air Portugal</option>
-            
-            <optgroup label="oneworld">
-              <option>Cathay Pacific</option>
-              <option>Japan Airlines</option>
-              <option>Qatar Airways</option>
-              <option>British Airways</option>
-              <option>American Airlines</option>
-              <option>Qantas</option>
-              <option>Finnair</option>
-              <option>Royal Jordanian</option>
-            
-            <optgroup label="SkyTeam">
-              <option>Delta</option>
-              <option>Korean Air</option>
-              <option>Air France</option>
-              <option>KLM</option>
-              <option>Virgin Atlantic</option>
-              <option>China Airlines</option>
-            
-            <optgroup label="Other">
-              <option>Emirates</option>
-              <option>Etihad</option>
-              <option>JetBlue</option>
-            
-          </select>
-          <span style="font-size:0.75rem;color:var(--muted);">Hold Ctrl/Cmd to select multiple. Leave blank for all airlines.</span>
-        </div>
-        <div class="form-group checkbox-row">
-          <input type="checkbox" id="rf-continuous" onchange="document.getElementById('rf-dates').style.display=this.checked?'none':'contents'">
-          <label for="rf-continuous">Monitor continuously (no date range)</label>
-        </div>
-        <div id="rf-dates" style="display:contents;">
-        <div class="form-group">
-          <label>Start Date</label>
-          <input type="date" id="rf-start">
-        </div>
-        <div class="form-group">
-          <label>End Date</label>
-          <input type="date" id="rf-end">
-        </div>
-        <div class="form-group checkbox-row">
-          <input type="checkbox" id="rf-flex">
-          <label for="rf-flex">±3 days flexible</label>
-        </div>
-        </div>
-        <div class="form-group">
-          <label>Alert Method</label>
-          <div class="radio-group">
-            <label><input type="radio" name="alertMethod" value="whatsapp" checked> WhatsApp</label>
-            <label><input type="radio" name="alertMethod" value="email"> Email</label>
-            <label><input type="radio" name="alertMethod" value="both"> Both</label>
-          </div>
-        </div>
-        <div class="form-group full">
-          <label>Contact (phone or email)</label>
-          <input type="text" id="rf-contact" placeholder="+1 (555) 123-4567 or you@email.com" required>
-        </div>
-        <div class="form-group full" style="align-items:flex-start;">
-          <button type="submit" class="btn" style="width:100%;">Start Monitoring →</button>
-        </div>
-      </form>
-      <div class="success-msg" id="routeSuccess" style="margin-top:16px;">✅ Route alert created! You'll hear from us soon.</div>
-
-      <!-- Search Results -->
-      <div id="searchLoading" style="display:none;margin-top:24px;text-align:center;padding:48px 0;">
-        <div style="display:inline-block;width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;"></div>
-        <p style="margin-top:16px;color:var(--text-dim);" id="loadingText">Searching flights...</p>
-        <p style="margin-top:8px;color:var(--text-dim);font-size:0.8rem;">This uses a real browser to scrape Google Flights — takes 15-30 seconds</p>
-      </div>
-      <div id="searchResults" style="display:none;margin-top:24px;"></div>
-      <style>
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .flight-card {
-          background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
-          padding: 20px; margin-bottom: 12px; transition: border-color 0.2s;
-        }
-        .flight-card:hover { border-color: var(--accent); }
-        .flight-card.hot { border-left: 3px solid #22c55e; }
-        .flight-card.good { border-left: 3px solid var(--accent); }
-        .flight-card.fair { border-left: 3px solid #f59e0b; }
-        .flight-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
-        .flight-airline { font-weight: 700; font-size: 1.05rem; color: var(--text-bright); }
-        .flight-route { font-size: 0.85rem; color: var(--text-dim); }
-        .flight-price { text-align: right; }
-        .flight-cash { font-size: 1.3rem; font-weight: 800; color: var(--text-bright); }
-        .flight-times { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; font-size: 0.9rem; }
-        .flight-time-val { font-weight: 600; color: var(--text-bright); }
-        .flight-arrow { color: var(--text-dim); }
-        .flight-meta { display: flex; gap: 16px; font-size: 0.8rem; color: var(--text-dim); flex-wrap: wrap; }
-        .flight-meta span { display: flex; align-items: center; gap: 4px; }
-        .transfer-section { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
-        .transfer-rec {
-          background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); border-radius: 8px;
-          padding: 10px 14px; margin-top: 8px; font-size: 0.85rem;
-        }
-        .transfer-rec .cpp-badge {
-          display: inline-block; background: var(--accent); color: #fff; border-radius: 4px;
-          padding: 2px 8px; font-weight: 700; font-size: 0.75rem; margin-left: 8px;
-        }
-        .cpp-badge.hot { background: #22c55e; }
-        .cpp-badge.good { background: var(--accent); }
-        .cpp-badge.fair { background: #f59e0b; color: #000; }
-        .deal-badge {
-          display: inline-block; border-radius: 4px; padding: 2px 8px; font-weight: 700; font-size: 0.7rem;
-          text-transform: uppercase; letter-spacing: 0.05em;
-        }
-        .deal-badge.hot { background: rgba(34,197,94,0.15); color: #22c55e; }
-        .deal-badge.good { background: rgba(59,130,246,0.15); color: var(--accent); }
-        .deal-badge.fair { background: rgba(245,158,11,0.15); color: #f59e0b; }
-        .results-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px; }
-        .results-header h3 { font-size: 1.2rem; font-weight: 700; color: var(--text-bright); }
-        .results-count { font-size: 0.85rem; color: var(--text-dim); }
-        .no-results { text-align: center; padding: 40px 0; color: var(--text-dim); }
-        .transfer-more { font-size: 0.8rem; color: var(--text-dim); cursor: pointer; margin-top: 6px; }
-        .transfer-more:hover { color: var(--accent); }
-        .transfer-list { display: none; margin-top: 8px; }
-        .transfer-list.open { display: block; }
-        .transfer-item { padding: 6px 0; font-size: 0.8rem; color: var(--text-dim); border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .search-error { background: rgba(239,68,68,0.1); border: 1px solid var(--red); border-radius: 8px; padding: 16px; color: var(--red); margin-top: 16px; }
-      </style>
-    </div>
-  </section>
-
-  <!-- Example Alerts -->
-  <section>
-    <div class="container">
-      <h2>What You'll <span class="accent">Receive</span></h2>
-      <div class="alert-bubbles">
-        <div class="bubble">🐙✈️ ALERT: ANA First Class JFK→NRT open! Mar 15. Book via Virgin Atlantic: 110K points. Cash price: $24,800. Value: 22.5 cpp. This is rare — act NOW.</div>
-        <div class="bubble">🐙✈️ ALERT: Singapore Suites JFK→SIN open! Apr 2-3. Book via KrisFlyer: 148K points. Only 2 seats.</div>
-        <div class="bubble">🐙✈️ Daily digest: Checked 47 routes, 3 new availabilities found. Best deal: Qatar QSuites JFK→DOH, 70K AA miles (worth 8.2 cpp).</div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Pricing -->
-  <section>
-    <div class="container">
-      <h2><span class="accent">Pricing</span></h2>
-      <div class="pricing-grid">
-        <div class="price-card">
-          <h3>Starter</h3>
-          <div class="price-amount">$10<span>/mo</span></div>
-          <ul>
-            <li>3 route alerts</li>
-            <li>Email notifications</li>
-            <li>Award calendar checks every 30 min</li>
-          </ul>
-        </div>
-        <div class="price-card featured">
-          <h3>Pro</h3>
-          <div class="price-amount">$25<span>/mo</span></div>
-          <ul>
-            <li>Unlimited routes</li>
-            <li>WhatsApp + email alerts</li>
-            <li>Transfer optimizer</li>
-            <li>Priority support</li>
-          </ul>
-        </div>
-      </div>
-      <div class="promo">🎉 First 50 users get Pro free for 1 month</div>
-    </div>
-  </section>
+  <hr class="divider">
 
   <!-- How It Works -->
-  <section>
+  <div class="section">
     <div class="container">
-      <h2>How It <span class="accent">Works</span></h2>
-      <div class="steps">
-        <div class="step"><p>You set your dream routes and dates</p></div>
-        <div class="step"><p>I scan airline award calendars every 30 minutes</p></div>
-        <div class="step"><p>When availability opens, I calculate the best redemption across all your points programs</p></div>
-        <div class="step"><p>You get an instant alert with exactly how to book</p></div>
-        <div class="step"><p>Sweet spots typically last 2–24 hours — speed is everything</p></div>
+      <div class="section-heading"><h2>How It Works</h2></div>
+      <p class="section-sub">three steps to premium cabins for less</p>
+      <div class="steps-row">
+        <div class="step-item">
+          <div class="step-num">1</div>
+          <h3>Search Routes</h3>
+          <p>Enter your origin, destination, and preferred cabin to find available award seats.</p>
+        </div>
+        <div class="step-item">
+          <div class="step-num">2</div>
+          <h3>Compare Transfer Paths</h3>
+          <p>We calculate the optimal points transfer across Amex, Chase, Citi, Capital One, Bilt, and more.</p>
+        </div>
+        <div class="step-item">
+          <div class="step-num">3</div>
+          <h3>Book Before It's Gone</h3>
+          <p>Award seats last 2-24 hours. Set up alerts to get notified the moment availability opens.</p>
+        </div>
       </div>
     </div>
-  </section>
+  </div>
 
-  <!-- Sign Up -->
-  <section>
-    <div class="container">
-      <h2>Get <span class="accent">Early Access</span></h2>
-      <form id="signupForm" class="form-grid" style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:28px;">
-        <div class="form-group">
-          <label>Name</label>
-          <input type="text" id="su-name" required>
-        </div>
-        <div class="form-group">
-          <label>Email</label>
-          <input type="email" id="su-email" required>
-        </div>
-        <div class="form-group">
-          <label>Phone (for WhatsApp)</label>
-          <input type="tel" id="su-phone" placeholder="+1 (555) 123-4567">
-        </div>
-        <div class="form-group">
-          <label>Primary Points Program</label>
-          <select id="su-program">
-            
-              <option>Amex Membership Rewards</option>
-              <option>Chase Ultimate Rewards</option>
-              <option>Capital One Miles</option>
-              <option>Citi ThankYou Points</option>
-              <option>Bilt Rewards</option>
-              <option>Wells Fargo Rewards</option>
-            
-            <option>Other</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Approximate Points Balance</label>
-          <input type="text" id="su-balance" placeholder="e.g. 150,000">
-        </div>
-        <div class="form-group">
-          <label>Dream Route — From</label>
-          <div class="airport-wrap">
-            <input type="text" id="su-from" placeholder="JFK" autocomplete="off">
-            <div class="airport-dropdown" id="su-from-dd"></div>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>Dream Route — To</label>
-          <div class="airport-wrap">
-            <input type="text" id="su-to" placeholder="NRT" autocomplete="off">
-            <div class="airport-dropdown" id="su-to-dd"></div>
-          </div>
-        </div>
-        <div class="form-group full">
-          <button type="submit" class="btn" style="width:100%;">Sign Up for Early Access →</button>
-        </div>
-      </form>
-      <div class="success-msg" id="signupSuccess" style="margin-top:16px;">✅ You're in! We'll reach out when your alerts are live.</div>
-    </div>
-  </section>
+  <hr class="divider">
 
-  <!-- FAQ -->
-  <section>
+  <!-- Alerts -->
+  <div class="section" id="alerts">
     <div class="container">
-      <h2><span class="accent">FAQ</span></h2>
-      <div class="faq-item">
-        <div class="faq-q">How do you find availability?</div>
-        <div class="faq-a">We monitor airline booking systems directly, checking every 30 minutes.</div>
-      </div>
-      <div class="faq-item">
-        <div class="faq-q">Do you book for me?</div>
-        <div class="faq-a">Not yet — we alert you with exact instructions. Auto-booking is coming soon.</div>
-      </div>
-      <div class="faq-item">
-        <div class="faq-q">What airlines do you cover?</div>
-        <div class="faq-a">All major Star Alliance, oneworld, and SkyTeam carriers plus key partners.</div>
-      </div>
-      <div class="faq-item">
-        <div class="faq-q">Is this legal?</div>
-        <div class="faq-a">Yes. We're checking publicly available booking pages, same as you would manually.</div>
+      <div class="section-heading"><h2>Set Up Alerts</h2></div>
+      <p class="section-sub">get notified the moment seats open</p>
+
+      <div class="alert-card">
+        <form id="alertForm" class="form-grid">
+          <div class="form-group">
+            <label>From Airport</label>
+            <div class="airport-wrap">
+              <input type="text" id="af-from" placeholder="JFK" autocomplete="off" required>
+              <div class="airport-dropdown" id="af-from-dd"></div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>To Airport</label>
+            <div class="airport-wrap">
+              <input type="text" id="af-to" placeholder="NRT" autocomplete="off" required>
+              <div class="airport-dropdown" id="af-to-dd"></div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Class</label>
+            <select id="af-class">
+              <option value="business">Business</option>
+              <option value="first">First</option>
+              <option value="any">Either</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Points Program</label>
+            <select id="af-program">
+              <option value="amex-mr">Amex Membership Rewards</option>
+              <option value="chase-ur">Chase Ultimate Rewards</option>
+              <option value="capital-one">Capital One Miles</option>
+              <option value="citi-typ">Citi ThankYou Points</option>
+              <option value="bilt">Bilt Rewards</option>
+              <option value="wells-fargo">Wells Fargo Rewards</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Alert Method</label>
+            <div class="radio-group">
+              <label><input type="radio" name="alertMethod" value="whatsapp" checked> WhatsApp</label>
+              <label><input type="radio" name="alertMethod" value="email"> Email</label>
+              <label><input type="radio" name="alertMethod" value="both"> Both</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Contact (phone or email)</label>
+            <input type="text" id="af-contact" placeholder="+1 (555) 123-4567 or you@email.com" required>
+          </div>
+          <div class="form-group full" style="align-items:flex-start;">
+            <button type="submit" class="btn-primary">Start Monitoring</button>
+          </div>
+        </form>
+        <div class="success-msg" id="alertSuccess" style="margin-top:16px;">Route alert created! You'll hear from us when seats open.</div>
       </div>
     </div>
-  </section>
+  </div>
+
+  <hr class="divider">
+
+  <!-- Programs -->
+  <div class="section" id="programs">
+    <div class="container">
+      <div class="section-heading"><h2>Supported Programs</h2></div>
+      <p class="section-sub">click a program to filter sweet spots</p>
+      <div class="programs-grid" id="programsGrid"></div>
+    </div>
+  </div>
 
   <!-- Footer -->
-  <footer>
+  <footer class="footer">
     <div class="container">
-      <p>Powered by Harbor 🐙 — an AI agent that never sleeps.</p>
-      <p><a href="/">andeslee.com</a> · <a href="/harbor">Harbor</a> · <a href="/data">Data</a></p>
-      <p style="margin-top:16px;font-size:0.8rem;">Part of The Experiment</p>
+      <div class="footer-links">
+        <a href="/flights">Flights</a>
+      </div>
+      <p style="margin-top:14px; font-family: var(--font-script); font-size: 1.1rem;">powered by flight points</p>
     </div>
   </footer>
 
   <script>
-    // === Airport Autocomplete ===
-    const AIRPORTS = [
-      // US — New York
-      { code:'JFK', name:'John F. Kennedy International', city:'New York', metro:'New York' },
-      { code:'EWR', name:'Newark Liberty International', city:'Newark', metro:'New York' },
-      { code:'LGA', name:'LaGuardia', city:'New York', metro:'New York' },
-      // US — Los Angeles
-      { code:'LAX', name:'Los Angeles International', city:'Los Angeles', metro:'Los Angeles' },
-      { code:'SNA', name:'John Wayne (Orange County)', city:'Santa Ana', metro:'Los Angeles' },
-      { code:'BUR', name:'Hollywood Burbank', city:'Burbank', metro:'Los Angeles' },
-      { code:'ONT', name:'Ontario International', city:'Ontario', metro:'Los Angeles' },
-      { code:'LGB', name:'Long Beach', city:'Long Beach', metro:'Los Angeles' },
-      // US — San Francisco
-      { code:'SFO', name:'San Francisco International', city:'San Francisco', metro:'San Francisco' },
-      { code:'OAK', name:'Oakland International', city:'Oakland', metro:'San Francisco' },
-      { code:'SJC', name:'San Jose International', city:'San Jose', metro:'San Francisco' },
-      // US — Chicago
-      { code:'ORD', name:"O'Hare International", city:'Chicago', metro:'Chicago' },
-      { code:'MDW', name:'Midway International', city:'Chicago', metro:'Chicago' },
-      // US — Washington DC
-      { code:'IAD', name:'Dulles International', city:'Washington', metro:'Washington DC' },
-      { code:'DCA', name:'Reagan National', city:'Washington', metro:'Washington DC' },
-      { code:'BWI', name:'Baltimore/Washington International', city:'Baltimore', metro:'Washington DC' },
-      // US — Miami
-      { code:'MIA', name:'Miami International', city:'Miami', metro:'Miami' },
-      { code:'FLL', name:'Fort Lauderdale-Hollywood', city:'Fort Lauderdale', metro:'Miami' },
-      // US — Dallas
-      { code:'DFW', name:'Dallas/Fort Worth International', city:'Dallas', metro:'Dallas' },
-      { code:'DAL', name:'Dallas Love Field', city:'Dallas', metro:'Dallas' },
-      // US — Houston
-      { code:'IAH', name:'George Bush Intercontinental', city:'Houston', metro:'Houston' },
-      { code:'HOU', name:'William P. Hobby', city:'Houston', metro:'Houston' },
-      // US — Other major
-      { code:'ATL', name:'Hartsfield-Jackson Atlanta', city:'Atlanta', metro:'Atlanta' },
-      { code:'BOS', name:'Logan International', city:'Boston', metro:'Boston' },
-      { code:'SEA', name:'Seattle-Tacoma International', city:'Seattle', metro:'Seattle' },
-      { code:'DEN', name:'Denver International', city:'Denver', metro:'Denver' },
-      { code:'MSP', name:'Minneapolis-Saint Paul', city:'Minneapolis', metro:'Minneapolis' },
-      { code:'DTW', name:'Detroit Metropolitan', city:'Detroit', metro:'Detroit' },
-      { code:'PHL', name:'Philadelphia International', city:'Philadelphia', metro:'Philadelphia' },
-      { code:'CLT', name:'Charlotte Douglas', city:'Charlotte', metro:'Charlotte' },
-      { code:'PHX', name:'Phoenix Sky Harbor', city:'Phoenix', metro:'Phoenix' },
-      { code:'SAN', name:'San Diego International', city:'San Diego', metro:'San Diego' },
-      { code:'TPA', name:'Tampa International', city:'Tampa', metro:'Tampa' },
-      { code:'MCO', name:'Orlando International', city:'Orlando', metro:'Orlando' },
-      { code:'MSY', name:'Louis Armstrong New Orleans', city:'New Orleans', metro:'New Orleans' },
-      { code:'SLC', name:'Salt Lake City International', city:'Salt Lake City', metro:'Salt Lake City' },
-      { code:'PDX', name:'Portland International', city:'Portland', metro:'Portland' },
-      { code:'STL', name:'St. Louis Lambert', city:'St. Louis', metro:'St. Louis' },
-      { code:'RDU', name:'Raleigh-Durham', city:'Raleigh', metro:'Raleigh' },
-      { code:'AUS', name:'Austin-Bergstrom', city:'Austin', metro:'Austin' },
-      { code:'BNA', name:'Nashville International', city:'Nashville', metro:'Nashville' },
-      { code:'HNL', name:'Daniel K. Inouye (Honolulu)', city:'Honolulu', metro:'Honolulu' },
-      { code:'OGG', name:'Kahului (Maui)', city:'Maui', metro:'Hawaii — Maui' },
-      { code:'LIH', name:'Lihue (Kauai)', city:'Kauai', metro:'Hawaii — Kauai' },
-      { code:'ANC', name:'Ted Stevens Anchorage', city:'Anchorage', metro:'Anchorage' },
-      // Japan
-      { code:'NRT', name:'Narita International', city:'Tokyo', metro:'Tokyo' },
-      { code:'HND', name:'Haneda', city:'Tokyo', metro:'Tokyo' },
-      { code:'KIX', name:'Kansai International', city:'Osaka', metro:'Osaka' },
-      { code:'NGO', name:'Chubu Centrair', city:'Nagoya', metro:'Nagoya' },
-      { code:'FUK', name:'Fukuoka', city:'Fukuoka', metro:'Fukuoka' },
-      { code:'CTS', name:'New Chitose (Sapporo)', city:'Sapporo', metro:'Sapporo' },
-      // South Korea
-      { code:'ICN', name:'Incheon International', city:'Seoul', metro:'Seoul' },
-      { code:'GMP', name:'Gimpo International', city:'Seoul', metro:'Seoul' },
-      // China
-      { code:'PVG', name:'Pudong International', city:'Shanghai', metro:'Shanghai' },
-      { code:'SHA', name:'Hongqiao International', city:'Shanghai', metro:'Shanghai' },
-      { code:'PEK', name:'Capital International', city:'Beijing', metro:'Beijing' },
-      { code:'PKX', name:'Daxing International', city:'Beijing', metro:'Beijing' },
-      { code:'HKG', name:'Hong Kong International', city:'Hong Kong', metro:'Hong Kong' },
-      { code:'TPE', name:'Taoyuan International', city:'Taipei', metro:'Taipei' },
-      // Southeast Asia
-      { code:'SIN', name:'Changi', city:'Singapore', metro:'Singapore' },
-      { code:'BKK', name:'Suvarnabhumi', city:'Bangkok', metro:'Bangkok' },
-      { code:'DMK', name:'Don Mueang', city:'Bangkok', metro:'Bangkok' },
-      { code:'KUL', name:'Kuala Lumpur International', city:'Kuala Lumpur', metro:'Kuala Lumpur' },
-      { code:'MNL', name:'Ninoy Aquino International', city:'Manila', metro:'Manila' },
-      { code:'SGN', name:'Tan Son Nhat', city:'Ho Chi Minh City', metro:'Ho Chi Minh City' },
-      { code:'HAN', name:'Noi Bai International', city:'Hanoi', metro:'Hanoi' },
-      { code:'DPS', name:'Ngurah Rai (Bali)', city:'Bali', metro:'Bali' },
-      { code:'CGK', name:'Soekarno-Hatta', city:'Jakarta', metro:'Jakarta' },
-      // South Asia
-      { code:'DEL', name:'Indira Gandhi International', city:'Delhi', metro:'Delhi' },
-      { code:'BOM', name:'Chhatrapati Shivaji Maharaj', city:'Mumbai', metro:'Mumbai' },
-      { code:'CMB', name:'Bandaranaike International', city:'Colombo', metro:'Colombo' },
-      { code:'MLE', name:'Velana International', city:'Malé', metro:'Maldives' },
-      // Middle East
-      { code:'DXB', name:'Dubai International', city:'Dubai', metro:'Dubai' },
-      { code:'AUH', name:'Abu Dhabi International', city:'Abu Dhabi', metro:'Abu Dhabi' },
-      { code:'DOH', name:'Hamad International', city:'Doha', metro:'Doha' },
-      { code:'IST', name:'Istanbul Airport', city:'Istanbul', metro:'Istanbul' },
-      { code:'TLV', name:'Ben Gurion', city:'Tel Aviv', metro:'Tel Aviv' },
-      { code:'AMM', name:'Queen Alia International', city:'Amman', metro:'Amman' },
-      { code:'RUH', name:'King Khalid International', city:'Riyadh', metro:'Riyadh' },
-      { code:'JED', name:'King Abdulaziz International', city:'Jeddah', metro:'Jeddah' },
-      // UK
-      { code:'LHR', name:'Heathrow', city:'London', metro:'London' },
-      { code:'LGW', name:'Gatwick', city:'London', metro:'London' },
-      { code:'STN', name:'Stansted', city:'London', metro:'London' },
-      { code:'LTN', name:'Luton', city:'London', metro:'London' },
-      { code:'LCY', name:'London City', city:'London', metro:'London' },
-      // Europe
-      { code:'CDG', name:'Charles de Gaulle', city:'Paris', metro:'Paris' },
-      { code:'ORY', name:'Orly', city:'Paris', metro:'Paris' },
-      { code:'FRA', name:'Frankfurt am Main', city:'Frankfurt', metro:'Frankfurt' },
-      { code:'MUC', name:'Munich', city:'Munich', metro:'Munich' },
-      { code:'AMS', name:'Schiphol', city:'Amsterdam', metro:'Amsterdam' },
-      { code:'MAD', name:'Adolfo Suárez Madrid–Barajas', city:'Madrid', metro:'Madrid' },
-      { code:'BCN', name:'Josep Tarradellas Barcelona–El Prat', city:'Barcelona', metro:'Barcelona' },
-      { code:'FCO', name:'Leonardo da Vinci–Fiumicino', city:'Rome', metro:'Rome' },
-      { code:'MXP', name:'Milano Malpensa', city:'Milan', metro:'Milan' },
-      { code:'ZRH', name:'Zurich', city:'Zurich', metro:'Zurich' },
-      { code:'VIE', name:'Vienna International', city:'Vienna', metro:'Vienna' },
-      { code:'CPH', name:'Copenhagen', city:'Copenhagen', metro:'Copenhagen' },
-      { code:'OSL', name:'Oslo Gardermoen', city:'Oslo', metro:'Oslo' },
-      { code:'ARN', name:'Stockholm Arlanda', city:'Stockholm', metro:'Stockholm' },
-      { code:'HEL', name:'Helsinki-Vantaa', city:'Helsinki', metro:'Helsinki' },
-      { code:'DUB', name:'Dublin', city:'Dublin', metro:'Dublin' },
-      { code:'LIS', name:'Humberto Delgado (Lisbon)', city:'Lisbon', metro:'Lisbon' },
-      { code:'ATH', name:'Eleftherios Venizelos', city:'Athens', metro:'Athens' },
-      { code:'WAW', name:'Chopin', city:'Warsaw', metro:'Warsaw' },
-      { code:'PRG', name:'Václav Havel', city:'Prague', metro:'Prague' },
-      { code:'BRU', name:'Brussels', city:'Brussels', metro:'Brussels' },
-      { code:'GVA', name:'Geneva', city:'Geneva', metro:'Geneva' },
-      // Oceania
-      { code:'SYD', name:'Kingsford Smith', city:'Sydney', metro:'Sydney' },
-      { code:'MEL', name:'Tullamarine', city:'Melbourne', metro:'Melbourne' },
-      { code:'AKL', name:'Auckland', city:'Auckland', metro:'Auckland' },
-      { code:'BNE', name:'Brisbane', city:'Brisbane', metro:'Brisbane' },
-      { code:'PER', name:'Perth', city:'Perth', metro:'Perth' },
-      // Africa
-      { code:'JNB', name:'O.R. Tambo International', city:'Johannesburg', metro:'Johannesburg' },
-      { code:'CPT', name:'Cape Town International', city:'Cape Town', metro:'Cape Town' },
-      { code:'CAI', name:'Cairo International', city:'Cairo', metro:'Cairo' },
-      { code:'ADD', name:'Bole International', city:'Addis Ababa', metro:'Addis Ababa' },
-      { code:'NBO', name:'Jomo Kenyatta', city:'Nairobi', metro:'Nairobi' },
-      { code:'CMN', name:'Mohammed V International', city:'Casablanca', metro:'Casablanca' },
-      // South America
-      { code:'GRU', name:'Guarulhos International', city:'São Paulo', metro:'São Paulo' },
-      { code:'GIG', name:'Galeão International', city:'Rio de Janeiro', metro:'Rio de Janeiro' },
-      { code:'EZE', name:'Ministro Pistarini (Ezeiza)', city:'Buenos Aires', metro:'Buenos Aires' },
-      { code:'SCL', name:'Arturo Merino Benítez', city:'Santiago', metro:'Santiago' },
-      { code:'BOG', name:'El Dorado International', city:'Bogotá', metro:'Bogotá' },
-      { code:'LIM', name:'Jorge Chávez International', city:'Lima', metro:'Lima' },
-      { code:'MEX', name:'Benito Juárez International', city:'Mexico City', metro:'Mexico City' },
-      { code:'CUN', name:'Cancún International', city:'Cancún', metro:'Cancún' },
-      { code:'PTY', name:'Tocumen International', city:'Panama City', metro:'Panama City' },
-      // Canada
-      { code:'YYZ', name:'Toronto Pearson', city:'Toronto', metro:'Toronto' },
-      { code:'YVR', name:'Vancouver International', city:'Vancouver', metro:'Vancouver' },
-      { code:'YUL', name:'Montréal-Trudeau', city:'Montreal', metro:'Montreal' },
+    // === Airport Database ===
+    const FALLBACK_AIRPORTS = [
+      { code:'JFK', name:'John F. Kennedy International', city:'New York', metro:'New York', country:'US' },
+      { code:'EWR', name:'Newark Liberty International', city:'Newark', metro:'New York', country:'US' },
+      { code:'LGA', name:'LaGuardia', city:'New York', metro:'New York', country:'US' },
+      { code:'LAX', name:'Los Angeles International', city:'Los Angeles', metro:'Los Angeles', country:'US' },
+      { code:'SFO', name:'San Francisco International', city:'San Francisco', metro:'San Francisco', country:'US' },
+      { code:'ORD', name:"O'Hare International", city:'Chicago', metro:'Chicago', country:'US' },
+      { code:'MIA', name:'Miami International', city:'Miami', metro:'Miami', country:'US' },
+      { code:'DFW', name:'Dallas/Fort Worth International', city:'Dallas', metro:'Dallas', country:'US' },
+      { code:'ATL', name:'Hartsfield-Jackson Atlanta', city:'Atlanta', metro:'Atlanta', country:'US' },
+      { code:'BOS', name:'Logan International', city:'Boston', metro:'Boston', country:'US' },
+      { code:'SEA', name:'Seattle-Tacoma International', city:'Seattle', metro:'Seattle', country:'US' },
+      { code:'DEN', name:'Denver International', city:'Denver', metro:'Denver', country:'US' },
+      { code:'NRT', name:'Narita International', city:'Tokyo', metro:'Tokyo', country:'JP' },
+      { code:'HND', name:'Haneda', city:'Tokyo', metro:'Tokyo', country:'JP' },
+      { code:'LHR', name:'Heathrow', city:'London', metro:'London', country:'GB' },
+      { code:'CDG', name:'Charles de Gaulle', city:'Paris', metro:'Paris', country:'FR' },
+      { code:'SIN', name:'Changi', city:'Singapore', metro:'Singapore', country:'SG' },
+      { code:'HKG', name:'Hong Kong International', city:'Hong Kong', metro:'Hong Kong', country:'HK' },
+      { code:'DXB', name:'Dubai International', city:'Dubai', metro:'Dubai', country:'AE' },
+      { code:'SYD', name:'Kingsford Smith', city:'Sydney', metro:'Sydney', country:'AU' },
     ];
 
+    let AIRPORTS = FALLBACK_AIRPORTS;
+
+    fetch('/airports.json')
+      .then(r => r.json())
+      .then(data => { if (data.airports && data.airports.length > 0) AIRPORTS = data.airports; })
+      .catch(() => {});
+
+    // === Airport Autocomplete ===
     function initAirportAutocomplete(inputId, ddId) {
       const input = document.getElementById(inputId);
       const dd = document.getElementById(ddId);
       let activeIdx = -1;
+      let debounceTimer = null;
+      const MAX_RESULTS = 50;
+
+      function scoreMatch(airport, q) {
+        const code = airport.code.toLowerCase();
+        const city = airport.city.toLowerCase();
+        const name = airport.name.toLowerCase();
+        const metro = airport.metro.toLowerCase();
+        if (code === q) return 100;
+        if (code.startsWith(q)) return 90;
+        if (city.startsWith(q)) return 80;
+        if (metro.startsWith(q)) return 70;
+        if (code.includes(q)) return 60;
+        if (city.includes(q)) return 50;
+        if (name.startsWith(q)) return 40;
+        if (metro.includes(q) || name.includes(q)) return 30;
+        return 0;
+      }
 
       function render(query) {
         dd.innerHTML = '';
         activeIdx = -1;
         if (!query) { dd.classList.remove('open'); return; }
         const q = query.toLowerCase();
-        // filter airports
-        const matched = AIRPORTS.filter(a =>
-          a.code.toLowerCase().includes(q) ||
-          a.name.toLowerCase().includes(q) ||
-          a.city.toLowerCase().includes(q) ||
-          a.metro.toLowerCase().includes(q)
-        );
-        if (!matched.length) {
+
+        const scored = [];
+        for (const a of AIRPORTS) {
+          const s = scoreMatch(a, q);
+          if (s > 0) scored.push({ airport: a, score: s });
+        }
+        scored.sort((a, b) => b.score - a.score);
+
+        const totalMatches = scored.length;
+        const capped = scored.slice(0, MAX_RESULTS);
+
+        if (!capped.length) {
           dd.innerHTML = '<div class="no-results">No airports found</div>';
           dd.classList.add('open');
           return;
         }
-        // group by metro
+
         const groups = {};
-        matched.forEach(a => {
-          if (!groups[a.metro]) groups[a.metro] = [];
+        const groupOrder = [];
+        capped.forEach(({ airport: a }) => {
+          if (!groups[a.metro]) { groups[a.metro] = []; groupOrder.push(a.metro); }
           groups[a.metro].push(a);
         });
+
         let idx = 0;
-        for (const [metro, airports] of Object.entries(groups)) {
+        for (const metro of groupOrder) {
+          const airports = groups[metro];
           const h = document.createElement('div');
           h.className = 'group-header';
           h.textContent = metro;
-          h.style.cursor = 'pointer';
-          const metroCodes = airports.map(a => a.code).join(', ');
-          h.title = `Select all: ${metroCodes}`;
           h.addEventListener('mousedown', e => {
             e.preventDefault();
             input.value = airports.map(a => a.code).join(', ');
             dd.classList.remove('open');
-            input.dispatchEvent(new Event('change'));
           });
           dd.appendChild(h);
           airports.forEach(a => {
@@ -767,20 +780,23 @@
             opt.className = 'airport-option';
             opt.dataset.idx = idx++;
             opt.dataset.code = a.code;
-            opt.innerHTML = `<span class="code">${a.code}</span> <span class="name">— ${a.name}</span>`;
+            opt.innerHTML = `<span class="code">${a.code}</span> <span class="name">- ${a.name}</span>`;
             opt.addEventListener('mousedown', e => { e.preventDefault(); select(a.code); });
             dd.appendChild(opt);
           });
         }
+
+        if (totalMatches > MAX_RESULTS) {
+          const more = document.createElement('div');
+          more.className = 'no-results';
+          more.textContent = `${totalMatches - MAX_RESULTS} more \u2014 type to narrow`;
+          dd.appendChild(more);
+        }
+
         dd.classList.add('open');
       }
 
-      function select(code) {
-        input.value = code;
-        dd.classList.remove('open');
-        // trigger change
-        input.dispatchEvent(new Event('change'));
-      }
+      function select(code) { input.value = code; dd.classList.remove('open'); }
 
       function setActive(idx) {
         const opts = dd.querySelectorAll('.airport-option');
@@ -792,7 +808,10 @@
         }
       }
 
-      input.addEventListener('input', () => render(input.value.trim()));
+      input.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => render(input.value.trim()), 80);
+      });
       input.addEventListener('focus', () => { if (input.value.trim()) render(input.value.trim()); });
       input.addEventListener('blur', () => { setTimeout(() => dd.classList.remove('open'), 150); });
       input.addEventListener('keydown', e => {
@@ -805,214 +824,184 @@
       });
     }
 
-    // Init all airport autocompletes
-    initAirportAutocomplete('rf-from', 'rf-from-dd');
-    initAirportAutocomplete('rf-to', 'rf-to-dd');
-    initAirportAutocomplete('su-from', 'su-from-dd');
-    initAirportAutocomplete('su-to', 'su-to-dd');
+    initAirportAutocomplete('s-from', 's-from-dd');
+    initAirportAutocomplete('s-to', 's-to-dd');
+    initAirportAutocomplete('af-from', 'af-from-dd');
+    initAirportAutocomplete('af-to', 'af-to-dd');
 
-    // Program slug mapping
-    const PROGRAM_SLUG_MAP = {
-      'Amex Membership Rewards': 'amex-mr',
-      'Chase Ultimate Rewards': 'chase-ur',
-      'Capital One Miles': 'capital-one',
-      'Citi ThankYou Points': 'citi-typ',
-      'Bilt Rewards': 'bilt',
-      'Wells Fargo Rewards': 'wells-fargo',
-    };
+    // === Search Form ===
+    document.getElementById('searchForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const from = document.getElementById('s-from').value.toUpperCase();
+      const to = document.getElementById('s-to').value.toUpperCase();
+      const cabin = document.getElementById('s-class').value;
+      const program = document.getElementById('s-program').value;
+      if (!from || !to) { alert('Please enter origin and destination.'); return; }
+      window.location.href = `/flight-results?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&class=${encodeURIComponent(cabin)}&program=${encodeURIComponent(program)}`;
+    });
 
-    function formatPrice(n) { return '$' + n.toLocaleString(); }
-    function stopsText(s) { return s === 0 ? 'Nonstop' : s === 1 ? '1 stop' : s + ' stops'; }
+    // === Live Stats ===
+    fetch('/api/flights/routes')
+      .then(r => r.json())
+      .then(data => {
+        const el = document.getElementById('liveStats');
+        const count = data.totalEntries || 0;
+        const lastUp = data.lastUpdated ? timeAgo(new Date(data.lastUpdated)) : 'never';
+        el.innerHTML = `<span class="dot"></span> Monitoring ${count} route${count !== 1 ? 's' : ''} \u00B7 Last updated ${lastUp}`;
+      })
+      .catch(() => {
+        document.getElementById('liveStats').innerHTML = '<span class="dot" style="background:var(--orange);"></span> Daemon offline';
+      });
 
-    function renderResults(data) {
-      const container = document.getElementById('searchResults');
-      const cashFlights = data.cashFlights || { count: 0, results: [] };
-      const awardFlights = data.awardFlights || { count: 0, results: [] };
-      const scraperAttempts = data.scraperAttempts || [];
+    function timeAgo(date) {
+      const mins = Math.floor((Date.now() - date.getTime()) / 60000);
+      if (mins < 1) return 'just now';
+      if (mins < 60) return mins + ' min ago';
+      const hrs = Math.floor(mins / 60);
+      if (hrs < 24) return hrs + 'h ago';
+      return Math.floor(hrs / 24) + 'd ago';
+    }
 
-      let html = '';
+    // === Sweet Spots ===
+    let allSpots = [];
+    let activeFilter = 'all';
+    let activeProgram = null;
 
-      // === Cash Flights Section ===
-      if (cashFlights.results.length === 0 && awardFlights.results.length === 0) {
-        html = `<div class="no-results">
-          <p style="font-size:1.5rem;margin-bottom:8px;">✈️</p>
-          <p>No flights found for ${data.from} → ${data.to}</p>
-          <p style="font-size:0.8rem;margin-top:8px;">Try different dates or airports</p>
-        </div>`;
-        container.innerHTML = html;
-        container.style.display = 'block';
+    fetch('/api/flights/sweet-spots')
+      .then(r => r.json())
+      .then(data => { allSpots = data.sweetSpots || []; renderSpots(); })
+      .catch(() => {
+        document.getElementById('sweetSpotsContainer').innerHTML =
+          '<p style="text-align:center;padding:40px;color:var(--text-dim);">Could not load sweet spots.</p>';
+      });
+
+    function renderSpots() {
+      const container = document.getElementById('sweetSpotsContainer');
+      let filtered = allSpots;
+      if (activeFilter !== 'all') filtered = filtered.filter(s => s.tier === activeFilter);
+      if (activeProgram) {
+        filtered = filtered.filter(s =>
+          s.transferFrom.some(t => t.toLowerCase().includes(activeProgram.toLowerCase()))
+        );
+      }
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<p style="text-align:center;padding:40px;color:var(--text-dim);">No sweet spots match your filter.</p>';
         return;
       }
 
-      if (cashFlights.results.length > 0) {
-        html += `<div class="results-header">
-          <h3>💰 Cash Prices — ${data.from} → ${data.to}</h3>
-          <span class="results-count">${cashFlights.count} flight${cashFlights.count !== 1 ? 's' : ''} · ${data.date} · ${data.cabin}</span>
-        </div>`;
+      const tiers = { S: [], A: [], B: [] };
+      filtered.forEach(s => { if (tiers[s.tier]) tiers[s.tier].push(s); });
 
-        cashFlights.results.forEach((f) => {
-          html += `<div class="flight-card">
-            <div class="flight-header">
+      const tierLabels = { S: 'Must-Book Deals', A: 'Excellent Value', B: 'Great Deals' };
+      const tierBadgeClass = { S: 'tier-badge-s', A: 'tier-badge-a', B: 'tier-badge-b' };
+
+      let html = '';
+      for (const [tier, spots] of Object.entries(tiers)) {
+        if (spots.length === 0) continue;
+        html += `<div class="tier-section">
+          <div class="tier-heading">
+            <span class="tier-badge ${tierBadgeClass[tier]}">${tier}</span>
+            <h3>${tierLabels[tier]}</h3>
+          </div>
+          <div class="spot-grid">`;
+        spots.forEach(s => {
+          const kPts = s.pointsRequired >= 1000 ? Math.round(s.pointsRequired / 1000) + 'K' : s.pointsRequired.toLocaleString();
+          const pills = s.transferFrom.slice(0, 3).map(t => `<span class="pill">${t}</span>`).join('');
+          const moreCount = s.transferFrom.length - 3;
+          const morePill = moreCount > 0 ? `<span class="pill">+${moreCount}</span>` : '';
+
+          html += `<div class="spot-card" data-route="${s.route}" data-cabin="${s.cabin}" onclick="searchSpot(this)">
+            <div class="spot-header">
               <div>
-                <div class="flight-airline">${f.airline}</div>
-                <div class="flight-route">${f.origin} → ${f.destination}</div>
+                <div class="spot-product">${s.product}</div>
+                <div class="spot-airline">${s.bookingProgram}</div>
               </div>
-              <div class="flight-price">
-                <div class="flight-cash">${f.cashPrice > 0 ? formatPrice(f.cashPrice) : '—'}</div>
-              </div>
+              <span class="tier-badge ${tierBadgeClass[s.tier]}">${s.tier}</span>
             </div>
-            <div class="flight-times">
-              <span class="flight-time-val">${f.departureTime || '—'}</span>
-              <span class="flight-arrow">→</span>
-              <span class="flight-time-val">${f.arrivalTime || '—'}</span>
-              ${f.duration ? `<span style="color:var(--text-dim);font-size:0.8rem;">(${f.duration})</span>` : ''}
+            <div class="spot-route">${s.originRegion || '*'} \u2192 ${s.destinationRegion || '*'}</div>
+            <div class="spot-stats">
+              <div class="spot-stat"><strong>${kPts}</strong> pts</div>
+              <div class="spot-stat"><strong class="cpp">${s.centsPerPoint}\u00A2</strong>/pt</div>
             </div>
-            <div class="flight-meta">
-              <span>${f.stops >= 0 ? stopsText(f.stops) : ''}</span>
-              <span>${f.departureDate}</span>
-            </div>
+            <div class="spot-transfers">${pills}${morePill}</div>
           </div>`;
         });
+        html += `</div></div>`;
       }
-
-      // === Award Flights Section ===
-      html += `<div style="margin-top:32px;padding-top:24px;border-top:2px solid var(--accent);">
-        <div class="results-header">
-          <h3>🏆 Award Flights</h3>
-        </div>`;
-
-      if (awardFlights.results.length > 0) {
-        html += `<p style="color:var(--text-dim);font-size:0.85rem;margin-bottom:16px;">Real award availability from airline booking systems</p>`;
-        awardFlights.results.forEach((f) => {
-          const cabinLabel = f.cabin ? f.cabin.charAt(0).toUpperCase() + f.cabin.slice(1) : '';
-          const milesStr = f.pointsRequired >= 1000 ? Math.round(f.pointsRequired / 1000) + 'K' : f.pointsRequired.toLocaleString();
-          html += `<div class="flight-card" style="border-left:3px solid var(--accent);">
-            <div class="flight-header">
-              <div>
-                <div class="flight-airline">${f.airline}${f.flightNumber ? ` <span style="font-weight:400;font-size:0.85rem;color:var(--text-dim);">${f.flightNumber}</span>` : ''}</div>
-                <div class="flight-route">${f.origin} → ${f.destination}${cabinLabel ? ` · <span style="color:var(--accent);font-weight:600;">${cabinLabel}</span>` : ''}</div>
-              </div>
-              <div class="flight-price">
-                <div class="flight-cash" style="color:var(--accent);">${f.pointsRequired ? milesStr + ' miles' : '—'}</div>
-                <div style="font-size:0.75rem;color:var(--text-dim);">${f.pointsProgram || ''}</div>
-                ${f.taxes ? `<div style="font-size:0.75rem;color:var(--text-dim);">+ $${f.taxes.toFixed(2)} taxes</div>` : ''}
-              </div>
-            </div>
-            <div class="flight-times">
-              <span class="flight-time-val">${f.departureTime || '—'}</span>
-              <span class="flight-arrow">→</span>
-              <span class="flight-time-val">${f.arrivalTime || '—'}</span>
-              ${f.duration ? `<span style="color:var(--text-dim);font-size:0.8rem;">(${f.duration})</span>` : ''}
-            </div>
-            <div class="flight-meta">
-              <span>${f.stops >= 0 ? stopsText(f.stops) : ''}</span>
-              <span>${f.departureDate}</span>
-              ${f.awardType ? `<span style="color:var(--green);">${f.awardType}</span>` : ''}
-              ${f.bookingUrl ? `<a href="${f.bookingUrl}" target="_blank" style="color:var(--accent);text-decoration:none;">Book →</a>` : ''}
-            </div>
-          </div>`;
-        });
-      } else {
-        // Show status message
-        html += `<div style="text-align:center;padding:32px 20px;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;">
-          <p style="font-size:1.5rem;margin-bottom:12px;">🔧</p>
-          <p style="color:var(--text-bright);font-weight:600;margin-bottom:8px;">Direct award search coming soon</p>
-          <p style="color:var(--text-dim);font-size:0.9rem;max-width:480px;margin:0 auto;">We're building connections to airline booking systems to show real point redemption availability. We never estimate or fabricate point costs.</p>
-        </div>`;
-
-        if (scraperAttempts.length > 0) {
-          html += `<div style="margin-top:12px;font-size:0.75rem;color:var(--text-dim);">`;
-          html += `<p style="margin-bottom:4px;">Scraper status:</p>`;
-          scraperAttempts.forEach((a) => {
-            const icon = a.tried ? (a.resultCount > 0 ? '✅' : '⚠️') : '🚫';
-            html += `<span style="margin-right:12px;">${icon} ${a.name}: ${a.error || (a.resultCount + ' results')}</span>`;
-          });
-          html += `</div>`;
-        }
-      }
-
-      html += `</div>`;
       container.innerHTML = html;
-      container.style.display = 'block';
     }
 
-    // Route form — search flights
-    document.getElementById('routeForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const btn = e.target.querySelector('button');
-      const loadingEl = document.getElementById('searchLoading');
-      const resultsEl = document.getElementById('searchResults');
-
-      const from = document.getElementById('rf-from').value.toUpperCase();
-      const to = document.getElementById('rf-to').value.toUpperCase();
-      const cabin = document.getElementById('rf-class').value;
-      const programName = document.getElementById('rf-program').value;
-      const program = PROGRAM_SLUG_MAP[programName] || 'amex-mr';
-      const startDate = document.getElementById('rf-start').value;
-
-      if (!from || !to) { alert('Please enter origin and destination airports'); return; }
-
-      btn.disabled = true; btn.textContent = '🔍 Searching...';
-      loadingEl.style.display = 'block';
-      resultsEl.style.display = 'none';
-
-      const params = new URLSearchParams({ from, to, class: cabin, program });
-      if (startDate) params.set('date', startDate);
-
-      try {
-        const res = await fetch('/api/flights/search?' + params.toString());
-        loadingEl.style.display = 'none';
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({ error: 'Search failed' }));
-          resultsEl.innerHTML = `<div class="search-error">❌ ${err.error || 'Search failed'}</div>`;
-          resultsEl.style.display = 'block';
-        } else {
-          const data = await res.json();
-          renderResults(data);
-        }
-      } catch (err) {
-        loadingEl.style.display = 'none';
-        resultsEl.innerHTML = `<div class="search-error">❌ Network error — is the server running?</div>`;
-        resultsEl.style.display = 'block';
-      }
-      btn.disabled = false; btn.textContent = 'Start Monitoring →';
-
-      // Also save as signup in background
-      const contact = document.getElementById('rf-contact').value;
-      if (contact) {
-        fetch('/api/flights/signup', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type: 'route', from, to, class: cabin, program: programName, contact })
-        }).catch(() => {});
-      }
+    document.getElementById('filterBar').addEventListener('click', (e) => {
+      const btn = e.target.closest('.filter-btn');
+      if (!btn) return;
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeFilter = btn.dataset.filter;
+      renderSpots();
     });
 
-    // Signup form
-    document.getElementById('signupForm').addEventListener('submit', async (e) => {
+    function searchSpot(card) {
+      const route = card.dataset.route;
+      const cabin = card.dataset.cabin === 'suites' ? 'first' : card.dataset.cabin;
+      const [from, to] = route.split('-');
+      const fromVal = from === '*' ? 'JFK' : from;
+      const toVal = to === '*' ? '' : to;
+      if (toVal) {
+        window.location.href = `/flight-results?from=${fromVal}&to=${toVal}&class=${cabin}&program=${document.getElementById('s-program').value}`;
+      }
+    }
+
+    // === Programs ===
+    fetch('/api/flights/programs')
+      .then(r => r.json())
+      .then(data => {
+        const grid = document.getElementById('programsGrid');
+        grid.innerHTML = (data.programs || []).map(p => `
+          <div class="program-card${activeProgram === p.slug ? ' active' : ''}" data-slug="${p.slug}" onclick="filterByProgram('${p.slug}')">
+            <h3>${p.name}</h3>
+            <div class="program-partners">${p.partnerCount} airline partners</div>
+          </div>
+        `).join('');
+      });
+
+    function filterByProgram(slug) {
+      activeProgram = activeProgram === slug ? null : slug;
+      document.querySelectorAll('.program-card').forEach(c => {
+        c.classList.toggle('active', c.dataset.slug === activeProgram);
+      });
+      renderSpots();
+      document.getElementById('sweet-spots').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // === Alert Form ===
+    document.getElementById('alertForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const btn = e.target.querySelector('button');
-      btn.disabled = true; btn.textContent = 'Signing up...';
+      btn.disabled = true; btn.textContent = 'Submitting...';
+
       const data = {
-        type: 'signup',
-        name: document.getElementById('su-name').value,
-        email: document.getElementById('su-email').value,
-        phone: document.getElementById('su-phone').value,
-        program: document.getElementById('su-program').value,
-        balance: document.getElementById('su-balance').value,
-        dreamFrom: document.getElementById('su-from').value.toUpperCase(),
-        dreamTo: document.getElementById('su-to').value.toUpperCase()
+        type: 'route',
+        from: document.getElementById('af-from').value.toUpperCase(),
+        to: document.getElementById('af-to').value.toUpperCase(),
+        class: document.getElementById('af-class').value,
+        program: document.getElementById('af-program').value,
+        alertMethod: document.querySelector('input[name="alertMethod"]:checked').value,
+        contact: document.getElementById('af-contact').value,
       };
+
       try {
         const res = await fetch('/api/flights/signup', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
         });
         if (res.ok) {
-          document.getElementById('signupSuccess').classList.add('show');
+          document.getElementById('alertSuccess').classList.add('show');
           e.target.style.display = 'none';
         }
-      } catch (err) { alert('Something went wrong. Try again.'); }
-      btn.disabled = false; btn.textContent = 'Sign Up for Early Access →';
+      } catch { alert('Something went wrong. Try again.'); }
+      btn.disabled = false; btn.textContent = 'Start Monitoring';
     });
   </script>
 </body>

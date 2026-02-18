@@ -22,7 +22,14 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { POINTS_PROGRAMS, getTransferPartnersForProgram, type TransferPartner } from './transfer-partners';
 import { searchAll } from './scrapers/index';
-import type { FlightResult as ScraperFlightResult, SearchParams as ScraperSearchParams } from './types';
+import type { FlightResult, SearchParams as ScraperSearchParams } from './types';
+import {
+  JAPAN_AIRPORTS, EUROPE_AIRPORTS, SEA_AIRPORTS,
+  MIDDLE_EAST_AIRPORTS, AUSTRALIA_NZ_AIRPORTS,
+} from './airports.js';
+
+// Re-export FlightResult from the canonical types module
+export type { FlightResult } from './types';
 
 // ============================================================
 // TYPES
@@ -44,36 +51,7 @@ export interface FlightSignup {
   timestamp: string;
 }
 
-export interface FlightResult {
-  id: string;
-  source: string;         // "united" | "aa" | "delta" | "ba-avios" | etc
-  airline: string;
-  flightNumber?: string;
-  origin: string;
-  destination: string;
-  departureDate: string;
-  cabin: string;          // "economy" | "business" | "first"
-  cabinDisplay: string;   // "Business", "First Class"
-  points: number;
-  taxes: number;          // in USD
-  program: string;        // Which loyalty program to book through
-  programDisplay: string;
-  transferPath: string;   // "Transfer 90K Amex MR → ANA Mileage Club"
-  cashPrice?: number;     // Comparable cash price
-  cpp?: number;           // Cents per point
-  dealRating: 'hot' | 'good' | 'fair' | 'unknown';
-  direct: boolean;
-  stops: number;
-  route: string;          // "JFK → NRT"
-  bookingUrl?: string;
-  lastSeen: string;
-  departureTime?: string;
-  arrivalTime?: string;
-  duration?: string;
-  awardType?: string;
-}
-
-export interface SearchParams {
+export interface MonitorSearchParams {
   origins: string[];       // ["JFK", "EWR", "LGA"]
   destinations: string[];  // ["NRT", "HND"]
   cabin: string;           // "business" | "first" | "any"
@@ -81,6 +59,9 @@ export interface SearchParams {
   startDate?: string;
   endDate?: string;
 }
+
+// Keep backward compat export
+export type SearchParams = MonitorSearchParams;
 
 // ============================================================
 // RESULT PROCESSING
@@ -102,12 +83,13 @@ function computeDealRating(cpp: number | undefined): 'hot' | 'good' | 'fair' | '
 }
 
 /**
- * Convert scraper FlightResult[] into our monitor FlightResult[] with
+ * Convert scraper FlightResult[] into enriched FlightResult[] with
  * transfer path info, CPP calculation, and deal ratings.
+ * Populates the optional extended fields on the base FlightResult type.
  */
 function processScraperResults(
-  scraperResults: ScraperFlightResult[],
-  cashPrices: ScraperFlightResult[],
+  scraperResults: FlightResult[],
+  cashPrices: FlightResult[],
   programSlug: string,
 ): FlightResult[] {
   const partners = getTransferPartnersForProgram(programSlug);
@@ -143,35 +125,21 @@ function processScraperResults(
     // Get cash price for CPP calculation
     const cashKey = `${sr.origin}-${sr.destination}-${sr.cabin}`;
     const cashPrice = cashLookup.get(cashKey) || estimateCashPrice(sr.origin, sr.destination, sr.cabin);
-    const cpp = cashPrice ? ((cashPrice * 100 - (sr.taxesAndFees || 0) * 100) / sr.pointsRequired) : undefined;
+    const cppVal = cashPrice ? ((cashPrice * 100 - (sr.taxesAndFees || 0) * 100) / sr.pointsRequired) : undefined;
 
     results.push({
+      ...sr,
       id: `${sr.source}-${sr.flightNumber || sr.origin + sr.destination}-${sr.departureDate}-${sr.cabin}`,
-      source: sr.source,
-      airline: sr.airline,
-      flightNumber: sr.flightNumber || undefined,
-      origin: sr.origin,
-      destination: sr.destination,
-      departureDate: sr.departureDate,
-      cabin: sr.cabin,
       cabinDisplay: cabinDisplayName(sr.cabin),
-      points: sr.pointsRequired,
-      taxes: sr.taxesAndFees || 0,
       program: partner?.programCode || sr.source,
       programDisplay: transferTarget,
       transferPath,
       cashPrice,
-      cpp: cpp ? Math.round(cpp * 10) / 10 : undefined,
-      dealRating: computeDealRating(cpp),
+      cpp: cppVal ? Math.round(cppVal * 10) / 10 : undefined,
+      dealRating: computeDealRating(cppVal),
       direct: sr.stops === 0,
-      stops: sr.stops >= 0 ? sr.stops : -1,
       route: `${sr.origin} → ${sr.destination}`,
-      bookingUrl: sr.bookingUrl,
       lastSeen: new Date().toISOString(),
-      departureTime: sr.departureTime,
-      arrivalTime: sr.arrivalTime,
-      duration: sr.duration,
-      awardType: sr.awardType,
     });
   }
 
@@ -227,18 +195,12 @@ function estimateCashPrice(origin: string, destination: string, cabin: string): 
     'default': { economy: 800, premium_economy: 2000, business: 5000, first: 12000 },
   };
 
-  const jpAirports = new Set(['NRT', 'HND', 'KIX', 'NGO', 'FUK', 'CTS']);
-  const euAirports = new Set(['LHR', 'CDG', 'FRA', 'AMS', 'FCO', 'MAD', 'BCN', 'MUC', 'ZRH', 'VIE', 'CPH', 'OSL', 'ARN', 'HEL', 'DUB', 'LIS', 'IST']);
-  const seaAirports = new Set(['SIN', 'BKK', 'HKG', 'ICN', 'TPE', 'MNL', 'KUL', 'SGN', 'HAN']);
-  const meAirports = new Set(['DOH', 'DXB', 'AUH', 'JED', 'RUH']);
-  const auAirports = new Set(['SYD', 'MEL', 'BNE', 'PER', 'AKL']);
-
   let routeType = 'default';
-  if (jpAirports.has(destination) || jpAirports.has(origin)) routeType = 'US-JP';
-  else if (euAirports.has(destination) || euAirports.has(origin)) routeType = 'US-EU';
-  else if (seaAirports.has(destination) || seaAirports.has(origin)) routeType = 'US-SEA';
-  else if (meAirports.has(destination) || meAirports.has(origin)) routeType = 'US-ME';
-  else if (auAirports.has(destination) || auAirports.has(origin)) routeType = 'US-AU';
+  if (JAPAN_AIRPORTS.has(destination) || JAPAN_AIRPORTS.has(origin)) routeType = 'US-JP';
+  else if (EUROPE_AIRPORTS.has(destination) || EUROPE_AIRPORTS.has(origin)) routeType = 'US-EU';
+  else if (SEA_AIRPORTS.has(destination) || SEA_AIRPORTS.has(origin)) routeType = 'US-SEA';
+  else if (MIDDLE_EAST_AIRPORTS.has(destination) || MIDDLE_EAST_AIRPORTS.has(origin)) routeType = 'US-ME';
+  else if (AUSTRALIA_NZ_AIRPORTS.has(destination) || AUSTRALIA_NZ_AIRPORTS.has(origin)) routeType = 'US-AU';
 
   return routes[routeType]?.[cabin];
 }
@@ -263,7 +225,7 @@ function getBookingUrl(programCode: string, origin: string, destination: string,
 // SEARCH ORCHESTRATOR
 // ============================================================
 
-export async function searchFlights(params: SearchParams): Promise<FlightResult[]> {
+export async function searchFlights(params: MonitorSearchParams): Promise<FlightResult[]> {
   const allResults: FlightResult[] = [];
   const searchedPairs = new Set<string>();
 
@@ -305,19 +267,15 @@ export async function searchFlights(params: SearchParams): Promise<FlightResult[
       };
 
       try {
-        const allScraperResults = await searchAll(scraperParams);
+        const { awards: allAwards, cashPrices } = await searchAll(scraperParams, params.programSlug);
         recordRateLimit(key);
-
-        // Separate award vs cash results
-        const awards = allScraperResults.filter(r => r.pointsRequired && r.pointsRequired > 0);
-        const cashPrices = allScraperResults.filter(r => r.cashPrice && r.cashPrice > 0 && !r.pointsRequired);
 
         // Deduplicate by flight number + date
         const seen = new Set<string>();
-        const deduped = awards.filter(r => {
-          const key = `${r.flightNumber}-${r.departureDate}-${r.source}`;
-          if (seen.has(key)) return false;
-          seen.add(key);
+        const deduped = allAwards.filter((r: FlightResult) => {
+          const dedupKey = `${r.flightNumber}-${r.departureDate}-${r.source}`;
+          if (seen.has(dedupKey)) return false;
+          seen.add(dedupKey);
           return true;
         });
 
@@ -328,7 +286,7 @@ export async function searchFlights(params: SearchParams): Promise<FlightResult[
         // Cache results
         cacheResults(key, cabinParam, processed);
 
-        console.log(`✅ ${origin} → ${dest}: ${processed.length} results (${deduped.length} raw, deduped from ${awards.length})`);
+        console.log(`✅ ${origin} → ${dest}: ${processed.length} results (${deduped.length} raw, deduped from ${allAwards.length})`);
       } catch (err: any) {
         console.error(`❌ Search failed for ${key}: ${err.message}`);
       }
@@ -406,7 +364,7 @@ function getCachedResults(pairKey: string, cabin: string): FlightResult[] {
 // SIGNUP → SEARCH PARAMS CONVERTER
 // ============================================================
 
-export function signupToSearchParams(signup: FlightSignup): SearchParams {
+export function signupToSearchParams(signup: FlightSignup): MonitorSearchParams {
   const origins = signup.from.split(',').map(s => s.trim()).filter(Boolean);
   const destinations = signup.to.split(',').map(s => s.trim()).filter(Boolean);
 
@@ -437,4 +395,4 @@ export function signupToSearchParams(signup: FlightSignup): SearchParams {
 // EXPORTS
 // ============================================================
 
-export { estimateCashPrice };
+export { cabinDisplayName, computeDealRating, findPartnerForSource, estimateCashPrice, getBookingUrl };

@@ -14,9 +14,22 @@ import sys
 import time
 import random
 import os
+import re
 
 def log(msg):
     print(f"[AA-Camoufox {time.strftime('%H:%M:%S')}] {msg}", file=sys.stderr)
+
+def validate_params(params):
+    """Validate search params to prevent malformed input."""
+    for field in ("origin", "destination", "date"):
+        if field not in params or not isinstance(params[field], str):
+            raise ValueError(f"Missing or invalid field: {field}")
+    if not re.match(r'^[A-Z]{3}$', params["origin"]):
+        raise ValueError(f"Invalid origin airport code: {params['origin']}")
+    if not re.match(r'^[A-Z]{3}$', params["destination"]):
+        raise ValueError(f"Invalid destination airport code: {params['destination']}")
+    if not re.match(r'^\d{4}-\d{2}-\d{2}$', params["date"]):
+        raise ValueError(f"Invalid date format: {params['date']}")
 
 def main():
     if len(sys.argv) < 2:
@@ -24,6 +37,12 @@ def main():
         sys.exit(0)
 
     params = json.loads(sys.argv[1])
+    try:
+        validate_params(params)
+    except ValueError as e:
+        log(f"Validation error: {e}")
+        print("[]")
+        sys.exit(0)
     origin = params["origin"]
     destination = params["destination"]
     date = params["date"]
@@ -62,10 +81,13 @@ def main():
     results = []
 
     try:
-        # Route through Cloudflare WARP SOCKS5 proxy for fresh IP
-        proxy_cfg = {"server": "socks5://127.0.0.1:1080"} if os.path.exists("/tmp/wireproxy.pid") else None
+        # Route through proxy if available (env var or WARP SOCKS5 fallback)
+        proxy_url = os.environ.get("PROXY_URL", "")
+        if not proxy_url and os.path.exists("/tmp/wireproxy.pid"):
+            proxy_url = "socks5://127.0.0.1:1080"
+        proxy_cfg = {"server": proxy_url} if proxy_url else None
         if proxy_cfg:
-            log("Using WARP proxy (SOCKS5 127.0.0.1:1080)")
+            log(f"Using proxy: {proxy_url}")
         with Camoufox(headless=True, humanize=True, proxy=proxy_cfg) as browser:
             page = browser.new_page()
 

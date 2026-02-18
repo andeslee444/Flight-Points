@@ -9,14 +9,17 @@
  * NOTE: seats.aero is NOT used here — non-commercial license only.
  */
 
-import { execFile } from 'child_process';
-import { resolve } from 'path';
 import { FlightResult, SearchParams, getCacheKey } from '../types.js';
 import { getCached, setCache } from './cache.js';
 import { estimateAwardCost } from './singapore.js';
+import { runCamoufoxSearch, runCamoufoxBatch, type CamoufoxRunnerOptions } from './camoufox-runner.js';
 
-const SCRIPT_PATH = resolve(__dirname, 'sq-camoufox.py');
-const TIMEOUT_MS = 120_000; // 2 minutes (reduced — SPA often fails)
+const OPTS: CamoufoxRunnerOptions = {
+  label: 'SQ-Camoufox-TS',
+  script: 'sq-camoufox.py',
+  cachePrefix: 'singapore',
+  timeoutMs: 120_000,
+};
 
 function log(msg: string) {
   console.log(`[SQ-Camoufox-TS ${new Date().toISOString().slice(11, 23)}] ${msg}`);
@@ -38,7 +41,11 @@ export async function searchSQCamoufox(params: SearchParams): Promise<FlightResu
   // Strategy 1: Camoufox (if credentials available)
   if (process.env.SQ_KRISFLYER_ID && process.env.SQ_KRISFLYER_PASSWORD) {
     try {
-      const camoufoxResults = await runCamoufox(params);
+      const camoufoxResults = await runCamoufoxSearch(params, {
+        ...OPTS,
+        // Skip cache check in runner since we already checked above
+        cachePrefix: '__sq_inner',
+      });
       if (camoufoxResults.length > 0) {
         log(`Camoufox returned ${camoufoxResults.length} results`);
         setCache(cacheKey, camoufoxResults);
@@ -58,59 +65,9 @@ export async function searchSQCamoufox(params: SearchParams): Promise<FlightResu
   return [];
 }
 
-function runCamoufox(params: SearchParams): Promise<FlightResult[]> {
-  return new Promise((resolve) => {
-    const paramsJson = JSON.stringify(params);
-    execFile('python3', [SCRIPT_PATH, paramsJson], {
-      timeout: TIMEOUT_MS,
-      maxBuffer: 10 * 1024 * 1024,
-      env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' },
-    }, (error, stdout, stderr) => {
-      if (stderr) {
-        for (const line of stderr.split('\n').filter(Boolean).slice(-10)) {
-          log(`  py: ${line}`);
-        }
-      }
-
-      if (error) {
-        log(`Camoufox process error: ${error.message}`);
-        resolve([]);
-        return;
-      }
-
-      try {
-        const results: FlightResult[] = JSON.parse(stdout.trim() || '[]');
-        resolve(results);
-      } catch (e: any) {
-        log(`JSON parse error: ${e.message}`);
-        resolve([]);
-      }
-    });
-  });
-}
-
-/**
- * Batch search — runs searches sequentially with delays.
- */
 export async function searchSQCamoufoxBatch(
   paramsList: SearchParams[],
   delayBetweenMs: number = 30000,
 ): Promise<Map<string, FlightResult[]>> {
-  const results = new Map<string, FlightResult[]>();
-
-  for (let i = 0; i < paramsList.length; i++) {
-    const params = paramsList[i];
-    const key = `${params.origin}-${params.destination}-${params.date}`;
-
-    const flights = await searchSQCamoufox(params);
-    results.set(key, flights);
-
-    if (i < paramsList.length - 1) {
-      const delay = delayBetweenMs + Math.random() * 10000 - 5000;
-      log(`Waiting ${(delay / 1000).toFixed(0)}s before next search...`);
-      await new Promise(r => setTimeout(r, delay));
-    }
-  }
-
-  return results;
+  return runCamoufoxBatch(paramsList, { ...OPTS, batchDelayMs: delayBetweenMs }, searchSQCamoufox);
 }

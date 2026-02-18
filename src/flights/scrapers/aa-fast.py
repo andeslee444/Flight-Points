@@ -19,9 +19,23 @@ import json
 import sys
 import time
 import random
+import os
+import re
 
 def log(msg):
     print(f"[AA-Fast {time.strftime('%H:%M:%S')}] {msg}", file=sys.stderr, flush=True)
+
+def validate_search(s):
+    """Validate a single search entry."""
+    for field in ("origin", "destination", "date"):
+        if field not in s or not isinstance(s[field], str):
+            raise ValueError(f"Missing or invalid field: {field}")
+    if not re.match(r'^[A-Z]{3}$', s["origin"]):
+        raise ValueError(f"Invalid origin airport code: {s['origin']}")
+    if not re.match(r'^[A-Z]{3}$', s["destination"]):
+        raise ValueError(f"Invalid destination airport code: {s['destination']}")
+    if not re.match(r'^\d{4}-\d{2}-\d{2}$', s["date"]):
+        raise ValueError(f"Invalid date format: {s['date']}")
 
 def build_search_url(params):
     from urllib.parse import urlencode
@@ -186,6 +200,14 @@ def main():
     if not searches:
         sys.exit(0)
 
+    # Validate all searches
+    for i, s in enumerate(searches):
+        try:
+            validate_search(s)
+        except ValueError as e:
+            log(f"Validation error in search #{i}: {e}")
+            searches = [s2 for j, s2 in enumerate(searches) if j != i]
+
     log(f"Batch of {len(searches)} searches")
 
     try:
@@ -194,10 +216,13 @@ def main():
         from camoufox import Camoufox
 
     try:
-        # Route through Cloudflare WARP SOCKS5 proxy for fresh IP
-        proxy_cfg = {"server": "socks5://127.0.0.1:1080"} if os.path.exists("/tmp/wireproxy.pid") else None
+        # Route through proxy if available (env var or WARP SOCKS5 fallback)
+        proxy_url = os.environ.get("PROXY_URL", "")
+        if not proxy_url and os.path.exists("/tmp/wireproxy.pid"):
+            proxy_url = "socks5://127.0.0.1:1080"
+        proxy_cfg = {"server": proxy_url} if proxy_url else None
         if proxy_cfg:
-            log("Using WARP proxy (SOCKS5 127.0.0.1:1080)")
+            log(f"Using proxy: {proxy_url}")
         with Camoufox(headless=True, humanize=True, proxy=proxy_cfg) as browser:
             page = browser.new_page()
 
