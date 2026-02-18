@@ -44,42 +44,15 @@ export async function searchSQCamoufox(params: SearchParams): Promise<FlightResu
         setCache(cacheKey, camoufoxResults);
         return camoufoxResults;
       }
-      log('Camoufox returned 0 results, falling back to estimates');
+      log('Camoufox returned 0 results');
     } catch (e: any) {
-      log(`Camoufox error: ${e.message}, falling back to estimates`);
+      log(`Camoufox error: ${e.message}`);
     }
   }
 
-  // Strategy 2: Award chart estimates (always available, no login needed)
-  const estimate = estimateAwardCost(params.origin, params.destination, params.cabin);
-  if (estimate) {
-    const base: FlightResult = {
-      source: 'singapore-estimate',
-      airline: 'Singapore Airlines',
-      flightNumber: 'SQ???',
-      origin: params.origin,
-      destination: params.destination,
-      departureDate: params.date,
-      departureTime: '',
-      arrivalTime: '',
-      duration: '',
-      stops: params.origin === 'SIN' || params.destination === 'SIN' ? 0 : 1,
-      cabin: params.cabin,
-      pointsRequired: estimate.saver,
-      pointsProgram: 'KrisFlyer',
-      taxesAndFees: 0,
-      awardType: 'saver',
-      scrapedAt: new Date().toISOString(),
-      bookingUrl: 'https://www.singaporeair.com/en_UK/us/home#/book/redeemflights',
-    };
-    const results = [
-      base,
-      { ...base, pointsRequired: estimate.advantage, awardType: 'advantage' as any },
-    ];
-    log(`Award chart estimate: ${estimate.saver}/${estimate.advantage} miles (saver/advantage)`);
-    setCache(cacheKey, results);
-    return results;
-  }
+  // Award chart estimates DISABLED — real data only, no fabricated results
+  log('No real SQ data available (Camoufox failed, estimates disabled)');
+  return [];
 
   log('No results from any source');
   return [];
