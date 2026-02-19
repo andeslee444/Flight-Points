@@ -9,6 +9,9 @@ dist/
 .venv/
 logs/
 
+# Vercel build output
+public/
+
 # Terraform
 terraform/.terraform/
 terraform/*.tfstate

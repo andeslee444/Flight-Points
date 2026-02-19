@@ -471,27 +471,31 @@ app.get('/api/flights/live-search', (req, res) => {
   });
 });
 
-// ── Start ───────────────────────────────────────────────────
-const PORT = parseInt(process.env.PORT || '3000', 10);
+// ── Export for Vercel ────────────────────────────────────────
+export { app };
 
-// Initialize DB pool, then start server
-initPool();
-console.log('[DB] Connection pool initialized');
+// ── Start (local dev only) ──────────────────────────────────
+if (!process.env.VERCEL) {
+  const PORT = parseInt(process.env.PORT || '3000', 10);
 
-app.listen(PORT, () => {
-  console.log(`Flight Points web server running on http://localhost:${PORT}`);
-  console.log(`   Static dir: ${PUBLIC_DIR}`);
-});
+  initPool();
+  console.log('[DB] Connection pool initialized');
 
-// Graceful shutdown
-process.on('SIGTERM', async () => {
-  console.log('Received SIGTERM — closing DB pool...');
-  await closePool();
-  process.exit(0);
-});
+  app.listen(PORT, () => {
+    console.log(`Flight Points web server running on http://localhost:${PORT}`);
+    console.log(`   Static dir: ${PUBLIC_DIR}`);
+  });
 
-process.on('SIGINT', async () => {
-  console.log('Received SIGINT — closing DB pool...');
-  await closePool();
-  process.exit(0);
-});
+  // Graceful shutdown
+  process.on('SIGTERM', async () => {
+    console.log('Received SIGTERM — closing DB pool...');
+    await closePool();
+    process.exit(0);
+  });
+
+  process.on('SIGINT', async () => {
+    console.log('Received SIGINT — closing DB pool...');
+    await closePool();
+    process.exit(0);
+  });
+}
