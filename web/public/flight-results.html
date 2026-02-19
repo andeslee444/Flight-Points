@@ -285,6 +285,105 @@
     .scraper-dot.skipped { background: var(--text-dim); opacity: 0.4; }
     .scraper-name { font-weight: 600; color: var(--text); min-width: 140px; }
     .scraper-message { color: var(--text-dim); flex: 1; }
+
+    /* ── Alert signup ──────────────────────────────────────── */
+    .alert-section {
+      border-top: 1px solid var(--border);
+      padding: 32px 0 48px;
+      display: none;
+    }
+    .alert-section.show { display: block; }
+    .alert-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px 28px;
+      max-width: 560px;
+    }
+    .alert-card h3 {
+      font-family: var(--font-serif);
+      font-size: 1.15rem;
+      font-weight: 400;
+      color: var(--text-bright);
+      margin-bottom: 4px;
+    }
+    .alert-card .alert-sub {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      margin-bottom: 18px;
+    }
+    .alert-form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .alert-form-group { display: flex; flex-direction: column; gap: 5px; }
+    .alert-form-group.full { grid-column: 1 / -1; }
+    .alert-form-group label {
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .alert-form-group input {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 9px 12px;
+      font-size: 0.88rem;
+      font-family: var(--font-sans);
+      color: var(--text-bright);
+      outline: none;
+      transition: border-color 0.2s;
+      width: 100%;
+    }
+    .alert-form-group input:focus { border-color: var(--accent); }
+    .alert-radio-group {
+      display: flex;
+      gap: 14px;
+    }
+    .alert-radio-group label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      font-size: 0.84rem;
+      color: var(--text);
+      font-weight: 400;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+    .alert-radio-group input[type="radio"] { accent-color: var(--accent); }
+    .alert-submit {
+      background: var(--text-bright);
+      color: var(--bg);
+      border: none;
+      border-radius: var(--radius-pill);
+      padding: 10px 24px;
+      font-family: var(--font-sans);
+      font-size: 0.88rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      width: 100%;
+    }
+    .alert-submit:hover { background: var(--text); transform: scale(1.01); }
+    .alert-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+    .alert-success {
+      display: none;
+      background: rgba(111,207,151,0.12);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      text-align: center;
+      color: var(--green);
+      font-weight: 500;
+      font-size: 0.88rem;
+    }
+    .alert-success.show { display: block; }
+    @media (max-width: 640px) {
+      .alert-form-grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
@@ -296,7 +395,7 @@
       <div class="nav-links">
         <a href="/flights">Flights</a>
         <a href="/flights#sweet-spots">Sweet Spots</a>
-        <a href="/flights#alerts" class="nav-cta">search flights</a>
+        <a href="/flights" class="nav-cta">search flights</a>
       </div>
     </div>
   </nav>
@@ -360,6 +459,32 @@
       <div class="skeleton skeleton-row"></div>
       <div class="skeleton skeleton-row"></div>
     </div>
+
+    <!-- Alert Signup -->
+    <div class="alert-section" id="alertSection">
+      <div class="alert-card">
+        <h3>Get notified for this route</h3>
+        <p class="alert-sub" id="alertRouteSub"></p>
+        <form id="alertForm" class="alert-form-grid">
+          <div class="alert-form-group">
+            <label>Alert method</label>
+            <div class="alert-radio-group">
+              <label><input type="radio" name="alertMethod" value="whatsapp" checked> WhatsApp</label>
+              <label><input type="radio" name="alertMethod" value="email"> Email</label>
+              <label><input type="radio" name="alertMethod" value="both"> Both</label>
+            </div>
+          </div>
+          <div class="alert-form-group">
+            <label>Contact</label>
+            <input type="text" id="alertContact" placeholder="+1 (555) 123-4567 or you@email.com" required>
+          </div>
+          <div class="alert-form-group full">
+            <button type="submit" class="alert-submit">Notify me</button>
+          </div>
+        </form>
+        <div class="alert-success" id="alertSuccess">Alert created! We'll notify you when seats open on this route.</div>
+      </div>
+    </div>
   </div>
 
   <!-- Footer -->
@@ -395,6 +520,7 @@
     switcher.value = program;
 
     let allResults = [];
+    let seenFlights = new Set();
     let liveScrapeActive = false;
     let liveEventSource = null;
     let liveTimerInterval = null;
@@ -423,6 +549,7 @@
         text.textContent = `${allResults.length} results \u00B7 cached ${lastUp}`;
         document.getElementById('controls').style.display = 'flex';
         renderResults();
+        showAlertSection();
         fetchCashPrices(); // async — updates cards when Google Flights data arrives
       } catch (err) {
         document.getElementById('statusDot').className = 'status-dot error';
@@ -441,6 +568,7 @@
       panel.style.display = 'block';
       document.getElementById('scraperStatusList').innerHTML = '';
       document.getElementById('results').innerHTML = '';
+      seenFlights = new Set();
 
       const startTime = Date.now();
       liveTimerInterval = setInterval(() => {
@@ -463,11 +591,17 @@
 
       liveEventSource.addEventListener('result', (e) => {
         const d = JSON.parse(e.data);
-        allResults.push(d.flight);
-        document.getElementById('controls').style.display = 'flex';
-        renderResults();
-        document.getElementById('statusText').textContent =
-          `${allResults.length} results so far \u00B7 searching...`;
+        const f = d.flight;
+        // Deduplicate by airline + flight + date + cabin
+        const dedupKey = `${f.airline}-${f.flightNumber}-${f.departureDate}-${f.cabin}`;
+        if (!seenFlights.has(dedupKey)) {
+          seenFlights.add(dedupKey);
+          allResults.push(f);
+          document.getElementById('controls').style.display = 'flex';
+          renderResults();
+          document.getElementById('statusText').textContent =
+            `${allResults.length} results so far \u00B7 searching...`;
+        }
       });
 
       liveEventSource.addEventListener('scraper-done', (e) => {
@@ -509,7 +643,7 @@
       const elapsed = Math.round((Date.now() - startTime) / 1000);
       document.getElementById('statusDot').className = 'status-dot done';
       document.getElementById('statusText').textContent =
-        `${summary.totalResults} results \u00B7 live search \u00B7 ${elapsed}s`;
+        `${allResults.length} results \u00B7 live search \u00B7 ${elapsed}s`;
 
       const spinner = document.getElementById('liveSpinner');
       spinner.style.animation = 'none';
@@ -520,6 +654,7 @@
         document.getElementById('controls').style.display = 'flex';
       }
       renderResults();
+      showAlertSection();
       cashPriceFetched = false; // reset so live results also get real prices
       fetchCashPrices();
       cleanupLiveScrape();
@@ -738,6 +873,50 @@
         }
       }
     }
+
+    // ── Alert signup ────────────────────────────────────────
+
+    document.getElementById('alertRouteSub').textContent =
+      `${from} → ${to} · ${cabinLabel} · ${programLabel}`;
+
+    function showAlertSection() {
+      document.getElementById('alertSection').classList.add('show');
+    }
+
+    document.getElementById('alertForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = e.target.querySelector('button');
+      btn.disabled = true;
+      btn.textContent = 'Submitting...';
+
+      const payload = {
+        type: 'route',
+        from: from,
+        to: to,
+        class: cabin,
+        program: program,
+        alertMethod: document.querySelector('#alertForm input[name="alertMethod"]:checked').value,
+        contact: document.getElementById('alertContact').value,
+      };
+
+      try {
+        const res = await fetch('/api/flights/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (res.ok) {
+          document.getElementById('alertSuccess').classList.add('show');
+          e.target.style.display = 'none';
+        } else {
+          alert('Something went wrong. Try again.');
+        }
+      } catch {
+        alert('Something went wrong. Try again.');
+      }
+      btn.disabled = false;
+      btn.textContent = 'Notify me';
+    });
 
     search();
   </script>

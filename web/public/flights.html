@@ -483,7 +483,7 @@
       <div class="nav-links">
         <a href="/flights" class="active">Flights</a>
         <a href="/flights#live-deals">Live Deals</a>
-        <a href="/flights#alerts" class="nav-cta">search flights</a>
+        <a href="#" class="nav-cta" onclick="document.getElementById('s-from').focus();return false;">search flights</a>
       </div>
     </div>
   </nav>
@@ -588,70 +588,6 @@
           <h3>Book Before It's Gone</h3>
           <p>Award seats last 2-24 hours. Set up alerts to get notified the moment availability opens.</p>
         </div>
-      </div>
-    </div>
-  </div>
-
-  <hr class="divider">
-
-  <!-- Alerts -->
-  <div class="section" id="alerts">
-    <div class="container">
-      <div class="section-heading"><h2>Set Up Alerts</h2></div>
-      <p class="section-sub">get notified the moment seats open</p>
-
-      <div class="alert-card">
-        <form id="alertForm" class="form-grid">
-          <div class="form-group">
-            <label>From Airport</label>
-            <div class="airport-wrap">
-              <input type="text" id="af-from" placeholder="JFK" autocomplete="off" required>
-              <div class="airport-dropdown" id="af-from-dd"></div>
-            </div>
-          </div>
-          <div class="form-group">
-            <label>To Airport</label>
-            <div class="airport-wrap">
-              <input type="text" id="af-to" placeholder="NRT" autocomplete="off" required>
-              <div class="airport-dropdown" id="af-to-dd"></div>
-            </div>
-          </div>
-          <div class="form-group">
-            <label>Class</label>
-            <select id="af-class">
-              <option value="business">Business</option>
-              <option value="first">First</option>
-              <option value="any">Either</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Points Program</label>
-            <select id="af-program">
-              <option value="amex-mr">Amex Membership Rewards</option>
-              <option value="chase-ur">Chase Ultimate Rewards</option>
-              <option value="capital-one">Capital One Miles</option>
-              <option value="citi-typ">Citi ThankYou Points</option>
-              <option value="bilt">Bilt Rewards</option>
-              <option value="wells-fargo">Wells Fargo Rewards</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Alert Method</label>
-            <div class="radio-group">
-              <label><input type="radio" name="alertMethod" value="whatsapp" checked> WhatsApp</label>
-              <label><input type="radio" name="alertMethod" value="email"> Email</label>
-              <label><input type="radio" name="alertMethod" value="both"> Both</label>
-            </div>
-          </div>
-          <div class="form-group">
-            <label>Contact (phone or email)</label>
-            <input type="text" id="af-contact" placeholder="+1 (555) 123-4567 or you@email.com" required>
-          </div>
-          <div class="form-group full" style="align-items:flex-start;">
-            <button type="submit" class="btn-primary">Start Monitoring</button>
-          </div>
-        </form>
-        <div class="success-msg" id="alertSuccess" style="margin-top:16px;">Route alert created! You'll hear from us when seats open.</div>
       </div>
     </div>
   </div>
@@ -825,9 +761,6 @@
 
     initAirportAutocomplete('s-from', 's-from-dd');
     initAirportAutocomplete('s-to', 's-to-dd');
-    initAirportAutocomplete('af-from', 'af-from-dd');
-    initAirportAutocomplete('af-to', 'af-to-dd');
-
     // === Search Form ===
     document.getElementById('searchForm').addEventListener('submit', (e) => {
       e.preventDefault();
@@ -987,35 +920,6 @@
       document.getElementById('live-deals').scrollIntoView({ behavior: 'smooth' });
     }
 
-    // === Alert Form ===
-    document.getElementById('alertForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const btn = e.target.querySelector('button');
-      btn.disabled = true; btn.textContent = 'Submitting...';
-
-      const data = {
-        type: 'route',
-        from: document.getElementById('af-from').value.toUpperCase(),
-        to: document.getElementById('af-to').value.toUpperCase(),
-        class: document.getElementById('af-class').value,
-        program: document.getElementById('af-program').value,
-        alertMethod: document.querySelector('input[name="alertMethod"]:checked').value,
-        contact: document.getElementById('af-contact').value,
-      };
-
-      try {
-        const res = await fetch('/api/flights/signup', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
-        });
-        if (res.ok) {
-          document.getElementById('alertSuccess').classList.add('show');
-          e.target.style.display = 'none';
-        }
-      } catch { alert('Something went wrong. Try again.'); }
-      btn.disabled = false; btn.textContent = 'Start Monitoring';
-    });
   </script>
 </body>
 </html>

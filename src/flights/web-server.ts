@@ -2,7 +2,7 @@
  * Harbor Flights — Self-Contained Web Server
  *
  * Serves the frontend pages and provides API endpoints that read
- * from the daemon's flight-cache.json. Also supports live on-demand
+ * from the PostgreSQL database. Also supports live on-demand
  * scraping via SSE when the cache has no results for a route.
  *
  * Usage:  npm run dev   (or)  npm run serve
@@ -11,7 +11,6 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import * as fs from 'fs';
 import * as path from 'path';
 import {
   POINTS_PROGRAMS,
@@ -26,19 +25,20 @@ import {
   getBookingUrl,
   normalizeAirlineName,
 } from './monitor.js';
-import { atomicWriteFile } from './utils.js';
 import { getSweetSpotsByTier, getSweetSpotsForProgram, SWEET_SPOTS } from './sweet-spots.js';
 import { runLiveScrape, canStartLiveScrape } from './live-scraper.js';
 import type { FlightResult, SearchParams } from './types.js';
 import { searchGoogleFlights } from './scrapers/google-flights.js';
+import {
+  initPool, closePool,
+  getCacheEntries, getAllCacheEntries, getCacheRoutes,
+  addSignup, upsertLiveCacheResults,
+} from './db.js';
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '../../data');
-const CACHE_FILE = process.env.WEB_CACHE_PATH || path.join(DATA_DIR, 'flight-cache.json');
-const SIGNUPS_FILE = path.join(DATA_DIR, 'flight-signups.json');
 const PUBLIC_DIR = path.join(__dirname, '../../web/public');
 
 // Sources that are chart estimates, not confirmed availability — never show to users
@@ -103,6 +103,7 @@ function enrichFlightResult(
     dealRating: computeDealRating(cppVal),
     direct: f.stops === 0,
     route: `${f.origin} \u2192 ${f.destination}`,
+    estimated: NON_BOOKABLE_SOURCES.has(f.source),
   };
 }
 
@@ -123,7 +124,7 @@ for (const [route, file] of Object.entries(PAGE_MAP)) {
 }
 
 // ── GET /api/flights/search ─────────────────────────────────
-app.get('/api/flights/search', (req, res) => {
+app.get('/api/flights/search', async (req, res) => {
   const fromRaw = (req.query.from as string) || '';
   const toRaw = (req.query.to as string) || '';
   const cabinRaw = (req.query.class as string) || 'any';
@@ -144,35 +145,22 @@ app.get('/api/flights/search', (req, res) => {
   };
   const cabin = cabinMap[cabinRaw] || 'business';
 
-  // Read daemon cache
-  let cache: { version?: number; entries: Record<string, any>; lastUpdated?: string } = { entries: {} };
-  try {
-    if (fs.existsSync(CACHE_FILE)) {
-      cache = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf-8'));
-    }
-  } catch {
-    // cache unreadable — proceed with empty
-  }
+  // Read from database
+  const cacheRows = await getCacheEntries(origins, dests, cabin);
 
-  // Collect matching cache entries
+  // Collect matching award flights
   const rawFlights: any[] = [];
-  for (const [key, entry] of Object.entries(cache.entries)) {
-    // Key format: ORIGIN-DEST-YYYY-MM-DD-cabin
-    const parts = key.split('-');
-    if (parts.length < 6) continue;
-    const entryOrigin = parts[0];
-    const entryDest = parts[1];
-    // date is parts[2]-parts[3]-parts[4], cabin is parts[5]
-    const entryCabin = parts[5];
+  let lastUpdated: string | null = null;
 
-    const matchOrigin = origins.includes(entryOrigin);
-    const matchDest = dests.includes(entryDest);
-    const matchCabin = cabin === 'any' || entryCabin === cabin;
-
-    if (matchOrigin && matchDest && matchCabin) {
-      for (const f of (entry.awardFlights || [])) {
-        rawFlights.push(f);
-      }
+  for (const row of cacheRows) {
+    const flights = Array.isArray(row.award_flights) ? row.award_flights : [];
+    for (const f of flights) {
+      rawFlights.push(f);
+    }
+    // Track most recent update
+    const updatedAt = row.updated_at;
+    if (updatedAt && (!lastUpdated || updatedAt > lastUpdated)) {
+      lastUpdated = updatedAt;
     }
   }
 
@@ -193,7 +181,7 @@ app.get('/api/flights/search', (req, res) => {
     awardFlights: { count: enriched.length, results: enriched },
     cashFlights: { count: 0, results: [] },
     source: 'daemon-cache',
-    lastUpdated: cache.lastUpdated || null,
+    lastUpdated,
     from: origins.join(', '),
     to: dests.join(', '),
     cabin: cabin === 'any' ? 'Any' : cabinDisplayName(cabin),
@@ -214,47 +202,31 @@ app.post('/api/flights/signup', async (req, res) => {
     }
   }
 
-  const entry = { ...body, timestamp: new Date().toISOString() };
-
-  // Read existing signups
-  let signups: any[] = [];
-  try {
-    if (fs.existsSync(SIGNUPS_FILE)) {
-      signups = JSON.parse(fs.readFileSync(SIGNUPS_FILE, 'utf-8'));
-    }
-  } catch {
-    signups = [];
-  }
-
-  signups.push(entry);
-
-  // Ensure data directory exists
-  const dir = path.dirname(SIGNUPS_FILE);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-
-  await atomicWriteFile(SIGNUPS_FILE, JSON.stringify(signups, null, 2));
+  await addSignup(body);
   res.json({ ok: true });
 });
 
 // ── GET /api/flights/deals ───────────────────────────────────
-app.get('/api/flights/deals', (req, res) => {
+app.get('/api/flights/deals', async (req, res) => {
   const programSlug = (req.query.program as string) || 'amex-mr';
 
-  // Read entire flight cache
-  let cache: { version?: number; entries: Record<string, any>; lastUpdated?: string } = { entries: {} };
-  try {
-    if (fs.existsSync(CACHE_FILE)) {
-      cache = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf-8'));
-    }
-  } catch { /* proceed with empty */ }
+  // Read all cache entries from DB
+  const cacheRows = await getAllCacheEntries();
 
-  // Collect ALL award flights from every cache entry (skip non-bookable estimates)
+  // Collect ALL award flights (skip non-bookable estimates)
   const rawFlights: any[] = [];
-  for (const entry of Object.values(cache.entries)) {
-    for (const f of (entry.awardFlights || [])) {
+  let lastUpdated: string | null = null;
+
+  for (const row of cacheRows) {
+    const flights = Array.isArray(row.award_flights) ? row.award_flights : [];
+    for (const f of flights) {
       if (f.pointsRequired && f.pointsRequired > 0 && !NON_BOOKABLE_SOURCES.has(f.source)) {
         rawFlights.push(f);
       }
+    }
+    const updatedAt = row.updated_at;
+    if (updatedAt && (!lastUpdated || updatedAt > lastUpdated)) {
+      lastUpdated = updatedAt;
     }
   }
 
@@ -283,7 +255,7 @@ app.get('/api/flights/deals', (req, res) => {
 
   res.json({
     deals,
-    lastUpdated: cache.lastUpdated || null,
+    lastUpdated,
     totalCached: rawFlights.length,
   });
 });
@@ -334,30 +306,29 @@ app.get('/api/flights/programs', (_req, res) => {
 });
 
 // ── GET /api/flights/routes ─────────────────────────────────
-app.get('/api/flights/routes', (_req, res) => {
-  let cache: { version?: number; entries: Record<string, any>; lastUpdated?: string } = { entries: {} };
-  try {
-    if (fs.existsSync(CACHE_FILE)) {
-      cache = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf-8'));
-    }
-  } catch { /* ignore */ }
+app.get('/api/flights/routes', async (_req, res) => {
+  const rows = await getCacheRoutes();
 
-  const routes = Object.entries(cache.entries).map(([key, entry]) => {
-    const parts = key.split('-');
-    if (parts.length < 6) return null;
-    return {
-      origin: parts[0],
-      destination: parts[1],
-      date: `${parts[2]}-${parts[3]}-${parts[4]}`,
-      cabin: parts[5],
-      lastUpdated: (entry as any).lastUpdated || cache.lastUpdated || null,
-    };
-  }).filter(Boolean);
+  const routes = rows.map(r => ({
+    origin: r.origin,
+    destination: r.destination,
+    date: r.date,
+    cabin: r.cabin,
+    lastUpdated: r.updated_at,
+  }));
+
+  // Find most recent update
+  let lastUpdated: string | null = null;
+  for (const r of rows) {
+    if (r.updated_at && (!lastUpdated || r.updated_at > lastUpdated)) {
+      lastUpdated = r.updated_at;
+    }
+  }
 
   res.json({
     routes,
     totalEntries: routes.length,
-    lastUpdated: cache.lastUpdated || null,
+    lastUpdated,
   });
 });
 
@@ -461,7 +432,6 @@ app.get('/api/flights/live-search', (req, res) => {
   const partners = getTransferPartnersForProgram(programSlug);
   const programName = POINTS_PROGRAMS.find(p => p.slug === programSlug)?.name || programSlug;
   const liveResults: FlightResult[] = [];
-
   runLiveScrape(origins, dests, scrapeCabin, programSlug, {
     onScraperStarted(key, name) {
       sendEvent('scraper-started', { scraper: key, name, status: 'running' });
@@ -490,7 +460,7 @@ app.get('/api/flights/live-search', (req, res) => {
       clearInterval(keepAlive);
       res.end();
       // Write results to cache in background
-      writeLiveResultsToCache(liveResults, scrapeCabin).catch(err => {
+      upsertLiveCacheResults(liveResults, scrapeCabin).catch(err => {
         console.error('[LiveSearch] Failed to write cache:', err.message);
       });
     },
@@ -501,68 +471,27 @@ app.get('/api/flights/live-search', (req, res) => {
   });
 });
 
-// ── Write live results to daemon cache ──────────────────────
-
-async function writeLiveResultsToCache(
-  results: FlightResult[],
-  cabin: string,
-): Promise<void> {
-  if (results.length === 0) return;
-
-  let cache: { version?: number; entries: Record<string, any>; lastUpdated?: string } = {
-    version: 1,
-    entries: {},
-    lastUpdated: new Date().toISOString(),
-  };
-
-  try {
-    if (fs.existsSync(CACHE_FILE)) {
-      cache = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf-8'));
-    }
-  } catch { /* proceed with empty */ }
-
-  // Group results by ORIGIN-DEST-YYYY-MM-DD-cabin key
-  for (const r of results) {
-    if (!r.departureDate || !r.origin || !r.destination) continue;
-    const key = `${r.origin}-${r.destination}-${r.departureDate}-${cabin}`;
-
-    if (!cache.entries[key]) {
-      cache.entries[key] = { awardFlights: [], lastUpdated: new Date().toISOString() };
-    }
-
-    const entry = cache.entries[key];
-    // Deduplicate by flightNumber-date-source
-    const dedupeKey = r.flightNumber
-      ? `${r.flightNumber}-${r.departureDate}-${r.source}`
-      : `${r.source}-${r.origin}-${r.destination}-${r.departureDate}-${r.departureTime}`;
-
-    const exists = entry.awardFlights.some((existing: any) => {
-      const existKey = existing.flightNumber
-        ? `${existing.flightNumber}-${existing.departureDate}-${existing.source}`
-        : `${existing.source}-${existing.origin}-${existing.destination}-${existing.departureDate}-${existing.departureTime}`;
-      return existKey === dedupeKey;
-    });
-
-    if (!exists) {
-      entry.awardFlights.push(r);
-    }
-
-    entry.lastUpdated = new Date().toISOString();
-  }
-
-  cache.lastUpdated = new Date().toISOString();
-
-  const dir = path.dirname(CACHE_FILE);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-
-  await atomicWriteFile(CACHE_FILE, JSON.stringify(cache, null, 2));
-  console.log(`[LiveSearch] Wrote ${results.length} results to cache`);
-}
-
 // ── Start ───────────────────────────────────────────────────
 const PORT = parseInt(process.env.PORT || '3000', 10);
+
+// Initialize DB pool, then start server
+initPool();
+console.log('[DB] Connection pool initialized');
+
 app.listen(PORT, () => {
-  console.log(`🐙 Harbor Flights web server running on http://localhost:${PORT}`);
-  console.log(`   Cache file: ${CACHE_FILE}`);
+  console.log(`Flight Points web server running on http://localhost:${PORT}`);
   console.log(`   Static dir: ${PUBLIC_DIR}`);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  console.log('Received SIGTERM — closing DB pool...');
+  await closePool();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  console.log('Received SIGINT — closing DB pool...');
+  await closePool();
+  process.exit(0);
 });

@@ -7,10 +7,8 @@
  * Health stats are written to data/scraper-health.json for monitoring.
  */
 
-import { existsSync, mkdirSync } from 'fs';
-import path from 'path';
-import { atomicWriteFileSync } from './utils.js';
 import { CIRCUIT_BREAKER_THRESHOLD, CIRCUIT_BREAKER_COOLDOWN_MS } from './scraper-config.js';
+import { writeScraperHealth } from './db.js';
 
 interface ScraperStats {
   totalCalls: number;
@@ -101,22 +99,16 @@ export function isScraperAvailable(scraperKey: string): boolean {
 }
 
 /**
- * Write health stats to disk for monitoring.
+ * Write health stats to database for monitoring.
  */
-export function writeHealthFile(dataDir: string): void {
-  const healthDir = dataDir;
-  if (!existsSync(healthDir)) mkdirSync(healthDir, { recursive: true });
-
-  const healthFile = path.join(healthDir, 'scraper-health.json');
+export function writeHealthFile(): void {
   const data: Record<string, ScraperStats> = {};
   for (const [key, s] of stats) {
     data[key] = { ...s };
   }
-
-  atomicWriteFileSync(healthFile, JSON.stringify({
-    timestamp: new Date().toISOString(),
-    scrapers: data,
-  }, null, 2));
+  writeScraperHealth(data).catch(err => {
+    console.error('[ScraperHealth] Failed to write to DB:', err.message);
+  });
 }
 
 /**

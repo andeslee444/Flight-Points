@@ -8,6 +8,7 @@
  * Started: 2026-02-16
  * Updated: 2026-02-17 — shared airports, sweet-spots integration, parallel scrapers,
  *   graceful shutdown, health metrics, configurable date sampling, atomic writes
+ * Updated: 2026-02-18 — migrated all data storage from JSON files to PostgreSQL
  */
 
 import 'dotenv/config';
@@ -24,19 +25,26 @@ import {
   isToAsia as isToAsiaRoute,
   isInternational as isInternationalRoute,
 } from './airports.js';
-import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { execFileSync } from 'child_process';
-import path from 'path';
-import { atomicWriteFileSync } from './utils.js';
 import { recordSuccess, recordFailure, isScraperAvailable, writeHealthFile } from './scraper-health.js';
+import {
+  initPool, closePool,
+  loadSignups as dbLoadSignups,
+  loadSentAlerts as dbLoadSentAlerts,
+  markAlertSent,
+  pruneSentAlerts,
+  getKnownFlight,
+  upsertKnownFlight,
+  pruneKnownFlights,
+  loadRotationOffset as dbLoadRotationOffset,
+  saveRotationOffset as dbSaveRotationOffset,
+  addScan,
+  pruneScans,
+  upsertCacheEntries,
+  pruneStaleCacheEntries,
+  writeDaemonStatus as dbWriteDaemonStatus,
+} from './db.js';
 
-const DATA_DIR = process.env.DATA_DIR || path.resolve(__dirname, '../../data');
-const SIGNUPS_FILE = path.join(DATA_DIR, 'flight-signups.json');
-const HISTORY_FILE = path.join(DATA_DIR, 'flight-monitor-history.json');
-const ROTATION_FILE = path.join(DATA_DIR, 'flight-rotation-state.json');
-const SENT_ALERTS_FILE = path.join(DATA_DIR, 'sent-alerts.json');
-const STATUS_FILE = path.join(DATA_DIR, 'daemon-status.json');
-const WEB_CACHE_FILE = process.env.WEB_CACHE_PATH || path.join(DATA_DIR, 'flight-cache.json');
 const SCAN_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
 const MAX_SEARCHES_PER_CYCLE = 25;
 const MAX_RSS_MB = 450; // restart browser well before 500MB
@@ -77,42 +85,6 @@ interface Signup {
   startDate?: string;
   endDate?: string;
   dateSamplingDays?: number;
-}
-
-interface HistoryEntry {
-  scanTime: string;
-  results: FlightResult[];
-}
-
-interface History {
-  lastScan: string;
-  scans: HistoryEntry[];
-  knownFlights: Record<string, { miles: number; firstSeen: string }>;
-}
-
-// ── Sent alerts dedup ──
-type SentAlerts = Record<string, string>; // key → ISO timestamp
-
-function loadSentAlerts(): SentAlerts {
-  if (existsSync(SENT_ALERTS_FILE)) {
-    try { return JSON.parse(readFileSync(SENT_ALERTS_FILE, 'utf-8')); } catch (e: any) {
-      log(`Warning: Failed to load sent alerts: ${e.message}`);
-    }
-  }
-  return {};
-}
-
-function saveSentAlerts(sa: SentAlerts) {
-  // Prune entries older than 90 days
-  const cutoff = Date.now() - 90 * 86400000;
-  for (const [k, v] of Object.entries(sa)) {
-    if (new Date(v).getTime() < cutoff) delete sa[k];
-  }
-  atomicWriteFileSync(SENT_ALERTS_FILE, JSON.stringify(sa, null, 2));
-}
-
-function alertKey(f: FlightResult): string {
-  return `${f.airline}-${f.origin}-${f.destination}-${f.departureDate}-${f.flightNumber}-${f.cabin}`;
 }
 
 // ── Deal quality filter (sweet-spots integrated) ──
@@ -162,48 +134,8 @@ function isGoodDeal(f: FlightResult): DealCheck {
   return { isDeal: false };
 }
 
-function loadSignups(): Signup[] {
-  return JSON.parse(readFileSync(SIGNUPS_FILE, 'utf-8'));
-}
-
-function loadHistory(): History {
-  if (existsSync(HISTORY_FILE)) {
-    try {
-      return JSON.parse(readFileSync(HISTORY_FILE, 'utf-8'));
-    } catch (e: any) {
-      log(`Warning: Failed to load history (starting fresh): ${e.message}`);
-    }
-  }
-  return { lastScan: '', scans: [], knownFlights: {} };
-}
-
-function saveHistory(h: History) {
-  if (h.scans.length > 48) h.scans = h.scans.slice(-48);
-  // Prune knownFlights older than 30 days
-  const cutoff = Date.now() - 30 * 86400000;
-  for (const [k, v] of Object.entries(h.knownFlights)) {
-    if (new Date(v.firstSeen).getTime() < cutoff) delete h.knownFlights[k];
-  }
-  atomicWriteFileSync(HISTORY_FILE, JSON.stringify(h, null, 2));
-}
-
-function loadRotationOffset(): number {
-  try {
-    if (existsSync(ROTATION_FILE)) {
-      return JSON.parse(readFileSync(ROTATION_FILE, 'utf-8')).offset || 0;
-    }
-  } catch (e: any) {
-    log(`Warning: Failed to load rotation state: ${e.message}`);
-  }
-  return 0;
-}
-
-function saveRotationOffset(offset: number) {
-  atomicWriteFileSync(ROTATION_FILE, JSON.stringify({ offset, updatedAt: new Date().toISOString() }));
-}
-
-function flightKey(f: FlightResult): string {
-  return `${f.flightNumber}|${f.origin}-${f.destination}|${f.departureDate}|${f.cabin}`;
+function alertKey(f: FlightResult): string {
+  return `${f.airline}-${f.origin}-${f.destination}-${f.departureDate}-${f.flightNumber}-${f.cabin}`;
 }
 
 function generateDates(startDate?: string, endDate?: string, samplingDays?: number): string[] {
@@ -268,6 +200,10 @@ function sendWhatsApp(contact: string, message: string) {
   }
 }
 
+function flightKey(f: FlightResult): string {
+  return `${f.flightNumber}|${f.origin}-${f.destination}|${f.departureDate}|${f.cabin}`;
+}
+
 function buildAllSearches(signups: Signup[]): {
   searches: Array<{ params: SearchParams; signups: Signup[] }>;
   signupCabins: Map<string, Set<string>>;
@@ -307,96 +243,7 @@ function buildAllSearches(signups: Signup[]): {
   return { searches: Array.from(searchMap.values()), signupCabins };
 }
 
-function writeToWebCache(
-  results: FlightResult[],
-  searches: Array<{ params: SearchParams; signups: Signup[] }>,
-  signupCabins: Map<string, Set<string>>,
-  scanTime: string
-) {
-  try {
-    // Load existing cache
-    let cache: any = { version: 1, entries: {}, lastUpdated: null };
-    if (existsSync(WEB_CACHE_FILE)) {
-      try { cache = JSON.parse(readFileSync(WEB_CACHE_FILE, 'utf-8')); } catch (e: any) {
-        log(`Warning: Failed to parse web cache, starting fresh: ${e.message}`);
-      }
-    }
-
-    // Group results by route-date-cabin
-    for (const { params } of searches) {
-      const routeKey = `${params.origin}-${params.destination}-${params.date}`;
-      const cabins = signupCabins.get(routeKey) || new Set(['business']);
-
-      for (const cabin of cabins) {
-        const cacheKey = `${params.origin}-${params.destination}-${params.date}-${cabin}`;
-        const matching = results.filter(r =>
-          r.origin === params.origin &&
-          r.destination === params.destination &&
-          r.departureDate === params.date &&
-          r.cabin === cabin
-        );
-
-        if (matching.length === 0) continue;
-
-        const awardFlights = matching
-          .filter(r => r.pointsRequired && r.pointsRequired > 0)
-          .map(r => ({
-            airline: r.airline || 'Unknown',
-            flightNumber: r.flightNumber || '',
-            origin: r.origin,
-            destination: r.destination,
-            departureDate: r.departureDate,
-            departureTime: r.departureTime || '',
-            arrivalTime: r.arrivalTime || '',
-            duration: r.duration || '',
-            stops: r.stops ?? -1,
-            cabin: r.cabin,
-            pointsRequired: r.pointsRequired,
-            pointsProgram: r.pointsProgram || '',
-            taxes: r.taxesAndFees || 0,
-            awardType: r.awardType || null,
-            source: r.source || 'daemon',
-            bookingUrl: r.bookingUrl || '',
-          }));
-
-        cache.entries[cacheKey] = {
-          timestamp: scanTime,
-          awardFlights,
-          cashFlights: cache.entries[cacheKey]?.cashFlights || [],
-        };
-      }
-    }
-
-    cache.lastUpdated = scanTime;
-
-    // Prune entries older than 24 hours
-    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
-    for (const [key, entry] of Object.entries(cache.entries) as any[]) {
-      if (new Date(entry.timestamp).getTime() < cutoff) delete cache.entries[key];
-    }
-
-    atomicWriteFileSync(WEB_CACHE_FILE, JSON.stringify(cache, null, 2));
-    log(`Web cache updated: ${Object.keys(cache.entries).length} entries`);
-  } catch (e: any) {
-    log(`Failed to write web cache: ${e.message}`);
-  }
-}
-
 // ── Health/metrics ──
-function writeDaemonStatus(extra: Record<string, any>) {
-  try {
-    const status = {
-      pid: process.pid,
-      rssMB: Math.round(getRssMB()),
-      startedAt: daemonStartTime,
-      ...extra,
-    };
-    atomicWriteFileSync(STATUS_FILE, JSON.stringify(status, null, 2));
-  } catch (e: any) {
-    console.error(`Warning: Failed to write daemon status: ${e.message}`);
-  }
-}
-
 const daemonStartTime = new Date().toISOString();
 
 // ── Parallel scraper helper with timeout ──
@@ -414,8 +261,19 @@ async function runScan() {
   log('=== Starting scan ===');
   log(`Memory: ${getRssMB().toFixed(0)}MB RSS`);
 
-  const signups = loadSignups();
-  const history = loadHistory();
+  // Load signups from DB (map DB rows to Signup interface)
+  const signupRows = await dbLoadSignups();
+  const signups: Signup[] = signupRows.map(row => ({
+    from: row.from,
+    to: row.to,
+    class: row.class,
+    contact: row.contact || '',
+    alertMethod: row.alert_method || '',
+    startDate: row.start_date || undefined,
+    endDate: row.end_date || undefined,
+    dateSamplingDays: row.date_sampling_days || undefined,
+  }));
+
   const scanTime = new Date().toISOString();
   const allResults: FlightResult[] = [];
   const newFlights: Array<{ flight: FlightResult; signup: Signup }> = [];
@@ -425,12 +283,12 @@ async function runScan() {
   log(`Total unique searches: ${allSearches.length}`);
 
   // Rotate: pick a slice of MAX_SEARCHES_PER_CYCLE
-  let offset = loadRotationOffset();
+  let offset = await dbLoadRotationOffset();
   if (offset >= allSearches.length) offset = 0;
 
   const cycleSearches = allSearches.slice(offset, offset + MAX_SEARCHES_PER_CYCLE);
   const nextOffset = offset + cycleSearches.length;
-  saveRotationOffset(nextOffset >= allSearches.length ? 0 : nextOffset);
+  await dbSaveRotationOffset(nextOffset >= allSearches.length ? 0 : nextOffset);
 
   log(`This cycle: searches ${offset + 1}–${offset + cycleSearches.length} of ${allSearches.length} (rotating)`);
 
@@ -532,7 +390,7 @@ async function runScan() {
     s
   ]));
 
-  // Process results
+  // Process results — check known flights via DB
   for (const [key, results] of batchResults) {
     const entry = searchByKey.get(key);
     if (!entry) continue;
@@ -543,13 +401,13 @@ async function runScan() {
     for (const f of cabinResults) {
       allResults.push(f);
       const fKey = flightKey(f);
-      const known = history.knownFlights[fKey];
+      const known = await getKnownFlight(fKey);
 
       if (!known) {
-        history.knownFlights[fKey] = { miles: f.pointsRequired || 0, firstSeen: scanTime };
+        await upsertKnownFlight(fKey, f.pointsRequired || 0, scanTime);
         newFlights.push({ flight: f, signup: entry.signups[0] });
       } else if (f.pointsRequired && f.pointsRequired < known.miles) {
-        history.knownFlights[fKey].miles = f.pointsRequired;
+        await upsertKnownFlight(fKey, f.pointsRequired, known.first_seen);
         newFlights.push({ flight: f, signup: entry.signups[0] });
       }
     }
@@ -557,18 +415,21 @@ async function runScan() {
     log(`${entry.params.origin}→${entry.params.destination} ${entry.params.date}: ${cabinResults.length} results`);
   }
 
-  // Save
-  history.lastScan = scanTime;
-  history.scans.push({ scanTime, results: allResults });
-  saveHistory(history);
+  // Save scan to DB
+  await addScan(scanTime, allResults);
+  await pruneScans(48);
+  await pruneKnownFlights(30);
 
-  // Write results to shared web cache
-  writeToWebCache(allResults, cycleSearches, signupCabins, scanTime);
+  // Write results to flight cache
+  await writeToWebCache(allResults, cycleSearches, signupCabins, scanTime);
+
+  // Prune stale cache entries (24 hours)
+  await pruneStaleCacheEntries(24 * 60 * 60 * 1000);
 
   log(`Scan complete: ${allResults.length} total results, ${newFlights.length} new/improved`);
 
   // Send alerts (dedup + deal quality filter)
-  const sentAlerts = loadSentAlerts();
+  const sentAlerts = await dbLoadSentAlerts();
   let alertsSent = 0;
   for (const { flight, signup } of newFlights) {
     if (shuttingDown) break;
@@ -594,27 +455,105 @@ async function runScan() {
 
     if (signup.alertMethod === 'whatsapp' && signup.contact) {
       sendWhatsApp(signup.contact, formatAlert(flight, deal.sweetSpot));
-      sentAlerts[aKey] = new Date().toISOString();
+      await markAlertSent(aKey);
+      sentAlerts[aKey] = new Date().toISOString(); // update local cache too
       alertsSent++;
       await interruptibleSleep(2000);
     }
   }
-  saveSentAlerts(sentAlerts);
+
+  // Prune old sent alerts (90 days)
+  await pruneSentAlerts(90);
+
   log(`Alerts sent this cycle: ${alertsSent}`);
 
   // Write health metrics
-  writeDaemonStatus({
+  await dbWriteDaemonStatus({
+    pid: process.pid,
+    rssMB: Math.round(getRssMB()),
+    startedAt: daemonStartTime,
     lastScanTime: scanTime,
     resultsCount: allResults.length,
     alertsCount: alertsSent,
     nextScanTime: new Date(Date.now() + SCAN_INTERVAL_MS).toISOString(),
   });
 
-  // Write scraper health file
-  writeHealthFile(DATA_DIR);
+  // Write scraper health to DB
+  writeHealthFile();
 
   log(`Memory after scan: ${getRssMB().toFixed(0)}MB RSS`);
   log('=== Scan finished ===');
+}
+
+async function writeToWebCache(
+  results: FlightResult[],
+  searches: Array<{ params: SearchParams; signups: Signup[] }>,
+  signupCabins: Map<string, Set<string>>,
+  scanTime: string,
+) {
+  try {
+    const entries: Array<{
+      route_key: string;
+      origin: string;
+      destination: string;
+      date: string;
+      cabin: string;
+      award_flights: any[];
+    }> = [];
+
+    // Group results by route-date-cabin
+    for (const { params } of searches) {
+      const routeKey = `${params.origin}-${params.destination}-${params.date}`;
+      const cabins = signupCabins.get(routeKey) || new Set(['business']);
+
+      for (const cabin of cabins) {
+        const cacheKey = `${params.origin}-${params.destination}-${params.date}-${cabin}`;
+        const matching = results.filter(r =>
+          r.origin === params.origin &&
+          r.destination === params.destination &&
+          r.departureDate === params.date &&
+          r.cabin === cabin
+        );
+
+        if (matching.length === 0) continue;
+
+        const awardFlights = matching
+          .filter(r => r.pointsRequired && r.pointsRequired > 0)
+          .map(r => ({
+            airline: r.airline || 'Unknown',
+            flightNumber: r.flightNumber || '',
+            origin: r.origin,
+            destination: r.destination,
+            departureDate: r.departureDate,
+            departureTime: r.departureTime || '',
+            arrivalTime: r.arrivalTime || '',
+            duration: r.duration || '',
+            stops: r.stops ?? -1,
+            cabin: r.cabin,
+            pointsRequired: r.pointsRequired,
+            pointsProgram: r.pointsProgram || '',
+            taxes: r.taxesAndFees || 0,
+            awardType: r.awardType || null,
+            source: r.source || 'daemon',
+            bookingUrl: r.bookingUrl || '',
+          }));
+
+        entries.push({
+          route_key: cacheKey,
+          origin: params.origin,
+          destination: params.destination,
+          date: params.date,
+          cabin,
+          award_flights: awardFlights,
+        });
+      }
+    }
+
+    await upsertCacheEntries(entries);
+    log(`Web cache updated: ${entries.length} entries`);
+  } catch (e: any) {
+    log(`Failed to write web cache: ${e.message}`);
+  }
 }
 
 // Main loop
@@ -624,16 +563,28 @@ async function main() {
   log(`Max searches per cycle: ${MAX_SEARCHES_PER_CYCLE}`);
   log(`Max RSS threshold: ${MAX_RSS_MB}MB`);
   log(`Date sampling: every ${DATE_SAMPLING_DAYS} days`);
-  log(`Web cache path: ${WEB_CACHE_FILE}`);
   log(`Initial memory: ${getRssMB().toFixed(0)}MB RSS`);
   log(`PID: ${process.pid}`);
 
+  // Initialize database connection pool
+  initPool();
+  log('Database pool initialized');
+
   // Graceful shutdown handlers
-  const shutdown = (signal: string) => {
+  const shutdown = async (signal: string) => {
     if (shuttingDown) return; // prevent double handling
     shuttingDown = true;
     log(`Received ${signal} — shutting down gracefully...`);
-    writeDaemonStatus({ status: 'shutting_down', signal });
+    await dbWriteDaemonStatus({
+      pid: process.pid,
+      rssMB: Math.round(getRssMB()),
+      startedAt: daemonStartTime,
+      status: 'shutting_down',
+      signal,
+    });
+    // Close database pool
+    await closePool();
+    log('Database pool closed');
     // Give in-flight work a moment to finish, then exit
     setTimeout(() => {
       log('Shutdown complete.');
@@ -646,7 +597,12 @@ async function main() {
 
   log('Signal handlers registered (SIGTERM, SIGINT)');
 
-  writeDaemonStatus({ status: 'starting' });
+  await dbWriteDaemonStatus({
+    pid: process.pid,
+    rssMB: Math.round(getRssMB()),
+    startedAt: daemonStartTime,
+    status: 'starting',
+  });
 
   while (!shuttingDown) {
     try {

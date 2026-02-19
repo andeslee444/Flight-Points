@@ -12,10 +12,11 @@ Airline award flight scraper and monitoring system. Scrapes multiple airline awa
 |---------|-------------|
 | `npm run daemon` | Start the flight monitoring daemon (`src/flights/flight-daemon.ts`) |
 | `npm run search` | Run a one-off award search (`src/flights/scrapers/index.ts`) |
-| `npm run dev` | Start the monitor in dev mode with Express server (`src/flights/monitor.ts`) |
+| `npm run dev` | Start Express web server on port 3000 (`src/flights/web-server.ts`) |
 | `npm run build` | Compile TypeScript to `dist/` via `tsc` |
 | `tsx tests/test-all-scrapers.ts` | Run full scraper regression tests |
 | `tsx tests/<test-file>.ts` | Run a specific test (e.g. `tsx tests/test-ana-scraper.ts`) |
+| `python3 src/flights/scrapers/<scraper>-camoufox.py '<json>'` | Run a Python scraper directly for debugging |
 
 No test framework — tests are standalone tsx scripts in `tests/`.
 
@@ -71,6 +72,25 @@ The daemon is the production entry point:
 - `daemon-status.json` — Daemon health metrics (pid, RSS, last scan time)
 - `scraper-health.json` — Per-scraper success/failure stats and circuit breaker state
 
+### Web Server & Frontend (`web-server.ts`, `web/public/`)
+
+Express server on port 3000. Serves static frontend from `web/public/` and provides API endpoints:
+
+| Endpoint | Purpose |
+|----------|---------|
+| `/api/flights/search?from=JFK&to=NRT&class=business&program=amex-mr` | Search daemon cache |
+| `/api/flights/deals?program=amex-mr` | Top 20 deals across all cached routes |
+| `/api/flights/sweet-spots?tier=S&program=amex-mr` | Sweet spot database |
+| `/api/flights/programs` | List credit card programs |
+| `/api/flights/routes` | All routes in cache |
+| `/api/flights/cash-prices?from=...&to=...&date=...&class=...` | Google Flights prices (live) |
+| `/api/flights/live-search?from=...&to=...&class=...&program=...` | SSE stream of live scraper results |
+| `POST /api/flights/signup` | Register watch list entry |
+
+**Data flow**: Daemon scrapes → writes `flight-cache.json` → web server reads cache → enriches results (transfer ratios, CPP, deal ratings, booking URLs) → serves to frontend. When cache has no results, frontend auto-triggers live scraping via SSE (`live-scraper.ts`, max 2 concurrent).
+
+Frontend files: `flights.html` (search UI), `flight-results.html` (results), `styles.css` (dark theme with warm gold accents).
+
 ### Anti-Bot Strategy
 
 - SOCKS5 proxy configurable via `PROXY_URL` env (falls back to WARP at `socks5://127.0.0.1:1080`)
@@ -87,6 +107,13 @@ The daemon is the production entry point:
 - **Express** — Dev-mode web server
 - **tsx** — TypeScript execution (dev/tests)
 - Target: ES2022, module: NodeNext, strict mode
+
+## Adding a New Scraper
+
+1. Create `src/flights/scrapers/{airline}-camoufox.py` following the Python contract: reads JSON arg from `sys.argv[1]`, logs to stderr, outputs `FlightResult[]` JSON to stdout
+2. Create `src/flights/scrapers/{airline}-camoufox.ts` wrapper using `CamoufoxRunnerOptions` + `runCamoufoxSearch()` from `camoufox-runner.ts`
+3. Register in `SCRAPER_REGISTRY` in `scrapers/index.ts` with alliance coverage and fallback chain
+4. Add test: `tests/test-{airline}-scraper.ts`
 
 ## Setup
 

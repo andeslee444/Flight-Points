@@ -8,3 +8,10 @@ config/airline-accounts.json
 dist/
 .venv/
 logs/
+
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/.terraform.lock.hcl
+terraform/terraform.tfvars

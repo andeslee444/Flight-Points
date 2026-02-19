@@ -1,0 +1,6 @@
+aws_region         = "us-east-1"
+db_instance_class  = "db.t3.micro"
+db_name            = "flight_points"
+db_username        = "flightadmin"
+db_password        = "CHANGE_ME_TO_A_STRONG_PASSWORD"
+allowed_cidr_blocks = ["0.0.0.0/0"]  # Restrict to your IP in production
