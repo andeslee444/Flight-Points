@@ -24,14 +24,22 @@ No test framework — tests are standalone tsx scripts in `tests/`.
 
 ### Scraper Pattern (Tiered Fallback)
 
-Each airline has multiple scraper implementations with a fallback chain:
-1. **Fast** (`aa-fast.ts/py`) — curl_cffi cookie replay, ~2s per search
-2. **Camoufox** (`aa-camoufox.ts` calling `.py`) — anti-detect browser via Python subprocess, ~30s
-3. **Playwright** (`aa.ts`) — headless browser with stealth plugin, ~30s, most likely to be blocked
+Each airline has multiple scraper implementations with a fallback chain. The registry in `scrapers/index.ts` tries each tier in order until one succeeds:
 
-TypeScript `.ts` wrappers call Python `.py` scripts via `execFile` for Camoufox/curl_cffi scrapers. All scrapers return `FlightResult[]` from `types.ts`.
+1. **Chrome CDP** (`aa-cdp.py`) — Real Chrome via `--remote-debugging-port` + Patchright `connect_over_cdp()`. Bypasses Akamai automation detection. ~20s. Requires Chrome installed locally.
+2. **curl_cffi** (`alaska-curlffi.py`) — HTTP-only with TLS fingerprint impersonation (`impersonate="chrome131"`). Fastest (~0.5-12s). Works for APIs without heavy JS challenges.
+3. **Patchright** (`aa-patchright.py`) — Headless Chromium with stealth patches. ~30s. Blocked by most Akamai sites.
+4. **Camoufox** (`aa-camoufox.py`) — Anti-detect Firefox fork. ~30s. Blocked by most Akamai sites.
+5. **Playwright** (`aa.ts`) — Headless browser with stealth plugin. ~30s. Most likely to be blocked.
 
-**Camoufox wrapper pattern**: All 6 Camoufox TS wrappers use the shared `camoufox-runner.ts` helper which provides: cache check, subprocess execution, JSON parsing with debug output, retry with exponential backoff, and batch sequential execution. Add new Camoufox scrapers by defining a `CamoufoxRunnerOptions` config and calling `runCamoufoxSearch()`.
+TypeScript `.ts` wrappers call Python `.py` scripts via `execFile`. All scrapers return `FlightResult[]` from `types.ts`.
+
+**Shared runners** (each provides cache, subprocess exec, JSON parsing, retry with backoff):
+- `camoufox-runner.ts` — `CamoufoxRunnerOptions` + `runCamoufoxSearch()`
+- `curlffi-runner.ts` — `CurlffiRunnerOptions` + `runCurlffiSearch()`
+- `patchright-runner.ts` — `PatchrightRunnerOptions` + `runPatchrightSearch()`
+
+**Chrome CDP module** (`chrome_cdp.py`): `create_cdp_browser(profile_name)` → `(browser, context, page, cleanup_fn)`. Launches Chrome normally (no automation flags), uses `/tmp/chrome-cdp-<name>` for profile isolation.
 
 ### Daemon Flow (`flight-daemon.ts`)
 
@@ -61,7 +69,12 @@ The daemon is the production entry point:
 - **`utils.ts`** — `atomicWriteFileSync` and async `atomicWriteFile` for data integrity
 - **`scrapers/index.ts`** — Scraper registry (`SCRAPER_REGISTRY`); ~4 alliance-gateway scrapers cover ~80% of flights
 - **`scrapers/cache.ts`** — Bounded in-memory cache (500 max entries, 30min TTL) with optional disk persistence
-- **`scrapers/camoufox-runner.ts`** — Shared Python subprocess runner with retry logic
+- **`scrapers/camoufox-runner.ts`** — Shared Camoufox Python subprocess runner with retry logic
+- **`scrapers/curlffi-runner.ts`** — Shared curl_cffi Python subprocess runner
+- **`scrapers/patchright-runner.ts`** — Shared Patchright Python subprocess runner
+- **`scrapers/chrome_cdp.py`** — Real Chrome launcher via `--remote-debugging-port` + CDP connect
+- **`scrapers/curlffi_base.py`** — Shared curl_cffi Python base (session, proxy, impersonation)
+- **`scrapers/cookie_farm.py`** — Akamai _abck cookie farming infrastructure
 
 ### Data Files (in `data/`)
 
@@ -93,27 +106,35 @@ Frontend files: `flights.html` (search UI), `flight-results.html` (results), `st
 
 ### Anti-Bot Strategy
 
-- SOCKS5 proxy configurable via `PROXY_URL` env (falls back to WARP at `socks5://127.0.0.1:1080`)
-- Camoufox anti-detect browser (Python)
-- User-agent rotation and human-like delays
-- Browser contexts kept alive to reduce startup overhead
-- Config in `config/stealth-config.json`
+Five detection tiers and how each scraper tier addresses them:
+1. **IP reputation** — Oracle Cloud VPS proxy (`PROXY_URL=socks5://127.0.0.1:1081`)
+2. **TLS/JA3 fingerprint** — curl_cffi with `impersonate="chrome131"`
+3. **JS sensor (_abck cookie)** — Patchright/Camoufox browser automation
+4. **Automation flag detection** — Chrome CDP (real Chrome, no `--enable-automation`)
+5. **reCAPTCHA/login captcha** — Currently unsolved (blocks Aeroplan Gigya login)
+
+Config in `config/stealth-config.json`. `cookie_farm.py` provides Akamai _abck cookie farming (works but cookies are TLS-bound).
 
 ## Tech Stack
 
 - **TypeScript + Python** — TS for orchestration, Python for anti-detect browser automation
 - **Playwright + stealth plugin** — Browser automation
 - **Camoufox** — Anti-detect Firefox fork (Python subprocess)
+- **curl_cffi** — Python HTTP client with TLS fingerprint impersonation
+- **Patchright** — Patched Playwright for stealth browser automation (Python)
 - **Express** — Dev-mode web server
 - **tsx** — TypeScript execution (dev/tests)
 - Target: ES2022, module: NodeNext, strict mode
 
 ## Adding a New Scraper
 
-1. Create `src/flights/scrapers/{airline}-camoufox.py` following the Python contract: reads JSON arg from `sys.argv[1]`, logs to stderr, outputs `FlightResult[]` JSON to stdout
-2. Create `src/flights/scrapers/{airline}-camoufox.ts` wrapper using `CamoufoxRunnerOptions` + `runCamoufoxSearch()` from `camoufox-runner.ts`
-3. Register in `SCRAPER_REGISTRY` in `scrapers/index.ts` with alliance coverage and fallback chain
-4. Add test: `tests/test-{airline}-scraper.ts`
+All Python scrapers follow the same contract: reads JSON arg from `sys.argv[1]`, logs to stderr, outputs `FlightResult[]` JSON to stdout.
+
+1. Choose the appropriate tier (curl_cffi for APIs, Chrome CDP for Akamai sites, Patchright/Camoufox as fallbacks)
+2. Create `src/flights/scrapers/{airline}-{tier}.py` (e.g. `airline-curlffi.py`, `airline-cdp.py`)
+3. Create `src/flights/scrapers/{airline}-{tier}.ts` wrapper using the matching shared runner (`runCurlffiSearch()`, `runPatchrightSearch()`, or `runCamoufoxSearch()`)
+4. Register in `SCRAPER_REGISTRY` in `scrapers/index.ts` with alliance coverage and fallback chain
+5. Add test: `tests/test-{airline}-scraper.ts`
 
 ## Setup
 
