@@ -13,6 +13,8 @@ const OPTS: CamoufoxRunnerOptions = {
   script: 'aa-camoufox.py',
   cachePrefix: 'aa',
   timeoutMs: 120_000,
+  maxRetries: 2,          // Reduced: Camoufox often can't render AA Angular SPA; leave time for Patchright fallback
+  retryBaseDelayMs: 1000, // Fast retries — each attempt gets a fresh Camoufox fingerprint
 };
 
 export function searchAACamoufox(params: SearchParams): Promise<FlightResult[]> {

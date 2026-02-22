@@ -13,10 +13,13 @@
  * Created: 2026-02-16
  */
 
-import { chromium, Browser, BrowserContext, Page } from 'playwright';
+import { chromium } from 'playwright-extra';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+import { Browser, BrowserContext, Page } from 'playwright';
 import { FlightResult, SearchParams, CabinCode } from '../types.js';
-import { getStealthManager } from '../../stealth.js';
 import { getCached, setCache } from './cache.js';
+
+chromium.use(StealthPlugin());
 
 const DELTA_CABIN_MAP: Record<CabinCode, string> = {
   economy: 'MAIN',
@@ -38,8 +41,6 @@ const AIRLINE_NAMES: Record<string, string> = {
   'VN': 'Vietnam Airlines',
 };
 
-const stealth = getStealthManager();
-
 function buildUrl(params: SearchParams): string {
   const cabin = DELTA_CABIN_MAP[params.cabin] || 'BUSINESS';
   return `https://www.delta.com/flight-search/book-a-flight?tripType=ONE_WAY&awardTravel=true&originCity=${params.origin}&destinationCity=${params.destination}&departureDate=${params.date}&paxCount=${params.passengers || 1}&cabinType=${cabin}`;
@@ -54,8 +55,8 @@ export async function searchDelta(params: SearchParams): Promise<FlightResult[]>
   let context: BrowserContext | null = null;
 
   try {
-    await stealth.stealthDelay();
-
+    const rawProxy = process.env.PROXY_URL || '';
+    const proxyServer = rawProxy.startsWith('socks') ? rawProxy : '';
     browser = await chromium.launch({
       headless: true,
       args: [
@@ -65,11 +66,27 @@ export async function searchDelta(params: SearchParams): Promise<FlightResult[]>
         '--disable-infobars',
         '--no-first-run',
       ],
+      ...(proxyServer ? { proxy: { server: proxyServer } } : {}),
     });
 
-    context = await browser.newContext(stealth.getContextOptions());
+    context = await browser.newContext({
+      viewport: { width: 1440, height: 900 },
+      userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36',
+      timezoneId: 'America/New_York',
+      locale: 'en-US',
+    });
     const page = await context.newPage();
-    await page.addInitScript(stealth.getStealthScript());
+
+    // Cookie warming: visit homepage first
+    console.log('[Delta] Warming cookies on delta.com...');
+    try {
+      await page.goto('https://www.delta.com/', { waitUntil: 'domcontentloaded', timeout: 20000 });
+      await page.waitForTimeout(2000 + Math.random() * 2000);
+      await page.evaluate(() => window.scrollBy(0, Math.random() * 300));
+      await page.waitForTimeout(1000 + Math.random() * 1000);
+    } catch (e: any) {
+      console.log(`[Delta] Cookie warming issue (continuing): ${e.message}`);
+    }
 
     // Intercept API responses
     const apiResults: any[] = [];

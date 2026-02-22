@@ -8,10 +8,13 @@
  * Created: 2026-02-16
  */
 
-import { chromium, BrowserContext } from 'playwright';
-import { getStealthManager } from '../../stealth.js';
+import { chromium } from 'playwright-extra';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+import { BrowserContext } from 'playwright';
 import { FlightResult, SearchParams, getCacheKey } from '../types.js';
 import { getCached, setCache } from './cache.js';
+
+chromium.use(StealthPlugin());
 
 const RATE_LIMIT_MS = 5000;
 
@@ -36,13 +39,14 @@ export async function searchAlaska(params: SearchParams): Promise<FlightResult[]
     return cached;
   }
 
-  const stealth = getStealthManager();
   const url = buildUrl(params);
   console.log('[Alaska] Searching:', url);
 
   let context: BrowserContext | null = null;
 
   try {
+    const rawProxy = process.env.PROXY_URL || '';
+    const proxyServer = rawProxy.startsWith('socks') ? rawProxy : '';
     const browser = await chromium.launch({
       headless: true,
       args: [
@@ -52,11 +56,27 @@ export async function searchAlaska(params: SearchParams): Promise<FlightResult[]
         '--disable-infobars',
         '--no-first-run',
       ],
+      ...(proxyServer ? { proxy: { server: proxyServer } } : {}),
     });
 
-    context = await browser.newContext(stealth.getContextOptions());
+    context = await browser.newContext({
+      viewport: { width: 1440, height: 900 },
+      userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36',
+      timezoneId: 'America/New_York',
+      locale: 'en-US',
+    });
     const page = await context.newPage();
-    await page.addInitScript(stealth.getStealthScript());
+
+    // Cookie warming: visit homepage first
+    console.log('[Alaska] Warming cookies on alaskaair.com...');
+    try {
+      await page.goto('https://www.alaskaair.com/', { waitUntil: 'domcontentloaded', timeout: 20000 });
+      await page.waitForTimeout(2000 + Math.random() * 2000);
+      await page.evaluate(() => window.scrollBy(0, Math.random() * 300));
+      await page.waitForTimeout(1000 + Math.random() * 1000);
+    } catch (e: any) {
+      console.log(`[Alaska] Cookie warming issue (continuing): ${e.message}`);
+    }
 
     // Intercept API responses
     const apiFlights: any[] = [];

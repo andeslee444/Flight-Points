@@ -13,10 +13,13 @@
  * Updated: 2026-02-16 — Added seats.aero API approach
  */
 
-import { chromium, Page, Browser } from 'playwright';
-import { getStealthManager } from '../../stealth.js';
+import { chromium } from 'playwright-extra';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+import { Page, Browser } from 'playwright';
 import { FlightResult, SearchParams, UNITED_CABIN_CODES, getCacheKey } from '../types.js';
 import { getCached, setCache } from './cache.js';
+
+chromium.use(StealthPlugin());
 
 const SEARCH_TIMEOUT = 45000;
 
@@ -220,8 +223,8 @@ async function searchPlaywright(params: SearchParams): Promise<FlightResult[]> {
   let browser: Browser | null = null;
 
   try {
-    const stealth = getStealthManager();
-
+    const rawProxy = process.env.PROXY_URL || '';
+    const proxyServer = rawProxy.startsWith('socks') ? rawProxy : '';
     browser = await chromium.launch({
       headless: true,
       args: [
@@ -231,14 +234,27 @@ async function searchPlaywright(params: SearchParams): Promise<FlightResult[]> {
         '--no-sandbox',
         '--window-size=1440,900',
       ],
+      ...(proxyServer ? { proxy: { server: proxyServer } } : {}),
     });
 
     const context = await browser.newContext({
-      ...stealth.getContextOptions(),
       viewport: { width: 1440, height: 900 },
+      userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36',
+      timezoneId: 'America/New_York',
+      locale: 'en-US',
     });
     const page = await context.newPage();
-    await page.addInitScript(stealth.getStealthScript());
+
+    // Cookie warming: visit homepage first to establish session
+    console.log('[United/Playwright] Warming cookies on united.com...');
+    try {
+      await page.goto('https://www.united.com/', { waitUntil: 'domcontentloaded', timeout: 20000 });
+      await page.waitForTimeout(2000 + Math.random() * 2000);
+      await page.evaluate(() => window.scrollBy(0, Math.random() * 300));
+      await page.waitForTimeout(1000 + Math.random() * 1000);
+    } catch (e: any) {
+      console.log(`[United/Playwright] Cookie warming issue (continuing): ${e.message}`);
+    }
 
     // Intercept flight API responses
     const apiResponses: any[] = [];

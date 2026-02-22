@@ -160,6 +160,9 @@ async function createBrowserAndPage(attempt: number): Promise<{ browser: Browser
   
   log('info', `Attempt ${attempt + 1}: UA=${ua.slice(0, 50)}... VP=${vp.width}x${vp.height}`);
 
+  // Only use SOCKS5 proxies — HTTP proxies get blocked by Akamai and cause SSL issues
+  const rawProxy = process.env.PROXY_URL || '';
+  const proxyServer = rawProxy.startsWith('socks') ? rawProxy : '';
   const browser = await chromium.launch({
     headless: true,
     args: [
@@ -179,6 +182,7 @@ async function createBrowserAndPage(attempt: number): Promise<{ browser: Browser
       '--no-sandbox',
       '--js-flags=--max-old-space-size=256',
     ],
+    ...(proxyServer ? { proxy: { server: proxyServer } } : {}),
   });
 
   const context = await browser.newContext({

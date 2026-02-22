@@ -14,7 +14,9 @@ const OPTS: CamoufoxRunnerOptions = {
   label: 'UA-Aeroplan-TS',
   script: 'united-aeroplan-camoufox.py',
   cachePrefix: 'united-aeroplan',
-  timeoutMs: 150_000,
+  timeoutMs: 90_000,
+  maxRetries: 1,  // Single attempt — Akamai blocks; fail fast for Playwright fallback
+  retryBaseDelayMs: 2000,
   batchDelayMs: 45000,
 };
 

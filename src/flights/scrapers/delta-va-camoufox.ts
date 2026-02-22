@@ -17,7 +17,9 @@ const OPTS: CamoufoxRunnerOptions = {
   label: 'Delta-VA-Camoufox',
   script: 'delta-va-camoufox.py',
   cachePrefix: 'delta-va',
-  timeoutMs: 120_000,
+  timeoutMs: 90_000,
+  maxRetries: 1,  // Single attempt — Akamai blocks retries too; fail fast for fallback chain
+  retryBaseDelayMs: 2000,
 };
 
 export function searchDeltaViaCamoufox(params: SearchParams): Promise<FlightResult[]> {

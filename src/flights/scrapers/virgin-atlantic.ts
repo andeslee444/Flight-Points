@@ -16,10 +16,13 @@
  * Created: 2026-02-16
  */
 
-import { chromium, Browser, BrowserContext } from 'playwright';
-import { getStealthManager } from '../../stealth.js';
+import { chromium } from 'playwright-extra';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+import { Browser, BrowserContext } from 'playwright';
 import { FlightResult, SearchParams, getCacheKey } from '../types.js';
 import { getCached, setCache } from './cache.js';
+
+chromium.use(StealthPlugin());
 
 const RATE_LIMIT_MS = 3000;
 
@@ -267,13 +270,12 @@ export async function searchVirginAtlantic(params: SearchParams): Promise<Flight
     return cached;
   }
 
-  const stealth = getStealthManager();
   let browser: Browser | null = null;
   let context: BrowserContext | null = null;
 
   try {
-    await stealth.stealthDelay();
-
+    const rawProxy = process.env.PROXY_URL || '';
+    const proxyServer = rawProxy.startsWith('socks') ? rawProxy : '';
     browser = await chromium.launch({
       headless: true,
       args: [
@@ -282,11 +284,34 @@ export async function searchVirginAtlantic(params: SearchParams): Promise<Flight
         '--disable-features=IsolateOrigins,site-per-process',
         '--no-first-run',
       ],
+      ...(proxyServer ? { proxy: { server: proxyServer } } : {}),
     });
 
-    context = await browser.newContext(stealth.getContextOptions());
+    context = await browser.newContext({
+      viewport: { width: 1440, height: 900 },
+      userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36',
+      timezoneId: 'America/New_York',
+      locale: 'en-US',
+    });
     const page = await context.newPage();
-    await page.addInitScript(stealth.getStealthScript());
+
+    // Cookie warming: visit homepage first
+    console.log('[VirginAtlantic] Warming cookies on virginatlantic.com...');
+    try {
+      await page.goto('https://www.virginatlantic.com/', { waitUntil: 'domcontentloaded', timeout: 20000 });
+      await page.waitForTimeout(2000 + Math.random() * 2000);
+      try {
+        const cookieBtn = page.locator('#onetrust-accept-btn-handler');
+        if (await cookieBtn.isVisible({ timeout: 3000 })) {
+          await cookieBtn.click();
+          await page.waitForTimeout(1000);
+        }
+      } catch {}
+      await page.evaluate(() => window.scrollBy(0, Math.random() * 300));
+      await page.waitForTimeout(1000 + Math.random() * 1000);
+    } catch (e: any) {
+      console.log(`[VirginAtlantic] Cookie warming issue (continuing): ${e.message}`);
+    }
 
     // Intercept the GraphQL API response
     const graphqlResponses: any[] = [];

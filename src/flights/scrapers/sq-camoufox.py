@@ -25,6 +25,7 @@ import random
 import os
 import re
 from datetime import datetime
+from urllib.parse import urlparse
 
 def log(msg):
     print(f"[SQ-Camoufox {time.strftime('%H:%M:%S')}] {msg}", file=sys.stderr)
@@ -81,30 +82,44 @@ def main():
     results = []
 
     try:
-        with Camoufox(headless=True, humanize=True) as browser:
-            page = browser.new_page()
+        # Only use SOCKS5 proxies for Camoufox — HTTP proxies cause SSL errors (SEC_ERROR_UNKNOWN_ISSUER)
+        # and geoip=True crashes pages, so we NEVER pass it
+        proxy_url = os.environ.get("PROXY_URL", "")
+        proxy_cfg = None
+        if proxy_url and proxy_url.startswith("socks"):
+            parsed = urlparse(proxy_url)
+            server = f"{parsed.scheme}://{parsed.hostname}:{parsed.port}"
+            proxy_cfg = {"server": server}
+            if parsed.username:
+                proxy_cfg["username"] = parsed.username
+            if parsed.password:
+                proxy_cfg["password"] = parsed.password
+            log(f"Using SOCKS5 proxy: {parsed.hostname}:{parsed.port}")
+        elif proxy_url:
+            log(f"Skipping HTTP proxy for Camoufox (causes SSL errors)")
+        with Camoufox(headless=True, humanize=True, os='macos', proxy=proxy_cfg) as browser:
+            if proxy_cfg:
+                context = browser.new_context(ignore_https_errors=True)
+                page = context.new_page()
+            else:
+                page = browser.new_page()
 
-            # Intercept ALL network responses
+            # Intercept ALL JSON network responses (broad capture for debugging)
             def handle_response(response):
                 url = response.url
                 ct = response.headers.get("content-type", "")
-                if "json" in ct:
-                    keywords = ["availability", "flight", "search", "award", "redemption",
-                                "itinerary", "offer", "calendar", "book", "fare",
-                                "segment", "journey", "login", "auth", "token",
-                                "apigw", "graphql"]
-                    if any(kw in url.lower() for kw in keywords):
-                        try:
-                            body = response.text()
-                            if len(body) > 50:
-                                log(f"API [{response.status}]: {url[:150]}")
-                                api_responses.append({
-                                    "url": url,
-                                    "status": response.status,
-                                    "body": body
-                                })
-                        except:
-                            pass
+                if "json" in ct and response.status == 200:
+                    try:
+                        body = response.text()
+                        if len(body) > 500:
+                            log(f"API [{response.status}]: {url[:150]} ({len(body)} bytes)")
+                            api_responses.append({
+                                "url": url,
+                                "status": response.status,
+                                "body": body
+                            })
+                    except:
+                        pass
 
             page.on("response", handle_response)
 
@@ -131,9 +146,8 @@ def main():
                 time.sleep(8)
                 btn_count = page.evaluate("document.querySelectorAll('button').length")
                 if btn_count < 2:
-                    log("Page still not rendering, aborting")
-                    print("[]")
-                    sys.exit(0)
+                    log("Page still not rendering — exit for retry")
+                    sys.exit(1)
 
             # Step 2: Login
             log("Clicking Log in...")
@@ -293,20 +307,22 @@ def main():
             except Exception as e:
                 log(f"Form fill error: {e}")
 
-            # Step 5: Wait for results
+            # Step 5: Wait for results (longer wait for SQ SPA)
             if form_ok:
                 log("Waiting for results...")
-                time.sleep(15)
-                if not api_responses:
-                    time.sleep(10)
+                for wait_round in range(9):
+                    time.sleep(5)
+                    if api_responses:
+                        log(f"Got {len(api_responses)} API response(s) after {(wait_round+1)*5}s")
+                        break
+                    log(f"Waiting for API responses... ({(wait_round+1)*5}s)")
 
-            # Step 6: Parse
+            # Step 6: Parse API responses
             log(f"Captured {len(api_responses)} API responses")
             for resp in api_responses:
                 log(f"  {resp['url'][:120]}")
                 try:
                     data = json.loads(resp["body"])
-                    # Log structure for debugging
                     if isinstance(data, dict):
                         log(f"    Keys: {list(data.keys())[:10]}")
                 except:
@@ -314,12 +330,60 @@ def main():
 
             results = parse_all_responses(api_responses, origin, destination, date, cabin)
 
-            # Debug screenshot
-            try:
-                page.screenshot(path="/tmp/sq-camoufox-final.png")
-                log("Screenshot: /tmp/sq-camoufox-final.png")
-            except:
-                pass
+            # Step 7: DOM parsing fallback if no API results
+            if not results:
+                log("No API results, trying DOM parsing fallback...")
+                try:
+                    dom_results = page.evaluate("""(sp) => {
+                        const flights = [];
+                        const cards = document.querySelectorAll(
+                            '[class*="flight"], [class*="result"], [class*="itinerary"], ' +
+                            '[class*="offer"], [class*="bound"], [class*="segment"], ' +
+                            'tr[class*="row"], .card'
+                        );
+                        cards.forEach(card => {
+                            const text = card.textContent || '';
+                            const fnMatch = text.match(/\\b(SQ|NH|LH|TG|AC|UA|NZ|BR|OZ|TK|AI|MS|ET|SK|TP)\\s*(\\d{1,4})\\b/);
+                            const milesMatch = text.match(/([\\d,]+)\\s*(?:miles|Miles|KrisFlyer)/i);
+                            const timeMatches = text.match(/(\\d{1,2}[:.:]\\d{2})/g);
+                            const durMatch = text.match(/(\\d+)\\s*h\\s*(\\d+)?\\s*m/i);
+                            const stopsMatch = text.match(/(\\d+)\\s*stop/i);
+                            const nonstop = /nonstop|non-stop|direct/i.test(text);
+                            if (fnMatch || milesMatch) {
+                                const carrier = fnMatch ? fnMatch[1] : 'SQ';
+                                const names = {
+                                    'SQ': 'Singapore Airlines', 'NH': 'ANA', 'LH': 'Lufthansa',
+                                    'TG': 'Thai Airways', 'AC': 'Air Canada', 'UA': 'United',
+                                    'NZ': 'Air New Zealand', 'BR': 'EVA Air', 'OZ': 'Asiana',
+                                };
+                                flights.push({
+                                    source: 'singapore',
+                                    airline: names[carrier] || carrier,
+                                    flightNumber: fnMatch ? fnMatch[1] + fnMatch[2] : 'SQ???',
+                                    origin: sp.origin,
+                                    destination: sp.destination,
+                                    departureDate: sp.date,
+                                    departureTime: timeMatches ? timeMatches[0] : '',
+                                    arrivalTime: timeMatches && timeMatches[1] ? timeMatches[1] : '',
+                                    duration: durMatch ? durMatch[1] + 'h ' + (durMatch[2] || '0') + 'm' : '',
+                                    stops: nonstop ? 0 : stopsMatch ? parseInt(stopsMatch[1]) : 0,
+                                    cabin: sp.cabin,
+                                    pointsRequired: milesMatch ? parseInt(milesMatch[1].replace(/,/g, '')) : 0,
+                                    pointsProgram: 'KrisFlyer',
+                                    taxesAndFees: 0,
+                                    awardType: 'saver',
+                                    scrapedAt: new Date().toISOString(),
+                                    bookingUrl: 'https://www.singaporeair.com/en_UK/us/home#/book/redeemflights',
+                                });
+                            }
+                        });
+                        return flights;
+                    }""", {"origin": origin, "destination": destination, "date": date, "cabin": cabin})
+                    if dom_results:
+                        results = dom_results
+                        log(f"DOM parsing found {len(results)} results")
+                except Exception as e:
+                    log(f"DOM parsing error: {e}")
 
             log(f"Final: {len(results)} results")
 

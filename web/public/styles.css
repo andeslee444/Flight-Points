@@ -408,6 +408,49 @@ select { cursor: pointer; }
 .airport-dropdown .airport-option.active .name { color: rgba(26,23,20,0.7); }
 .airport-dropdown .no-results { padding: 10px 14px; color: var(--text-dim); font-size: 0.82rem; }
 
+/* Group match entries (region/state/country search) */
+.airport-dropdown .group-match {
+  background: rgba(201,169,110,0.06);
+  border-left: 2px solid var(--accent);
+  padding: 8px 14px;
+}
+.airport-dropdown .group-match:hover,
+.airport-dropdown .group-match.active {
+  background: var(--accent);
+  color: var(--bg);
+  border-left-color: var(--accent);
+}
+.group-match-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.group-match-top .code { font-weight: 600; font-size: 0.9rem; }
+.group-badge {
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: rgba(201,169,110,0.15);
+  color: var(--accent);
+}
+.group-match:hover .group-badge,
+.group-match.active .group-badge {
+  background: rgba(26,23,20,0.2);
+  color: var(--bg);
+}
+.group-match-codes {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+.group-match:hover .group-match-codes,
+.group-match.active .group-match-codes {
+  color: rgba(26,23,20,0.7);
+}
+
 /* ── Success / Error Messages ─────────────────────────────── */
 .success-msg {
   display: none;

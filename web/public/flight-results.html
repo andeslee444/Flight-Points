@@ -503,6 +503,7 @@
     const to = params.get('to') || 'NRT';
     const cabin = params.get('class') || 'any';
     let program = params.get('program') || 'amex-mr';
+    const searchDate = params.get('date') || '';
 
     document.getElementById('routeDisplay').textContent = `${from} \u2192 ${to}`;
 
@@ -513,8 +514,12 @@
     };
     const programLabel = programLabels[program] || program;
 
+    const dateChip = searchDate
+      ? `<span class="chip chip-accent">${new Date(searchDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>`
+      : '';
+
     document.getElementById('routeChips').innerHTML =
-      `<span class="chip chip-accent">${cabinLabel}</span><span class="chip">${programLabel}</span>`;
+      `<span class="chip chip-accent">${cabinLabel}</span><span class="chip">${programLabel}</span>${dateChip}`;
 
     const switcher = document.getElementById('programSwitcher');
     switcher.value = program;
@@ -528,34 +533,15 @@
     // ── Cache search ──────────────────────────────────────────
 
     async function search() {
-      try {
-        const resp = await fetch(`/api/flights/search?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&class=${encodeURIComponent(cabin)}&program=${encodeURIComponent(program)}`);
-        const data = await resp.json();
-
-        allResults = data.results || [];
-        const dot = document.getElementById('statusDot');
-        const text = document.getElementById('statusText');
-
-        if (allResults.length === 0) {
-          dot.className = 'status-dot loading';
-          text.textContent = 'No cached results \u2014 starting live search...';
-          document.getElementById('results').innerHTML = '';
-          startLiveScrape();
-          return;
-        }
-
-        dot.className = 'status-dot done';
-        const lastUp = data.lastUpdated ? new Date(data.lastUpdated).toLocaleTimeString() : 'now';
-        text.textContent = `${allResults.length} results \u00B7 cached ${lastUp}`;
-        document.getElementById('controls').style.display = 'flex';
-        renderResults();
-        showAlertSection();
-        fetchCashPrices(); // async — updates cards when Google Flights data arrives
-      } catch (err) {
-        document.getElementById('statusDot').className = 'status-dot error';
-        document.getElementById('statusText').textContent = err.message;
-        document.getElementById('results').innerHTML = '';
-      }
+      // Skip cache — go straight to live scraping for real-time results only
+      const dot = document.getElementById('statusDot');
+      const text = document.getElementById('statusText');
+      dot.className = 'status-dot loading';
+      text.textContent = 'Starting live search...';
+      allResults = [];
+      seenFlights = new Set();
+      document.getElementById('results').innerHTML = '';
+      startLiveScrape();
     }
 
     // ── Live scrape via SSE ───────────────────────────────────
@@ -568,6 +554,7 @@
       panel.style.display = 'block';
       document.getElementById('scraperStatusList').innerHTML = '';
       document.getElementById('results').innerHTML = '';
+      allResults = [];
       seenFlights = new Set();
 
       const startTime = Date.now();
@@ -576,7 +563,8 @@
         document.getElementById('liveTimer').textContent = elapsed + 's';
       }, 1000);
 
-      const qs = `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&class=${encodeURIComponent(cabin)}&program=${encodeURIComponent(program)}`;
+      let qs = `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&class=${encodeURIComponent(cabin)}&program=${encodeURIComponent(program)}`;
+      if (searchDate) qs += `&date=${encodeURIComponent(searchDate)}`;
       liveEventSource = new EventSource(`/api/flights/live-search?${qs}`);
 
       liveEventSource.addEventListener('scraper-started', (e) => {
@@ -589,6 +577,15 @@
         addOrUpdateScraperRow(d.scraper, null, 'running', d.message);
       });
 
+      let renderTimer = null;
+      function scheduleRender() {
+        if (renderTimer) return;
+        renderTimer = setTimeout(() => {
+          renderTimer = null;
+          renderResults();
+        }, 300);
+      }
+
       liveEventSource.addEventListener('result', (e) => {
         const d = JSON.parse(e.data);
         const f = d.flight;
@@ -598,7 +595,7 @@
           seenFlights.add(dedupKey);
           allResults.push(f);
           document.getElementById('controls').style.display = 'flex';
-          renderResults();
+          scheduleRender();
           document.getElementById('statusText').textContent =
             `${allResults.length} results so far \u00B7 searching...`;
         }
@@ -775,7 +772,7 @@
       program = switcher.value;
       // Update chip
       document.querySelector('.route-chips').innerHTML =
-        `<span class="chip chip-accent">${cabinLabel}</span><span class="chip">${programLabels[program] || program}</span>`;
+        `<span class="chip chip-accent">${cabinLabel}</span><span class="chip">${programLabels[program] || program}</span>${dateChip}`;
       cleanupLiveScrape();
       document.getElementById('liveScrapePanel').style.display = 'none';
       search();

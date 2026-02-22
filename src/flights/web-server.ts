@@ -379,6 +379,8 @@ app.get('/api/flights/live-search', (req, res) => {
   const cabinRaw = (req.query.class as string) || 'any';
   const programSlug = (req.query.program as string) || 'amex-mr';
 
+  const dateRaw = (req.query.date as string) || '';
+
   const origins = fromRaw.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
   const dests = toRaw.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
 
@@ -386,6 +388,9 @@ app.get('/api/flights/live-search', (req, res) => {
     res.status(400).json({ error: 'Missing from/to parameters' });
     return;
   }
+
+  // Validate date if provided (must be YYYY-MM-DD)
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(dateRaw) ? dateRaw : undefined;
 
   // Normalize cabin: 'any' defaults to 'business' for scraping
   const cabinMap: Record<string, string> = {
@@ -416,7 +421,12 @@ app.get('/api/flights/live-search', (req, res) => {
   });
 
   let clientConnected = true;
-  req.on('close', () => { clientConnected = false; });
+  const abortController = new AbortController();
+  req.on('close', () => {
+    clientConnected = false;
+    abortController.abort();
+    console.log(`[LiveSearch] Client disconnected — aborting scrape for ${origins.join(',')}→${dests.join(',')}`);
+  });
 
   function sendEvent(event: string, data: any) {
     if (!clientConnected) return;
@@ -432,22 +442,26 @@ app.get('/api/flights/live-search', (req, res) => {
   const partners = getTransferPartnersForProgram(programSlug);
   const programName = POINTS_PROGRAMS.find(p => p.slug === programSlug)?.name || programSlug;
   const liveResults: FlightResult[] = [];
-  runLiveScrape(origins, dests, scrapeCabin, programSlug, {
+  const sentCountByKey = new Map<string, number>();
+  runLiveScrape(origins, dests, scrapeCabin, programSlug, date, {
     onScraperStarted(key, name) {
+      sentCountByKey.set(key, 0);
       sendEvent('scraper-started', { scraper: key, name, status: 'running' });
     },
     onScraperProgress(key, message, date) {
       sendEvent('scraper-progress', { scraper: key, message, date });
     },
-    onResult(flight) {
+    onResult(flight, scraperKey) {
       liveResults.push(flight);
       if (flight.pointsRequired && flight.pointsRequired > 0 && !NON_BOOKABLE_SOURCES.has(flight.source)) {
         const enriched = enrichFlightResult(flight, programSlug, partners, programName);
         sendEvent('result', { flight: enriched });
+        sentCountByKey.set(scraperKey, (sentCountByKey.get(scraperKey) || 0) + 1);
       }
     },
-    onScraperDone(key, name, count) {
-      sendEvent('scraper-done', { scraper: key, name, resultCount: count, status: 'done' });
+    onScraperDone(key, name, _count) {
+      const sentCount = sentCountByKey.get(key) || 0;
+      sendEvent('scraper-done', { scraper: key, name, resultCount: sentCount, status: 'done' });
     },
     onScraperError(key, name, error) {
       sendEvent('scraper-error', { scraper: key, name, error, status: 'error' });
@@ -464,7 +478,11 @@ app.get('/api/flights/live-search', (req, res) => {
         console.error('[LiveSearch] Failed to write cache:', err.message);
       });
     },
-  }).catch(err => {
+  }, abortController.signal).catch(err => {
+    if (abortController.signal.aborted) {
+      clearInterval(keepAlive);
+      return; // Client gone, nothing to send
+    }
     sendEvent('search-error', { message: err.message || 'Live search failed' });
     clearInterval(keepAlive);
     res.end();

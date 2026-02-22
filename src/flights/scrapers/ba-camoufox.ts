@@ -14,6 +14,8 @@ const OPTS: CamoufoxRunnerOptions = {
   script: 'ba-camoufox.py',
   cachePrefix: 'ba-avios',
   timeoutMs: 150_000, // BA can be slow
+  maxRetries: 3,
+  retryBaseDelayMs: 2000,
 };
 
 export function searchBACamoufox(params: SearchParams): Promise<FlightResult[]> {

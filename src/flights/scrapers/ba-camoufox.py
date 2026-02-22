@@ -19,6 +19,7 @@ import random
 import re
 import os
 from datetime import datetime
+from urllib.parse import urlparse
 
 def log(msg):
     print(f"[BA-Camoufox {time.strftime('%H:%M:%S')}] {msg}", file=sys.stderr)
@@ -79,8 +80,27 @@ def main():
     intercepted_responses = []
 
     try:
-        with Camoufox(headless=True, humanize=True) as browser:
-            page = browser.new_page()
+        # Only use SOCKS5 proxies for Camoufox — HTTP proxies cause SSL errors (SEC_ERROR_UNKNOWN_ISSUER)
+        # and geoip=True crashes pages, so we NEVER pass it
+        proxy_url = os.environ.get("PROXY_URL", "")
+        proxy_cfg = None
+        if proxy_url and proxy_url.startswith("socks"):
+            parsed = urlparse(proxy_url)
+            server = f"{parsed.scheme}://{parsed.hostname}:{parsed.port}"
+            proxy_cfg = {"server": server}
+            if parsed.username:
+                proxy_cfg["username"] = parsed.username
+            if parsed.password:
+                proxy_cfg["password"] = parsed.password
+            log(f"Using SOCKS5 proxy: {parsed.hostname}:{parsed.port}")
+        elif proxy_url:
+            log(f"Skipping HTTP proxy for Camoufox (causes SSL errors)")
+        with Camoufox(headless=True, humanize=True, os='macos', proxy=proxy_cfg) as browser:
+            if proxy_cfg:
+                context = browser.new_context(ignore_https_errors=True)
+                page = context.new_page()
+            else:
+                page = browser.new_page()
 
             # Intercept network responses for API data
             def handle_response(response):
@@ -206,22 +226,50 @@ def main():
 
 
 def ba_login(page, username, password):
-    """Login to BA Executive Club. Returns True on success."""
+    """Login to BA Executive Club. Returns True on success.
+
+    BA now uses Auth0 (accounts.britishairways.com) for login.
+    Fields: #username (membership number), #password, submit via 'Continue' button.
+    """
     try:
-        # Check if we're on a page with login form
-        # BA's modern site uses ba-input-0 (username) and ba-input-1 (password)
-        username_field = page.query_selector('#ba-input-0, #membershipNumber, input[name="membershipNumber"]')
-        password_field = page.query_selector('#ba-input-1, #input_password, input[name="password"]')
+        # Try multiple login page strategies
+        login_urls = [
+            "https://www.britishairways.com/travel/loginr/public/en_us",
+            "https://accounts.britishairways.com/u/login",
+        ]
+
+        # First check if we're already on a login page
+        username_field = find_login_field(page)
+        password_field = find_password_field(page)
 
         if not username_field or not password_field:
-            # Try navigating to login page
-            page.goto("https://www.britishairways.com/travel/loginr/public/en_us", timeout=20000)
-            time.sleep(2)
-            username_field = page.query_selector('#ba-input-0, #membershipNumber')
-            password_field = page.query_selector('#ba-input-1, #input_password')
+            # Navigate to login page
+            for url in login_urls:
+                try:
+                    page.goto(url, timeout=20000, wait_until="domcontentloaded")
+                    time.sleep(random.uniform(3, 5))
+
+                    username_field = find_login_field(page)
+                    password_field = find_password_field(page)
+
+                    if username_field and password_field:
+                        log(f"Login form found at {page.url[:60]}")
+                        break
+                except Exception:
+                    continue
 
         if not username_field or not password_field:
             log("Could not find login form fields")
+            # Debug: show what inputs exist
+            try:
+                inputs = page.evaluate("""() => {
+                    return Array.from(document.querySelectorAll('input'))
+                        .filter(e => e.offsetParent !== null)
+                        .map(e => ({type: e.type, id: e.id || '', name: e.name || ''}));
+                }""")
+                log(f"Available inputs: {json.dumps(inputs[:8])}")
+            except:
+                pass
             return False
 
         # Type credentials with human-like delays
@@ -236,24 +284,39 @@ def ba_login(page, username, password):
         time.sleep(random.uniform(0.3, 0.7))
 
         # Find and click login/submit button
-        submit_btn = page.query_selector(
-            'button[type="submit"]:not(#onetrust-accept-btn-handler):not(#onetrust-pc-btn-handler):not(#onetrust-reject-all-handler), '
-            '#ecuserlogbutton, '
-            'button:has-text("Log in"), '
-            'button:has-text("Sign in")'
-        )
-        if submit_btn:
-            submit_btn.click()
-        else:
-            # Try pressing Enter
+        submit_selectors = [
+            'button[type="submit"]:not(#onetrust-accept-btn-handler)',
+            'button:has-text("Continue")',
+            'button:has-text("Log in")',
+            'button:has-text("Sign in")',
+            '#ecuserlogbutton',
+        ]
+        clicked = False
+        for sel in submit_selectors:
+            try:
+                btn = page.query_selector(sel)
+                if btn and btn.is_visible():
+                    btn.click()
+                    clicked = True
+                    log(f"Clicked submit: {sel}")
+                    break
+            except:
+                continue
+
+        if not clicked:
             password_field.press("Enter")
 
         # Wait for navigation/login to complete
-        time.sleep(random.uniform(3, 5))
+        time.sleep(random.uniform(6, 10))
 
         # Check if login succeeded
         page_text = page.evaluate("() => document.body?.innerText?.substring(0, 3000) || ''").lower()
         current_url = page.url.lower()
+
+        # Check for CAPTCHA
+        if "verify you are human" in page_text or "captcha" in page_text:
+            log("CAPTCHA detected — exit for retry with new fingerprint")
+            sys.exit(1)
 
         if "my account" in page_text or "welcome" in page_text or "member" in page_text:
             return True
@@ -261,13 +324,51 @@ def ba_login(page, username, password):
             log("Login credentials rejected")
             return False
         # If we're no longer on the login page, assume success
-        if "/login" not in current_url and "loginr" not in current_url:
+        if "/login" not in current_url and "loginr" not in current_url and "accounts." not in current_url:
             return True
 
         return False
     except Exception as e:
         log(f"Login error: {e}")
         return False
+
+
+def find_login_field(page):
+    """Find the username/membership number field across different BA login page versions."""
+    selectors = [
+        '#username',           # Auth0 (accounts.britishairways.com)
+        '#ba-input-0',         # Legacy BA login
+        '#membershipNumber',   # Legacy BA login
+        'input[name="membershipNumber"]',
+        'input[name="username"]',
+    ]
+    for sel in selectors:
+        try:
+            el = page.query_selector(sel)
+            if el and el.is_visible():
+                return el
+        except:
+            continue
+    return None
+
+
+def find_password_field(page):
+    """Find the password field across different BA login page versions."""
+    selectors = [
+        '#password',           # Auth0
+        '#ba-input-1',         # Legacy BA
+        '#input_password',     # Legacy BA
+        'input[name="password"]',
+        'input[type="password"]',
+    ]
+    for sel in selectors:
+        try:
+            el = page.query_selector(sel)
+            if el and el.is_visible():
+                return el
+        except:
+            continue
+    return None
 
 
 def try_classic_flow(page, origin, destination, date, cabin_code, cabin, passengers, intercepted_responses):
@@ -338,8 +439,8 @@ def try_classic_flow(page, origin, destination, date, cabin_code, cabin, passeng
 
         # Check for captcha
         if page.query_selector('#captcha_form'):
-            log("CAPTCHA detected — cannot proceed in headless mode")
-            return []
+            log("CAPTCHA detected — exit for retry with new fingerprint")
+            sys.exit(1)
 
         # Check for errors
         error_el = page.query_selector('#blsErrors li')
@@ -494,10 +595,10 @@ def try_modern_flow(page, origin, destination, date, cabin_code, passengers, int
         # Check for blocked/error states
         lower_content = page_content.lower()
         if "access denied" in lower_content or "blocked" in lower_content:
-            log("Blocked by bot detection")
-            return []
+            log("Blocked by bot detection — exit for retry")
+            sys.exit(1)
         if "no flights" in lower_content or "no availability" in lower_content:
-            log("No availability")
+            log("No availability (legitimate)")
             return []
 
         # Try parsing modern results

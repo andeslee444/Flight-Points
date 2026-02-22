@@ -15,6 +15,7 @@ import time
 import random
 import os
 import re
+from urllib.parse import urlparse
 
 def log(msg):
     print(f"[AA-Camoufox {time.strftime('%H:%M:%S')}] {msg}", file=sys.stderr)
@@ -81,64 +82,111 @@ def main():
     results = []
 
     try:
-        # Route through proxy if available (env var or WARP SOCKS5 fallback)
+        # Only use SOCKS5 proxies for Camoufox — HTTP proxies cause SSL errors (SEC_ERROR_UNKNOWN_ISSUER)
+        # and geoip=True crashes pages, so we NEVER pass it
         proxy_url = os.environ.get("PROXY_URL", "")
-        if not proxy_url and os.path.exists("/tmp/wireproxy.pid"):
-            proxy_url = "socks5://127.0.0.1:1080"
-        proxy_cfg = {"server": proxy_url} if proxy_url else None
-        if proxy_cfg:
-            log(f"Using proxy: {proxy_url}")
-        with Camoufox(headless=True, humanize=True, proxy=proxy_cfg) as browser:
-            page = browser.new_page()
+        proxy_cfg = None
+        if proxy_url and proxy_url.startswith("socks"):
+            parsed = urlparse(proxy_url)
+            server = f"{parsed.scheme}://{parsed.hostname}:{parsed.port}"
+            proxy_cfg = {"server": server}
+            if parsed.username:
+                proxy_cfg["username"] = parsed.username
+            if parsed.password:
+                proxy_cfg["password"] = parsed.password
+            log(f"Using SOCKS5 proxy: {parsed.hostname}:{parsed.port}")
+        elif proxy_url:
+            log(f"Skipping HTTP proxy for Camoufox (causes SSL errors)")
+        with Camoufox(headless=True, humanize=True, os='macos', proxy=proxy_cfg) as browser:
+            if proxy_cfg:
+                context = browser.new_context(ignore_https_errors=True)
+                page = context.new_page()
+            else:
+                page = browser.new_page()
 
-            # Warm cookies
+            # Warm cookies — aggressive approach to pass Akamai challenge
             log("Warming cookies on aa.com...")
             try:
-                page.goto("https://www.aa.com/", timeout=25000)
-                time.sleep(random.uniform(2, 4))
-                page.evaluate("window.scrollBy(0, Math.random() * 500)")
-                time.sleep(random.uniform(1.5, 3))
+                page.goto("https://www.aa.com/", timeout=30000)
+                time.sleep(random.uniform(3, 5))
+                # Human-like browsing: scroll, pause, scroll more
+                page.evaluate("window.scrollBy(0, Math.random() * 400)")
+                time.sleep(random.uniform(2, 3))
+                page.evaluate("window.scrollBy(0, Math.random() * 300)")
+                time.sleep(random.uniform(1, 2))
+                # Move mouse randomly (humanize helps but explicit movement too)
+                page.mouse.move(random.randint(200, 800), random.randint(200, 500))
+                time.sleep(random.uniform(1, 2))
+                page.evaluate("window.scrollBy(0, -Math.random() * 200)")
+                time.sleep(random.uniform(1, 2))
             except Exception as e:
                 log(f"Cookie warming issue (continuing): {e}")
 
-            cookies = page.context.cookies()
-            akamai = [c for c in cookies if c["name"].startswith(("ak_", "bm_", "_abck"))]
-            log(f"Cookies: {len(cookies)} total, {len(akamai)} Akamai")
+            # Wait for Akamai challenge to resolve — check cookie count
+            cookie_ok = False
+            for attempt in range(5):
+                cookies = page.context.cookies()
+                akamai = [c for c in cookies if c["name"].startswith(("ak_", "bm_", "_abck"))]
+                log(f"Cookies (check {attempt+1}): {len(cookies)} total, {len(akamai)} Akamai")
+                if len(akamai) >= 3 and len(cookies) >= 8:
+                    cookie_ok = True
+                    break
+                time.sleep(3)
+                page.evaluate("window.scrollBy(0, Math.random() * 100)")
+                page.mouse.move(random.randint(100, 600), random.randint(100, 400))
+                time.sleep(2)
 
-            # Navigate to search
+            if not cookie_ok:
+                log("FAIL FAST: Akamai challenge not passed — exit for retry")
+                sys.exit(1)  # Non-zero = retryable failure in camoufox-runner
+
+            # Navigate to search — use "load" to wait for full JS execution
             log(f"Navigating to search URL...")
             try:
-                page.goto(search_url, timeout=45000, wait_until="domcontentloaded")
+                page.goto(search_url, timeout=60000, wait_until="load")
             except Exception as e:
                 log(f"Navigation error (checking page): {e}")
 
-            # Wait for results
-            try:
-                page.wait_for_selector(".results-grid-container", timeout=30000)
-                log("Results container found!")
-            except Exception:
-                content = page.content().lower()
-                if "access denied" in content or "reference #" in content:
-                    log("BLOCKED by Akamai")
-                    print("[]")
-                    sys.exit(0)
-                if "no flights" in content or "no award" in content or "no results" in content:
-                    log("No flights available")
-                    print("[]")
-                    sys.exit(0)
-                # Try extended wait
-                log("No results container yet, waiting longer...")
-                time.sleep(8)
+            # Give Angular time to bootstrap
+            time.sleep(random.uniform(5, 8))
+
+            # Wait for results — AA's Angular app can take time to render
+            # Fail fast if Camoufox can't render the SPA (2390 bytes = SPA shell only)
+            found_results = False
+            small_page_count = 0
+            for wait_round in range(3):
                 try:
-                    page.wait_for_selector(".results-grid-container", timeout=15000)
+                    page.wait_for_selector(".results-grid-container, .aa-results, [class*='choose-flights']", timeout=10000)
+                    log("Results container found!")
+                    found_results = True
+                    break
                 except Exception:
-                    content2 = page.content().lower()
-                    if "access denied" in content2 or "reference #" in content2:
-                        log("BLOCKED by Akamai (after retry)")
-                    else:
-                        log("No results found after extended wait")
-                    print("[]")
-                    sys.exit(0)
+                    content = page.content()
+                    lower = content.lower()
+                    if "access denied" in lower or "reference #" in lower:
+                        log(f"BLOCKED by Akamai on search page — exit for retry")
+                        sys.exit(1)
+                    if "no flights" in lower or "no award" in lower or "no results" in lower:
+                        log("No flights available (legitimate)")
+                        print("[]")
+                        sys.exit(0)
+                    if "choose flights" in lower or "choose-flights" in page.url.lower():
+                        log("Page loaded (choose-flights), scanning for results...")
+                        found_results = True
+                        break
+                    page_len = len(content)
+                    log(f"No results container yet (round {wait_round+1}, page len={page_len})...")
+                    if page_len < 5000:
+                        small_page_count += 1
+                        log("Page too small — Angular SPA may not have bootstrapped")
+                        if small_page_count >= 2:
+                            log("SPA won't render in Camoufox — bail fast for fallback")
+                            sys.exit(1)
+                    time.sleep(3)
+
+            if not found_results:
+                log("No results found after all wait rounds — exit for retry")
+                sys.exit(1)
 
             time.sleep(random.uniform(2, 4))
 
@@ -217,7 +265,10 @@ def main():
                 return flights;
             }""", {"origin": origin, "destination": destination, "date": date, "cabin": cabin})
 
-            log(f"Found {len(results)} results")
+            # Filter to requested cabin only
+            before_filter = len(results)
+            results = [r for r in results if r.get("cabin") == cabin]
+            log(f"Found {before_filter} total, {len(results)} after cabin filter ({cabin})")
 
     except Exception as e:
         log(f"Error: {e}")

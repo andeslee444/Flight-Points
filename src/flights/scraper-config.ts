@@ -36,6 +36,20 @@ export const SCRAPER_TIMEOUTS: Record<string, number> = {
   'united-aeroplan': 150_000, // login + search
 };
 
+// ── Live search tuning ──────────────────────────────────────
+
+/** Per-individual-search timeout for live search (ms) — fail fast, move to next date */
+export const LIVE_SEARCH_PER_CALL_TIMEOUT_MS = 90_000;
+
+/** Number of sample dates to generate for live search (daemon uses 4) */
+export const LIVE_SEARCH_DATE_COUNT = 2;
+
+// ── curl_cffi scraper tuning (fast, no browser startup) ───────
+export const CURLFFI_SCRAPER_TIMEOUT_MS = 30_000;
+export const CURLFFI_MAX_RETRIES = 3;
+export const CURLFFI_RETRY_BASE_DELAY_MS = 2_000;
+export const CURLFFI_BATCH_DELAY_MS = 5_000;
+
 /** Circuit breaker: consecutive failures before disabling a scraper */
 export const CIRCUIT_BREAKER_THRESHOLD = 5;
 

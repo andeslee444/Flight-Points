@@ -22,6 +22,7 @@ import time
 import random
 import os
 import re
+from urllib.parse import urlparse
 
 def log(msg):
     print(f"[UA-Aeroplan {time.strftime('%H:%M:%S')}] {msg}", file=sys.stderr)
@@ -91,8 +92,27 @@ def main():
     api_responses = []
 
     try:
-        with Camoufox(headless=True, humanize=True) as browser:
-            page = browser.new_page()
+        # Only use SOCKS5 proxies for Camoufox — HTTP proxies cause SSL errors (SEC_ERROR_UNKNOWN_ISSUER)
+        # and geoip=True crashes pages, so we NEVER pass it
+        proxy_url = os.environ.get("PROXY_URL", "")
+        proxy_cfg = None
+        if proxy_url and proxy_url.startswith("socks"):
+            parsed = urlparse(proxy_url)
+            server = f"{parsed.scheme}://{parsed.hostname}:{parsed.port}"
+            proxy_cfg = {"server": server}
+            if parsed.username:
+                proxy_cfg["username"] = parsed.username
+            if parsed.password:
+                proxy_cfg["password"] = parsed.password
+            log(f"Using SOCKS5 proxy: {parsed.hostname}:{parsed.port}")
+        elif proxy_url:
+            log(f"Skipping HTTP proxy for Camoufox (causes SSL errors)")
+        with Camoufox(headless=True, humanize=True, os='macos', proxy=proxy_cfg) as browser:
+            if proxy_cfg:
+                context = browser.new_context(ignore_https_errors=True)
+                page = context.new_page()
+            else:
+                page = browser.new_page()
 
             # Intercept API responses for award data
             def handle_response(response):
@@ -110,9 +130,11 @@ def main():
             log("Warming cookies on aircanada.com...")
             try:
                 page.goto("https://www.aircanada.com/", timeout=30000)
-                random_delay(2, 4)
+                random_delay(3, 6)
                 page.evaluate("window.scrollBy(0, Math.random() * 300)")
-                random_delay(1, 2)
+                random_delay(2, 4)
+                page.evaluate("window.scrollBy(0, Math.random() * 200)")
+                random_delay(1, 3)
             except Exception as e:
                 log(f"Cookie warming issue (continuing): {e}")
 
@@ -230,6 +252,22 @@ def main():
 
                 log(f"Post-login URL: {current_url}")
 
+                # Verify login actually worked
+                logged_in = page.evaluate('''() =>
+                    document.body.innerText.includes('Welcome') ||
+                    document.body.innerText.includes('Sign Out') ||
+                    document.body.innerText.includes('Sign out') ||
+                    document.body.innerText.includes('My account') ||
+                    document.cookie.includes('aeroplan')
+                ''')
+                if not logged_in:
+                    log("Login session not valid — exit for retry")
+                    sys.exit(1)
+                log("Login verified successfully")
+
+            # Add warmup delay before search to establish session
+            random_delay(3, 6)
+
             # Step 3: Navigate to award search
             search_url = (
                 f"https://www.aircanada.com/aeroplan/redeem/availability/outbound"
@@ -273,14 +311,19 @@ def main():
                 # Check page state
                 page_content = page.content().lower()
                 if 'no flights' in page_content or 'no results' in page_content or 'no availability' in page_content:
-                    log("No flights available")
+                    log("No flights available (legitimate)")
                     print("[]")
                     sys.exit(0)
 
                 if 'login' in page.url or 'signin' in page.url:
-                    log("Redirected back to login - session issue")
-                    print("[]")
-                    sys.exit(0)
+                    log("Redirected back to login — session blocked, exit for retry")
+                    sys.exit(1)
+
+                # Page didn't render — likely blocked
+                page_len = len(page.content())
+                if page_len < 5000:
+                    log(f"Page too small ({page_len} bytes) — likely blocked, exit for retry")
+                    sys.exit(1)
 
             random_delay(2, 4)
 

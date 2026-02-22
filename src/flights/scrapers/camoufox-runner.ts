@@ -79,7 +79,8 @@ export function runCamoufoxSearch(
           }
 
           if (error) {
-            log(`Error (attempt ${attempt + 1}): ${error.message}`);
+            const isExitCode = error.message.includes('exit code');
+            log(`${isExitCode ? 'Retryable failure' : 'Error'} (attempt ${attempt + 1}/${maxRetries}): ${error.message}`);
             resolve(null); // null = retryable failure
             return;
           }

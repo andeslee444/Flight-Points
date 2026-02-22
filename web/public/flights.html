@@ -142,14 +142,22 @@
       border: 1px solid var(--border);
       border-radius: 16px;
       padding: 24px 28px;
-      max-width: 760px;
+      max-width: 800px;
       margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      align-items: center;
+    }
+    .search-fields {
       display: flex;
       gap: 12px;
       align-items: flex-end;
       flex-wrap: wrap;
+      justify-content: center;
+      width: 100%;
     }
-    .search-field { flex: 1; min-width: 130px; display: flex; flex-direction: column; gap: 5px; }
+    .search-field { flex: 1; min-width: 120px; display: flex; flex-direction: column; gap: 5px; }
     .search-field label {
       font-size: 0.68rem;
       font-weight: 500;
@@ -181,13 +189,12 @@
       color: var(--bg);
       border: none;
       border-radius: 100px;
-      padding: 10px 32px;
+      padding: 10px 40px;
       font-family: var(--font-sans);
       font-size: 0.9rem;
       font-weight: 500;
       cursor: pointer;
       transition: background 0.2s, transform 0.1s;
-      flex-shrink: 0;
     }
     .search-btn:hover { background: var(--text); transform: scale(1.02); }
 
@@ -254,6 +261,49 @@
     .airport-dropdown .airport-option:hover .name,
     .airport-dropdown .airport-option.active .name { color: rgba(26,23,20,0.7); }
     .airport-dropdown .no-results { padding: 10px 14px; color: var(--text-dim); font-size: 0.82rem; }
+
+    /* Group match entries */
+    .airport-dropdown .group-match {
+      background: rgba(201,169,110,0.06);
+      border-left: 2px solid var(--accent);
+      padding: 8px 14px;
+    }
+    .airport-dropdown .group-match:hover,
+    .airport-dropdown .group-match.active {
+      background: var(--accent);
+      color: var(--bg);
+      border-left-color: var(--accent);
+    }
+    .group-match-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .group-match-top .code { font-weight: 600; font-size: 0.9rem; }
+    .group-badge {
+      font-size: 0.6rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 1px 6px;
+      border-radius: 3px;
+      background: rgba(201,169,110,0.15);
+      color: var(--accent);
+    }
+    .group-match:hover .group-badge,
+    .group-match.active .group-badge {
+      background: rgba(26,23,20,0.2);
+      color: var(--bg);
+    }
+    .group-match-codes {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+    .group-match:hover .group-match-codes,
+    .group-match.active .group-match-codes {
+      color: rgba(26,23,20,0.7);
+    }
 
     /* ── Section chrome ───────────────────────────────── */
     .divider { border: none; height: 1px; background: var(--border); margin: 0; }
@@ -462,7 +512,8 @@
       .nav { padding: 0 20px; }
       .container { padding: 0 20px; }
       .hero { padding: 64px 0 40px; }
-      .search-card { flex-direction: column; align-items: stretch; padding: 20px; }
+      .search-card { padding: 20px; }
+      .search-fields { flex-direction: column; }
       .search-btn { width: 100%; }
       .steps-row { grid-template-columns: 1fr; gap: 32px; }
       .programs-grid { grid-template-columns: 1fr; }
@@ -495,38 +546,44 @@
       <p class="hero-script">points travel, simplified</p>
 
       <form id="searchForm" class="search-card" autocomplete="off">
-        <div class="search-field">
-          <label>From</label>
-          <div class="airport-wrap">
-            <input type="text" id="s-from" placeholder="JFK" autocomplete="off" required>
-            <div class="airport-dropdown" id="s-from-dd"></div>
+        <div class="search-fields">
+          <div class="search-field">
+            <label>From</label>
+            <div class="airport-wrap">
+              <input type="text" id="s-from" placeholder="JFK" autocomplete="off" required>
+              <div class="airport-dropdown" id="s-from-dd"></div>
+            </div>
           </div>
-        </div>
-        <div class="search-field">
-          <label>To</label>
-          <div class="airport-wrap">
-            <input type="text" id="s-to" placeholder="NRT" autocomplete="off" required>
-            <div class="airport-dropdown" id="s-to-dd"></div>
+          <div class="search-field">
+            <label>To</label>
+            <div class="airport-wrap">
+              <input type="text" id="s-to" placeholder="NRT" autocomplete="off" required>
+              <div class="airport-dropdown" id="s-to-dd"></div>
+            </div>
           </div>
-        </div>
-        <div class="search-field" style="min-width:110px;">
-          <label>Class</label>
-          <select id="s-class">
-            <option value="business">Business</option>
-            <option value="first">First</option>
-            <option value="any">Any</option>
-          </select>
-        </div>
-        <div class="search-field" style="min-width:150px;">
-          <label>Program</label>
-          <select id="s-program">
-            <option value="amex-mr">Amex MR</option>
-            <option value="chase-ur">Chase UR</option>
-            <option value="capital-one">Capital One</option>
-            <option value="citi-typ">Citi TYP</option>
-            <option value="bilt">Bilt</option>
-            <option value="wells-fargo">Wells Fargo</option>
-          </select>
+          <div class="search-field">
+            <label>Date</label>
+            <input type="date" id="s-date" style="text-transform:none;">
+          </div>
+          <div class="search-field" style="min-width:110px;">
+            <label>Class</label>
+            <select id="s-class">
+              <option value="business">Business</option>
+              <option value="first">First</option>
+              <option value="any">Any</option>
+            </select>
+          </div>
+          <div class="search-field" style="min-width:140px;">
+            <label>Program</label>
+            <select id="s-program">
+              <option value="amex-mr">Amex MR</option>
+              <option value="chase-ur">Chase UR</option>
+              <option value="capital-one">Capital One</option>
+              <option value="citi-typ">Citi TYP</option>
+              <option value="bilt">Bilt</option>
+              <option value="wells-fargo">Wells Fargo</option>
+            </select>
+          </div>
         </div>
         <button type="submit" class="search-btn">Search</button>
       </form>
@@ -616,33 +673,39 @@
   <script>
     // === Airport Database ===
     const FALLBACK_AIRPORTS = [
-      { code:'JFK', name:'John F. Kennedy International', city:'New York', metro:'New York', country:'US' },
-      { code:'EWR', name:'Newark Liberty International', city:'Newark', metro:'New York', country:'US' },
-      { code:'LGA', name:'LaGuardia', city:'New York', metro:'New York', country:'US' },
-      { code:'LAX', name:'Los Angeles International', city:'Los Angeles', metro:'Los Angeles', country:'US' },
-      { code:'SFO', name:'San Francisco International', city:'San Francisco', metro:'San Francisco', country:'US' },
-      { code:'ORD', name:"O'Hare International", city:'Chicago', metro:'Chicago', country:'US' },
-      { code:'MIA', name:'Miami International', city:'Miami', metro:'Miami', country:'US' },
-      { code:'DFW', name:'Dallas/Fort Worth International', city:'Dallas', metro:'Dallas', country:'US' },
-      { code:'ATL', name:'Hartsfield-Jackson Atlanta', city:'Atlanta', metro:'Atlanta', country:'US' },
-      { code:'BOS', name:'Logan International', city:'Boston', metro:'Boston', country:'US' },
-      { code:'SEA', name:'Seattle-Tacoma International', city:'Seattle', metro:'Seattle', country:'US' },
-      { code:'DEN', name:'Denver International', city:'Denver', metro:'Denver', country:'US' },
-      { code:'NRT', name:'Narita International', city:'Tokyo', metro:'Tokyo', country:'JP' },
-      { code:'HND', name:'Haneda', city:'Tokyo', metro:'Tokyo', country:'JP' },
-      { code:'LHR', name:'Heathrow', city:'London', metro:'London', country:'GB' },
-      { code:'CDG', name:'Charles de Gaulle', city:'Paris', metro:'Paris', country:'FR' },
-      { code:'SIN', name:'Changi', city:'Singapore', metro:'Singapore', country:'SG' },
-      { code:'HKG', name:'Hong Kong International', city:'Hong Kong', metro:'Hong Kong', country:'HK' },
-      { code:'DXB', name:'Dubai International', city:'Dubai', metro:'Dubai', country:'AE' },
-      { code:'SYD', name:'Kingsford Smith', city:'Sydney', metro:'Sydney', country:'AU' },
+      { code:'JFK', name:'John F. Kennedy International', city:'New York', metro:'New York', country:'US', state:'New York', keywords:['NYC','Kennedy'] },
+      { code:'EWR', name:'Newark Liberty International', city:'Newark', metro:'New York', country:'US', state:'New Jersey', keywords:['NYC','New York'] },
+      { code:'LGA', name:'LaGuardia', city:'New York', metro:'New York', country:'US', state:'New York', keywords:['NYC','New York'] },
+      { code:'LAX', name:'Los Angeles International', city:'Los Angeles', metro:'Los Angeles', country:'US', state:'California', keywords:['LA'] },
+      { code:'SFO', name:'San Francisco International', city:'San Francisco', metro:'San Francisco', country:'US', state:'California', keywords:['Bay Area','SF'] },
+      { code:'ORD', name:"O'Hare International", city:'Chicago', metro:'Chicago', country:'US', state:'Illinois' },
+      { code:'MIA', name:'Miami International', city:'Miami', metro:'Miami', country:'US', state:'Florida' },
+      { code:'DFW', name:'Dallas/Fort Worth International', city:'Dallas', metro:'Dallas', country:'US', state:'Texas' },
+      { code:'ATL', name:'Hartsfield-Jackson Atlanta', city:'Atlanta', metro:'Atlanta', country:'US', state:'Georgia' },
+      { code:'BOS', name:'Logan International', city:'Boston', metro:'Boston', country:'US', state:'Massachusetts' },
+      { code:'SEA', name:'Seattle-Tacoma International', city:'Seattle', metro:'Seattle', country:'US', state:'Washington' },
+      { code:'DEN', name:'Denver International', city:'Denver', metro:'Denver', country:'US', state:'Colorado' },
+      { code:'NRT', name:'Narita International', city:'Tokyo', metro:'Tokyo', country:'JP', keywords:['Tokyo'] },
+      { code:'HND', name:'Haneda', city:'Tokyo', metro:'Tokyo', country:'JP', keywords:['Tokyo'] },
+      { code:'LHR', name:'Heathrow', city:'London', metro:'London', country:'GB', keywords:['London'] },
+      { code:'CDG', name:'Charles de Gaulle', city:'Paris', metro:'Paris', country:'FR', keywords:['Paris'] },
+      { code:'SIN', name:'Changi', city:'Singapore', metro:'Singapore', country:'SG', keywords:['Singapore'] },
+      { code:'HKG', name:'Hong Kong International', city:'Hong Kong', metro:'Hong Kong', country:'HK', keywords:['Hong Kong'] },
+      { code:'DXB', name:'Dubai International', city:'Dubai', metro:'Dubai', country:'AE', keywords:['Dubai'] },
+      { code:'SYD', name:'Kingsford Smith', city:'Sydney', metro:'Sydney', country:'AU', keywords:['Sydney'] },
     ];
 
     let AIRPORTS = FALLBACK_AIRPORTS;
+    let COUNTRY_NAMES = {};
+    let AIRPORT_GROUPS = [];
 
     fetch('/airports.json')
       .then(r => r.json())
-      .then(data => { if (data.airports && data.airports.length > 0) AIRPORTS = data.airports; })
+      .then(data => {
+        if (data.airports && data.airports.length > 0) AIRPORTS = data.airports;
+        if (data.countryNames) COUNTRY_NAMES = data.countryNames;
+        if (data.groups) AIRPORT_GROUPS = data.groups;
+      })
       .catch(() => {});
 
     // === Airport Autocomplete ===
@@ -652,6 +715,7 @@
       let activeIdx = -1;
       let debounceTimer = null;
       const MAX_RESULTS = 50;
+      const MAX_GROUPS = 3;
 
       function scoreMatch(airport, q) {
         const code = airport.code.toLowerCase();
@@ -661,12 +725,59 @@
         if (code === q) return 100;
         if (code.startsWith(q)) return 90;
         if (city.startsWith(q)) return 80;
+        // Keyword exact match
+        if (airport.keywords) {
+          for (const kw of airport.keywords) {
+            if (kw.toLowerCase() === q) return 75;
+          }
+        }
         if (metro.startsWith(q)) return 70;
+        // Keyword starts-with
+        if (airport.keywords) {
+          for (const kw of airport.keywords) {
+            if (kw.toLowerCase().startsWith(q)) return 65;
+          }
+        }
         if (code.includes(q)) return 60;
         if (city.includes(q)) return 50;
         if (name.startsWith(q)) return 40;
         if (metro.includes(q) || name.includes(q)) return 30;
+        // State match
+        if (airport.state) {
+          const st = airport.state.toLowerCase();
+          if (st.startsWith(q)) return 25;
+          if (st.includes(q)) return 20;
+        }
+        // Country name match
+        const countryName = COUNTRY_NAMES[airport.country];
+        if (countryName) {
+          const cn = countryName.toLowerCase();
+          if (cn.startsWith(q)) return 22;
+          if (cn.includes(q)) return 18;
+        }
+        // Keyword contains
+        if (airport.keywords) {
+          for (const kw of airport.keywords) {
+            if (kw.toLowerCase().includes(q)) return 15;
+          }
+        }
         return 0;
+      }
+
+      function matchGroups(q) {
+        const matched = [];
+        for (const g of AIRPORT_GROUPS) {
+          const label = g.label.toLowerCase();
+          if (label === q || label.startsWith(q)) { matched.push({ group: g, score: label === q ? 100 : 90 }); continue; }
+          let kwMatch = false;
+          for (const kw of g.keywords) {
+            if (kw === q) { matched.push({ group: g, score: 95 }); kwMatch = true; break; }
+            if (kw.startsWith(q)) { matched.push({ group: g, score: 85 }); kwMatch = true; break; }
+          }
+          if (!kwMatch && label.includes(q)) { matched.push({ group: g, score: 50 }); }
+        }
+        matched.sort((a, b) => b.score - a.score);
+        return matched.slice(0, MAX_GROUPS);
       }
 
       function render(query) {
@@ -675,6 +786,10 @@
         if (!query) { dd.classList.remove('open'); return; }
         const q = query.toLowerCase();
 
+        // Find matching groups
+        const groupMatches = matchGroups(q);
+
+        // Score individual airports
         const scored = [];
         for (const a of AIRPORTS) {
           const s = scoreMatch(a, q);
@@ -685,31 +800,57 @@
         const totalMatches = scored.length;
         const capped = scored.slice(0, MAX_RESULTS);
 
-        if (!capped.length) {
+        if (!capped.length && !groupMatches.length) {
           dd.innerHTML = '<div class="no-results">No airports found</div>';
           dd.classList.add('open');
           return;
         }
 
-        const groups = {};
-        const groupOrder = [];
+        let idx = 0;
+
+        // Render group matches at top
+        if (groupMatches.length > 0) {
+          for (const { group: g } of groupMatches) {
+            const gDiv = document.createElement('div');
+            gDiv.className = 'airport-option group-match';
+            gDiv.dataset.idx = idx;
+            gDiv.dataset.codes = g.codes.join(', ');
+            const displayCodes = g.codes.slice(0, 5).join(', ');
+            const moreCount = g.codes.length > 5 ? ` +${g.codes.length - 5}` : '';
+            gDiv.innerHTML = `<div class="group-match-top"><span class="code">${g.label}</span><span class="group-badge">${g.type}</span></div><div class="group-match-codes">${displayCodes}${moreCount}</div>`;
+            gDiv.addEventListener('mousedown', e => {
+              e.preventDefault();
+              input.value = g.codes.join(', ');
+              dd.classList.remove('open');
+            });
+            dd.appendChild(gDiv);
+            idx++;
+          }
+
+        }
+
+        // Render individual airports grouped by metro
+        const metroGroups = {};
+        const metroOrder = [];
         capped.forEach(({ airport: a }) => {
-          if (!groups[a.metro]) { groups[a.metro] = []; groupOrder.push(a.metro); }
-          groups[a.metro].push(a);
+          if (!metroGroups[a.metro]) { metroGroups[a.metro] = []; metroOrder.push(a.metro); }
+          metroGroups[a.metro].push(a);
         });
 
-        let idx = 0;
-        for (const metro of groupOrder) {
-          const airports = groups[metro];
-          const h = document.createElement('div');
-          h.className = 'group-header';
-          h.textContent = metro;
-          h.addEventListener('mousedown', e => {
-            e.preventDefault();
-            input.value = airports.map(a => a.code).join(', ');
-            dd.classList.remove('open');
-          });
-          dd.appendChild(h);
+        for (const metro of metroOrder) {
+          const airports = metroGroups[metro];
+          // Only show metro header when multiple airports share the same metro
+          if (airports.length > 1) {
+            const h = document.createElement('div');
+            h.className = 'group-header';
+            h.textContent = metro;
+            h.addEventListener('mousedown', e => {
+              e.preventDefault();
+              input.value = airports.map(a => a.code).join(', ');
+              dd.classList.remove('open');
+            });
+            dd.appendChild(h);
+          }
           airports.forEach(a => {
             const opt = document.createElement('div');
             opt.className = 'airport-option';
@@ -733,13 +874,13 @@
 
       function select(code) { input.value = code; dd.classList.remove('open'); }
 
-      function setActive(idx) {
+      function setActive(newIdx) {
         const opts = dd.querySelectorAll('.airport-option');
         opts.forEach(o => o.classList.remove('active'));
-        if (idx >= 0 && idx < opts.length) {
-          opts[idx].classList.add('active');
-          opts[idx].scrollIntoView({ block: 'nearest' });
-          activeIdx = idx;
+        if (newIdx >= 0 && newIdx < opts.length) {
+          opts[newIdx].classList.add('active');
+          opts[newIdx].scrollIntoView({ block: 'nearest' });
+          activeIdx = newIdx;
         }
       }
 
@@ -754,13 +895,30 @@
         if (!dd.classList.contains('open') || !opts.length) return;
         if (e.key === 'ArrowDown') { e.preventDefault(); setActive(Math.min(activeIdx + 1, opts.length - 1)); }
         else if (e.key === 'ArrowUp') { e.preventDefault(); setActive(Math.max(activeIdx - 1, 0)); }
-        else if (e.key === 'Enter' && activeIdx >= 0) { e.preventDefault(); select(opts[activeIdx].dataset.code); }
+        else if (e.key === 'Enter' && activeIdx >= 0) {
+          e.preventDefault();
+          const opt = opts[activeIdx];
+          if (opt.classList.contains('group-match')) {
+            input.value = opt.dataset.codes;
+            dd.classList.remove('open');
+          } else {
+            select(opt.dataset.code);
+          }
+        }
         else if (e.key === 'Escape') { dd.classList.remove('open'); }
       });
     }
 
     initAirportAutocomplete('s-from', 's-from-dd');
     initAirportAutocomplete('s-to', 's-to-dd');
+
+    // Set date input min to tomorrow
+    (() => {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      document.getElementById('s-date').min = tomorrow.toISOString().slice(0, 10);
+    })();
+
     // === Search Form ===
     document.getElementById('searchForm').addEventListener('submit', (e) => {
       e.preventDefault();
@@ -768,8 +926,11 @@
       const to = document.getElementById('s-to').value.toUpperCase();
       const cabin = document.getElementById('s-class').value;
       const program = document.getElementById('s-program').value;
+      const date = document.getElementById('s-date').value;
       if (!from || !to) { alert('Please enter origin and destination.'); return; }
-      window.location.href = `/flight-results?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&class=${encodeURIComponent(cabin)}&program=${encodeURIComponent(program)}`;
+      let url = `/flight-results?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&class=${encodeURIComponent(cabin)}&program=${encodeURIComponent(program)}`;
+      if (date) url += `&date=${encodeURIComponent(date)}`;
+      window.location.href = url;
     });
 
     // === Live Stats ===

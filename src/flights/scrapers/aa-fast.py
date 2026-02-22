@@ -216,13 +216,20 @@ def main():
         from camoufox import Camoufox
 
     try:
-        # Route through proxy if available (env var or WARP SOCKS5 fallback)
+        # Only use SOCKS5 proxies for Camoufox — HTTP proxies cause SSL errors
         proxy_url = os.environ.get("PROXY_URL", "")
-        if not proxy_url and os.path.exists("/tmp/wireproxy.pid"):
-            proxy_url = "socks5://127.0.0.1:1080"
-        proxy_cfg = {"server": proxy_url} if proxy_url else None
-        if proxy_cfg:
-            log(f"Using proxy: {proxy_url}")
+        proxy_cfg = None
+        if proxy_url and proxy_url.startswith("socks"):
+            from urllib.parse import urlparse
+            parsed = urlparse(proxy_url)
+            proxy_cfg = {"server": f"{parsed.scheme}://{parsed.hostname}:{parsed.port}"}
+            if parsed.username:
+                proxy_cfg["username"] = parsed.username
+            if parsed.password:
+                proxy_cfg["password"] = parsed.password
+            log(f"Using SOCKS5 proxy: {parsed.hostname}:{parsed.port}")
+        elif proxy_url:
+            log(f"Skipping HTTP proxy for Camoufox (causes SSL errors)")
         with Camoufox(headless=True, humanize=True, proxy=proxy_cfg) as browser:
             page = browser.new_page()
 

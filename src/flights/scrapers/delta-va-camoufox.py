@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 """
-Delta Award Search via Virgin Atlantic (Camoufox).
+Delta Award Search via Virgin Atlantic (Playwright).
 
 Virgin Atlantic's website shows SkyTeam partner award availability including
 Delta-operated flights, bookable with Flying Club points. This bypasses
 Delta.com's Shape Security bot protection entirely.
+
+Uses Playwright (not Camoufox) because VA's React SPA requires Chromium to render.
+Logs into Flying Club first (required for award search), then calls the GraphQL API.
 
 Usage:
   python3 delta-va-camoufox.py '{"origin":"JFK","destination":"LAX","date":"2026-03-15","cabin":"business"}'
@@ -19,6 +22,8 @@ import time
 import random
 import os
 import re
+from datetime import datetime
+from urllib.parse import urlparse
 
 def log(msg):
     print(f"[Delta-VA {time.strftime('%H:%M:%S')}] {msg}", file=sys.stderr)
@@ -43,11 +48,40 @@ AIRLINE_NAMES = {
     'ME': 'MEA', 'AR': 'Aerolineas Argentinas',
 }
 
+GRAPHQL_QUERY = """query SearchOffers($request: FlightOfferRequestInput!) {
+  searchOffers(request: $request) {
+    result {
+      slice {
+        flightsAndFares {
+          flight {
+            segments {
+              airline { code name }
+              flightNumber
+              operatingAirline { code name }
+              origin { code }
+              destination { code }
+              duration departure arrival
+            }
+            duration origin { code } destination { code } departure arrival
+          }
+          fares {
+            availability
+            price { awardPoints tax amountIncludingTax currency }
+            fareSegments { cabinName bookingClass isSaverFare }
+            available fareFamilyType availableSeatCount isSaverFare
+          }
+        }
+      }
+    }
+  }
+}"""
+
 def build_search_url(origin, destination, date, cabin):
     cabin_map = {'economy': 'economy', 'business': 'upper', 'first': 'first'}
     va_cabin = cabin_map.get(cabin, 'upper')
+    # VA moved search from /flights/search/results to /flight-search/book-a-flight (2026-02-20)
     return (
-        f"https://www.virginatlantic.com/flights/search/results"
+        f"https://www.virginatlantic.com/flight-search/book-a-flight"
         f"?origin={origin}&destination={destination}&departure={date}"
         f"&ADT=1&cabin={va_cabin}&tripType=ONE_WAY&awardSearch=true"
     )
@@ -56,7 +90,6 @@ def parse_duration(dur):
     """Parse ISO 8601 duration like PT13H25M."""
     if not dur:
         return ''
-    import re
     m = re.match(r'PT(\d+)H(?:(\d+)M)?', dur)
     if m:
         return f"{m.group(1)}h {m.group(2) or '0'}m"
@@ -67,10 +100,9 @@ def format_time(iso_str):
     if not iso_str:
         return ''
     try:
-        from datetime import datetime
         dt = datetime.fromisoformat(iso_str.replace('Z', '+00:00'))
         return dt.strftime('%I:%M %p').lstrip('0')
-    except:
+    except Exception:
         return iso_str
 
 def parse_graphql_response(data, params):
@@ -98,8 +130,7 @@ def parse_graphql_response(data, params):
         airline_name = AIRLINE_NAMES.get(airline_code, airline_code)
 
         flight_numbers = '/'.join(
-            f"{s.get('airline', {}).get('code', '')}{s.get('flightNumber', '')}"
-            for s in segments
+            s.get('flightNumber', '') for s in segments
         )
 
         operating_airlines = [
@@ -108,7 +139,8 @@ def parse_graphql_response(data, params):
         ]
 
         for fare in ff.get('fares', []):
-            if not fare.get('available') or fare.get('availability') == 'SOLD_OUT':
+            # VA returns available=null for available fares (not false)
+            if fare.get('availability') == 'SOLD_OUT':
                 continue
 
             cabin_name = (fare.get('fareSegments', [{}])[0].get('cabinName', '') or '').lower()
@@ -130,6 +162,11 @@ def parse_graphql_response(data, params):
             )
 
             price = fare.get('price', {})
+            points = price.get('awardPoints', 0)
+            # awardPoints can be a string like "130000"
+            if isinstance(points, str):
+                points = int(points) if points.isdigit() else 0
+
             results.append({
                 'source': 'virgin-atlantic',
                 'airline': airline_name,
@@ -142,12 +179,12 @@ def parse_graphql_response(data, params):
                 'duration': parse_duration(flight.get('duration', '')),
                 'stops': len(segments) - 1,
                 'cabin': cabin,
-                'pointsRequired': price.get('awardPoints', 0),
+                'pointsRequired': points,
                 'pointsProgram': 'Virgin Atlantic Flying Club',
                 'taxesAndFees': price.get('tax', 0),
                 'awardType': 'saver' if is_saver else 'partner',
                 'availableSeats': fare.get('availableSeatCount', 0),
-                'scrapedAt': __import__('datetime').datetime.utcnow().isoformat() + 'Z',
+                'scrapedAt': datetime.utcnow().isoformat() + 'Z',
                 'bookingUrl': build_search_url(params['origin'], params['destination'], params['date'], params.get('cabin', 'business')),
                 'metadata': {
                     'operatingAirlines': operating_airlines,
@@ -158,6 +195,129 @@ def parse_graphql_response(data, params):
             })
 
     return results
+
+
+def va_login(page, email, password):
+    """Login to VA Flying Club via identity.virginatlantic.com. Returns True on success."""
+    try:
+        # Strategy: Extract the login URL directly from the DOM and navigate to it.
+        # This bypasses the blanket overlay that intercepts pointer events on the dropdown menu.
+        log("Extracting login URL from page...")
+        login_url = page.evaluate("""() => {
+            const links = document.querySelectorAll('a[href*="identity.virginatlantic.com"]');
+            for (const a of links) {
+                if (a.href && a.href.includes('oauth2')) return a.href;
+            }
+            // Fallback: look in the dropdown menu items
+            const menuLinks = document.querySelectorAll('a[role="link"]');
+            for (const a of menuLinks) {
+                if (a.href && a.href.includes('identity')) return a.href;
+            }
+            return null;
+        }""")
+
+        if login_url:
+            log(f"Found login URL, navigating directly...")
+            try:
+                page.goto(login_url, timeout=30000, wait_until="domcontentloaded")
+            except Exception as e:
+                log(f"Login URL navigation: {e}")
+        else:
+            # Fallback: click through the menu (may hit blanket overlay)
+            log("No login URL found, trying click approach...")
+            page.locator('button:has-text("Log in")').first.click(timeout=10000)
+            time.sleep(2)
+
+            # Remove any blanket overlay that intercepts pointer events
+            page.evaluate("""() => {
+                document.querySelectorAll('[class*="blanket"]').forEach(b => b.remove());
+            }""")
+            time.sleep(0.5)
+
+            try:
+                page.locator('a:has-text("Log in")').first.click(timeout=30000)
+            except Exception as e:
+                log(f"Login link click/navigation: {e}")
+
+        time.sleep(5)
+
+        if "identity" not in page.url.lower():
+            time.sleep(5)
+            if "identity" not in page.url.lower():
+                log(f"Not on login page: {page.url[:100]}")
+                return False
+
+        log(f"On login page: {page.url[:80]}")
+
+        try:
+            page.wait_for_selector("#signInName", state="visible", timeout=15000)
+        except:
+            log("signInName input not visible")
+            return False
+
+        log("Filling credentials...")
+        email_input = page.locator("#signInName")
+        email_input.click()
+        time.sleep(0.3)
+        email_input.fill("")
+        time.sleep(0.2)
+        email_input.type(email, delay=random.randint(30, 80))
+        time.sleep(random.uniform(0.5, 1.0))
+
+        pwd_input = page.locator("#password")
+        pwd_input.click()
+        time.sleep(0.3)
+        pwd_input.fill("")
+        time.sleep(0.2)
+        pwd_input.type(password, delay=random.randint(30, 80))
+        time.sleep(random.uniform(0.5, 1.0))
+
+        typed_email = page.evaluate('() => document.getElementById("signInName")?.value || ""')
+        typed_pwd_len = page.evaluate('() => (document.getElementById("password")?.value || "").length')
+        log(f"Filled email: {typed_email}, pwd len: {typed_pwd_len}")
+
+        submitted = False
+        try:
+            submit_btn = page.locator('#next')
+            if submit_btn.count() > 0 and submit_btn.is_visible(timeout=2000):
+                submit_btn.click()
+                submitted = True
+                log("Clicked #next submit button")
+        except:
+            pass
+
+        if not submitted:
+            try:
+                page.locator('button:has-text("Continue")').first.click(timeout=3000)
+                submitted = True
+                log("Clicked Continue button")
+            except:
+                pass
+
+        if not submitted:
+            pwd_input.press("Enter")
+            log("Pressed Enter on password field")
+
+        time.sleep(12)
+
+        current_url = page.url.lower()
+        body = page.evaluate("() => document.body ? document.body.innerText.substring(0, 500) : ''")
+
+        if "Hello" in body or "hello" in body.lower()[:50]:
+            log(f"Login successful! URL: {page.url[:100]}")
+            return True
+        elif "virginatlantic.com" in current_url and "identity" not in current_url:
+            log(f"Redirected to VA site (login likely succeeded): {page.url[:100]}")
+            return True
+        else:
+            if "can't seem to find" in body.lower() or "incorrect" in body.lower():
+                log(f"Login credentials rejected: {body[:150]}")
+            else:
+                log(f"Login may have failed. URL: {page.url[:80]}, Body: {body[:150]}")
+            return False
+    except Exception as e:
+        log(f"Login error: {e}")
+        return False
 
 
 def main():
@@ -177,195 +337,210 @@ def main():
     date = params["date"]
     cabin = params.get("cabin", "business")
 
-    log(f"Search: {origin}→{destination} {date} {cabin}")
+    va_email = os.environ.get("VA_EMAIL", "")
+    va_password = os.environ.get("VA_PASSWORD", "")
+    if not va_email or not va_password:
+        log("Missing VA_EMAIL or VA_PASSWORD — required for VA award search")
+        print("[]")
+        sys.exit(0)
 
-    try:
-        from camoufox.sync_api import Camoufox
-    except ImportError:
-        from camoufox import Camoufox
+    log(f"Search: {origin}->{destination} {date} {cabin}")
+
+    from playwright.sync_api import sync_playwright
 
     results = []
 
     try:
-        with Camoufox(headless=True, humanize=True) as browser:
-            page = browser.new_page()
+        # Skip HTTP proxy — Bright Data blocks POST (needed for login + GraphQL)
+        proxy_url = os.environ.get("PROXY_URL", "")
+        proxy_cfg = None
+        if proxy_url and proxy_url.startswith("socks"):
+            parsed = urlparse(proxy_url)
+            server = f"{parsed.scheme}://{parsed.hostname}:{parsed.port}"
+            proxy_cfg = {"server": server}
+            if parsed.username:
+                proxy_cfg["username"] = parsed.username
+            if parsed.password:
+                proxy_cfg["password"] = parsed.password
+            log(f"Using SOCKS5 proxy: {parsed.hostname}:{parsed.port}")
+        elif proxy_url:
+            log(f"Skipping HTTP proxy (POST requests blocked without KYC)")
 
-            # Warm cookies on VA homepage
-            log("Warming cookies on virginatlantic.com...")
-            try:
-                page.goto("https://www.virginatlantic.com/", timeout=30000)
-                time.sleep(random.uniform(2, 4))
-                page.evaluate("window.scrollBy(0, Math.random() * 300)")
-                time.sleep(random.uniform(1, 2))
-            except Exception as e:
-                log(f"Cookie warming issue (continuing): {e}")
+        with sync_playwright() as p:
+            browser = p.chromium.launch(
+                headless=True,
+                args=[
+                    "--disable-blink-features=AutomationControlled",
+                    "--disable-http2",
+                    "--no-first-run",
+                ],
+                **({"proxy": proxy_cfg} if proxy_cfg else {}),
+            )
+            context = browser.new_context(
+                viewport={"width": 1440, "height": 900},
+                user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
+                timezone_id="America/New_York",
+                locale="en-US",
+                ignore_https_errors=True,
+            )
+            page = context.new_page()
 
-            # Accept cookie consent if present
+            # Step 1: Load homepage and accept cookies
+            log("Loading virginatlantic.com...")
+            page.goto("https://www.virginatlantic.com/", timeout=60000, wait_until="domcontentloaded")
+            time.sleep(random.uniform(4, 6))
+
             try:
-                consent = page.query_selector('#onetrust-accept-btn-handler')
-                if consent:
-                    consent.click()
+                btn = page.query_selector("#onetrust-accept-btn-handler")
+                if btn and btn.is_visible():
+                    btn.click()
                     time.sleep(1)
-                    log("Accepted cookie consent")
-            except:
+            except Exception:
                 pass
 
-            cookies = page.context.cookies()
-            akamai = [c for c in cookies if c["name"].startswith(("ak_", "bm_", "_abck"))]
-            log(f"Cookies: {len(cookies)} total, {len(akamai)} Akamai")
+            cookies = context.cookies()
+            log(f"Cookies: {len(cookies)}")
 
-            # Set up response interception for GraphQL
+            if len(cookies) < 10:
+                log("FAIL FAST: Cookie warming failed — exit for retry")
+                sys.exit(1)
+
+            # Step 2: Login to Flying Club
+            if not va_login(page, va_email, va_password):
+                log("Login failed — exit for retry")
+                sys.exit(1)
+
+            # Step 3: Navigate to search page and intercept GraphQL response passively.
+            # Direct fetch() calls get 429→444 escalation from Akamai.
+            search_url = build_search_url(origin, destination, date, cabin)
+
             graphql_responses = []
+            all_api_urls = []
 
             def handle_response(response):
                 url = response.url
-                if 'graphql' in url and 'search' in url.lower():
+                ct = response.headers.get("content-type", "")
+                status = response.status
+                if status != 200 and status != 204 and status != 304:
+                    all_api_urls.append(f"[{status}] {url[:150]}")
+                if "json" in ct or "graphql" in url.lower() or "api" in url.lower():
+                    all_api_urls.append(f"[{status}] {url[:150]}")
+                if "json" in ct and status == 200:
                     try:
-                        data = response.json()
-                        if data and 'data' in data and 'searchOffers' in (data.get('data') or {}):
-                            graphql_responses.append(data)
-                            log(f"Captured GraphQL SearchOffers response")
-                    except:
+                        body = response.text()
+                        if len(body) > 500 and any(kw in body.lower() for kw in
+                            ['flightsandfares', 'searchoffers', 'awardpoints', 'flight', 'award']):
+                            log(f"Intercepted GraphQL: {url[:120]} ({len(body)} bytes)")
+                            graphql_responses.append(body)
+                    except Exception:
                         pass
 
             page.on("response", handle_response)
 
-            # Navigate to search results
-            search_url = build_search_url(origin, destination, date, cabin)
-            log(f"Navigating to search: {search_url}")
+            # Wait after login to appear human
+            wait_secs = random.randint(8, 12)
+            log(f"Waiting {wait_secs}s after login before searching...")
+            time.sleep(wait_secs)
 
+            # Navigate to search URL — the SPA will make its own GraphQL call
+            log(f"Navigating to search: {search_url[:120]}")
             try:
                 page.goto(search_url, timeout=60000, wait_until="domcontentloaded")
             except Exception as e:
-                log(f"Navigation error (checking page): {e}")
+                log(f"Search page navigation: {str(e)[:100]}")
 
-            # Wait for results to load
-            time.sleep(random.uniform(3, 5))
+            time.sleep(3)
+            page_url = page.url
+            page_text = page.evaluate("() => document.body ? document.body.innerText.substring(0, 500) : ''")
+            log(f"Search page: {page_url[:120]}")
 
-            # Check for cookie consent again on results page
-            try:
-                consent = page.query_selector('#onetrust-accept-btn-handler')
-                if consent and consent.is_visible():
-                    consent.click()
-                    time.sleep(1)
-            except:
-                pass
+            if "access denied" in page_text.lower() or "not have permission" in page_text.lower():
+                log("Access Denied on search page — trying direct GraphQL as fallback")
+                time.sleep(random.randint(5, 10))
 
-            # Wait for flight results or GraphQL response
-            log("Waiting for results...")
-            for i in range(12):  # Up to ~36 seconds
-                if graphql_responses:
-                    break
-                time.sleep(3)
-                # Check for error states
-                content = page.content().lower()
-                if 'no availability' in content or 'no flights' in content:
-                    log("No availability found")
-                    break
-                if 'captcha' in content or 'access denied' in content:
-                    log("Blocked by bot detection")
-                    break
-
-            # Parse intercepted responses
-            if graphql_responses:
-                log(f"Parsing {len(graphql_responses)} GraphQL responses")
-                for resp in graphql_responses:
-                    results.extend(parse_graphql_response(resp, params))
-            else:
-                # Try direct GraphQL call using page's session
-                log("No intercepted responses, trying direct GraphQL call...")
-                try:
-                    graphql_payload = {
-                        "operationName": "SearchOffers",
-                        "variables": {
-                            "request": {
-                                "pos": None,
-                                "parties": None,
-                                "flightSearchRequest": {
-                                    "searchOriginDestinations": [{
-                                        "origin": origin,
-                                        "destination": destination,
-                                        "departureDate": date,
-                                    }],
-                                    "bundleOffer": False,
-                                    "awardSearch": True,
-                                    "calendarSearch": False,
-                                    "flexiDateSearch": False,
-                                    "nonStopOnly": False,
-                                    "currentTripIndexId": "0",
-                                    "checkInBaggageAllowance": False,
-                                    "carryOnBaggageAllowance": False,
-                                    "refundableOnly": False,
-                                },
-                                "customerDetails": [{"custId": "ADT_0", "ptc": "ADT"}],
-                            }
-                        },
-                        "query": """query SearchOffers($request: FlightOfferRequestInput!) {
-  searchOffers(request: $request) {
-    result {
-      slice {
-        flightsAndFares {
-          flight {
-            segments {
-              airline { code name }
-              flightNumber
-              operatingAirline { code name }
-              origin { code }
-              destination { code }
-              duration
-              departure
-              arrival
-              stopCount
-              bookingClass
-            }
-            duration
-            origin { code }
-            destination { code }
-            departure
-            arrival
-          }
-          fares {
-            availability
-            id
-            price { awardPoints tax amountIncludingTax currency }
-            fareSegments { cabinName bookingClass isSaverFare }
-            available
-            fareFamilyType
-            availableSeatCount
-            isSaverFare
-          }
-        }
-      }
-    }
-  }
-}"""
+                cabin_map_gql = {'economy': 'ECONOMY', 'business': 'UPPER', 'first': 'FIRST'}
+                gql_cabin = cabin_map_gql.get(cabin, 'UPPER')
+                gql_payload = json.dumps({
+                    "query": GRAPHQL_QUERY,
+                    "variables": {
+                        "request": {
+                            "tripType": "ONE_WAY",
+                            "passengers": [{"type": "ADT", "count": 1}],
+                            "slices": [{"origin": origin, "destination": destination, "departureDate": date}],
+                            "cabin": gql_cabin,
+                            "awardSearch": True,
+                        }
                     }
+                })
 
-                    api_result = page.evaluate("""(payload) => {
-                        return fetch('/flights/search/api/graphql', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(payload),
-                        }).then(r => r.json());
-                    }""", graphql_payload)
+                # Navigate back to homepage first (fresh page context for Akamai)
+                page.goto("https://www.virginatlantic.com/", timeout=30000, wait_until="domcontentloaded")
+                time.sleep(random.randint(3, 6))
 
-                    if api_result and 'data' in api_result:
-                        results = parse_graphql_response(api_result, params)
-                        log(f"Direct GraphQL returned {len(results)} results")
-                except Exception as e:
-                    log(f"Direct GraphQL call failed: {e}")
+                result = page.evaluate("""({payload, referer}) => {
+                    return fetch('/flights/search/api/graphql', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'Accept-Encoding': 'identity',
+                            'Referer': referer,
+                        },
+                        body: payload,
+                        credentials: 'include',
+                    }).then(r => {
+                        if (!r.ok) return { error: r.status + ' ' + r.statusText, status: r.status };
+                        return r.text().then(t => ({ ok: true, body: t, status: r.status }));
+                    }).catch(e => ({ error: e.message }));
+                }""", {"payload": gql_payload, "referer": search_url})
 
-            # If still no results, check page state
-            if not results:
-                content = page.content()
-                if 'no availability' in content.lower():
-                    log("Confirmed: no award availability")
-                elif len(content) < 5000:
-                    log(f"Page seems empty/blocked (length={len(content)})")
+                if result and result.get('ok'):
+                    body_text = result.get('body', '')
+                    log(f"GraphQL response: {len(body_text)} bytes")
+                    try:
+                        data = json.loads(body_text)
+                        if "errors" not in data:
+                            results = parse_graphql_response(data, params)
+                            if results:
+                                log(f"Found {len(results)} results from direct GraphQL")
+                        else:
+                            log(f"GraphQL error: {data.get('errors', [{}])[0].get('message', 'unknown')}")
+                    except json.JSONDecodeError:
+                        log(f"Not JSON: {body_text[:200]}")
                 else:
-                    log(f"Could not parse results (page length={len(content)})")
+                    err = result.get('error', 'unknown') if result else 'null'
+                    log(f"GraphQL call failed: {err}")
+            else:
+                log(f"Page loaded OK, waiting for SPA GraphQL call...")
 
-            log(f"Found {len(results)} results total")
+            # Wait for the SPA to make GraphQL calls
+            if not results:
+                for wait_round in range(12):
+                    time.sleep(5)
+                    if graphql_responses:
+                        log(f"Got {len(graphql_responses)} intercepted response(s) after {(wait_round+1)*5}s")
+                        break
+                    if wait_round == 5:
+                        log("Still waiting for GraphQL response...")
+
+                for resp_text in reversed(graphql_responses):
+                    try:
+                        data = json.loads(resp_text)
+                    except json.JSONDecodeError:
+                        continue
+                    if "errors" not in data:
+                        results = parse_graphql_response(data, params)
+                        if results:
+                            log(f"Found {len(results)} results from intercepted response")
+                            break
+
+                if not results:
+                    log(f"No results after waiting. API requests seen: {len(all_api_urls)}")
+                    for u in all_api_urls[-15:]:
+                        log(f"  {u}")
+
+            context.close()
+            browser.close()
 
     except Exception as e:
         log(f"Error: {e}")

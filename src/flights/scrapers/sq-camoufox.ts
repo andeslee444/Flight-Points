@@ -18,7 +18,9 @@ const OPTS: CamoufoxRunnerOptions = {
   label: 'SQ-Camoufox-TS',
   script: 'sq-camoufox.py',
   cachePrefix: 'singapore',
-  timeoutMs: 120_000,
+  timeoutMs: 90_000,
+  maxRetries: 1,  // Single attempt — Camoufox can't render SQ SPA; fail fast
+  retryBaseDelayMs: 2000,
 };
 
 function log(msg: string) {

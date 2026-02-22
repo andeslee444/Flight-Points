@@ -12,7 +12,9 @@ const OPTS: CamoufoxRunnerOptions = {
   label: 'ANA-Camoufox-TS',
   script: 'ana-camoufox.py',
   cachePrefix: 'ana',
-  timeoutMs: 180_000, // ANA is slower than AA
+  timeoutMs: 90_000,
+  maxRetries: 1,  // Single attempt — "heavy traffic" anti-bot blocks; fail fast
+  retryBaseDelayMs: 2000,
 };
 
 export function searchANACamoufox(params: SearchParams): Promise<FlightResult[]> {

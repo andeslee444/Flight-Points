@@ -19,6 +19,7 @@ import time
 import random
 import os
 import re
+from urllib.parse import urlparse
 
 def log(msg):
     print(f"[ANA-Camoufox {time.strftime('%H:%M:%S')}] {msg}", file=sys.stderr)
@@ -73,15 +74,27 @@ def main():
     results = []
 
     try:
-        # Route through proxy if available (env var or WARP SOCKS5 fallback)
+        # Only use SOCKS5 proxies for Camoufox — HTTP proxies cause SSL errors (SEC_ERROR_UNKNOWN_ISSUER)
+        # and geoip=True crashes pages, so we NEVER pass it
         proxy_url = os.environ.get("PROXY_URL", "")
-        if not proxy_url and os.path.exists("/tmp/wireproxy.pid"):
-            proxy_url = "socks5://127.0.0.1:1080"
-        proxy_cfg = {"server": proxy_url} if proxy_url else None
-        if proxy_cfg:
-            log(f"Using proxy: {proxy_url}")
-        with Camoufox(headless=True, humanize=True, proxy=proxy_cfg) as browser:
-            page = browser.new_page()
+        proxy_cfg = None
+        if proxy_url and proxy_url.startswith("socks"):
+            parsed = urlparse(proxy_url)
+            server = f"{parsed.scheme}://{parsed.hostname}:{parsed.port}"
+            proxy_cfg = {"server": server}
+            if parsed.username:
+                proxy_cfg["username"] = parsed.username
+            if parsed.password:
+                proxy_cfg["password"] = parsed.password
+            log(f"Using SOCKS5 proxy: {parsed.hostname}:{parsed.port}")
+        elif proxy_url:
+            log(f"Skipping HTTP proxy for Camoufox (causes SSL errors)")
+        with Camoufox(headless=True, humanize=True, os='macos', proxy=proxy_cfg) as browser:
+            if proxy_cfg:
+                context = browser.new_context(ignore_https_errors=True)
+                page = context.new_page()
+            else:
+                page = browser.new_page()
 
             # ── Step 1: Warm up on main ANA site ──
             log("Warming up on ana.co.jp...")
@@ -93,7 +106,22 @@ def main():
             except Exception as e:
                 log(f"Warmup issue (continuing): {e}")
 
-            # ── Step 2: Try award booking search ──
+            # ── Step 2: Dismiss cookie consent overlay if present ──
+            try:
+                for sel in ['#ensCloseBanner', 'button:has-text("Accept")',
+                            'button:has-text("Accept All")', '#ensRejectAll',
+                            'button[id*="cookie"]', '.ens-close',
+                            '#onetrust-accept-btn-handler']:
+                    btn = page.query_selector(sel)
+                    if btn and btn.is_visible():
+                        btn.click()
+                        log("Dismissed cookie consent")
+                        time.sleep(1)
+                        break
+            except:
+                pass
+
+            # ── Step 3: Try award booking search ──
             results = try_booking_search(page, username, password, origin, destination, date, cabin)
 
             if not results:
@@ -127,6 +155,36 @@ def try_booking_search(page, username, password, origin, destination, date, cabi
 
         current_url = page.url
 
+        # Dismiss cookie consent overlay (blocks ALL pointer events if present)
+        try:
+            cookie_modal = page.query_selector("#ensModalWrapper")
+            if cookie_modal and cookie_modal.is_visible():
+                log("Cookie consent dialog found — dismissing...")
+                for sel in ['#ensCloseBanner', '#ensRejectAll', 'button:has-text("Accept")',
+                            'button:has-text("Accept All")', 'button:has-text("Reject")',
+                            '.ens-close', '#ensModalWrapper button']:
+                    try:
+                        btn = page.query_selector(sel)
+                        if btn and btn.is_visible():
+                            btn.click(force=True)
+                            log(f"Dismissed cookie consent via {sel}")
+                            random_delay(1, 2)
+                            break
+                    except:
+                        continue
+                else:
+                    # If no button worked, remove the overlay via JS
+                    page.evaluate("""() => {
+                        const modal = document.getElementById('ensModalWrapper');
+                        if (modal) modal.remove();
+                        const overlay = document.querySelector('.ens-overlay, [class*="ensOverlay"]');
+                        if (overlay) overlay.remove();
+                    }""")
+                    log("Removed cookie consent via JS")
+                    random_delay(0.5, 1)
+        except Exception as e:
+            log(f"Cookie consent handling: {e}")
+
         # ── Login if needed ──
         acct_field = page.query_selector("#accountNumber")
         if acct_field:
@@ -144,26 +202,63 @@ def try_booking_search(page, username, password, origin, destination, date, cabi
                 pw_field.type(password, delay=random.randint(50, 100))
                 random_delay(0.5, 1)
 
-            page.click("#amcMemberLogin")
-
+            # Click login — use no_wait_after since ANA's page can be slow to navigate
             try:
-                page.wait_for_load_state("domcontentloaded", timeout=20000)
+                page.click("#amcMemberLogin", no_wait_after=True, timeout=10000)
+            except Exception as click_err:
+                log(f"Login click issue (trying Enter): {click_err}")
+                page.keyboard.press("Enter")
+
+            # Wait for navigation to complete
+            try:
+                page.wait_for_load_state("domcontentloaded", timeout=40000)
             except:
                 pass
-            random_delay(3, 5)
+            random_delay(10, 15)
 
             current_url = page.url
             body_text = page.evaluate("() => document.body?.innerText?.substring(0, 2000) || ''")
 
             if "heavy traffic" in body_text.lower() or "混み合っている" in body_text:
-                log("Blocked: heavy traffic / anti-bot response")
-                return results
+                log("Blocked: heavy traffic / anti-bot — exit for retry")
+                sys.exit(1)
 
             if "error" in body_text.lower() and "password" in body_text.lower():
                 log("Login failed: invalid credentials")
-                return results
+                print("[]")
+                sys.exit(0)  # Don't retry bad credentials
 
             log(f"Post-login URL: {current_url}")
+
+            # Dismiss cookie consent overlay again after login (may re-appear)
+            try:
+                cookie_modal = page.query_selector("#ensModalWrapper")
+                if cookie_modal and cookie_modal.is_visible():
+                    log("Cookie consent dialog found after login — dismissing...")
+                    for sel in ['#ensCloseBanner', '#ensRejectAll', 'button:has-text("Accept")',
+                                'button:has-text("Accept All")', 'button:has-text("Reject")',
+                                '.ens-close', '#ensModalWrapper button']:
+                        try:
+                            btn = page.query_selector(sel)
+                            if btn and btn.is_visible():
+                                btn.click(force=True)
+                                log(f"Dismissed post-login cookie consent via {sel}")
+                                random_delay(1, 2)
+                                break
+                        except:
+                            continue
+                    else:
+                        # If no button worked, remove the overlay via JS
+                        page.evaluate("""() => {
+                            const modal = document.getElementById('ensModalWrapper');
+                            if (modal) modal.remove();
+                            const overlay = document.querySelector('.ens-overlay, [class*="ensOverlay"]');
+                            if (overlay) overlay.remove();
+                        }""")
+                        log("Removed post-login cookie consent via JS")
+                        random_delay(0.5, 1)
+            except Exception as e:
+                log(f"Post-login cookie consent handling: {e}")
 
         # ── Check if we're on the search form ──
         body_text = page.evaluate("() => document.body?.innerText?.substring(0, 3000) || ''")
@@ -335,8 +430,8 @@ def try_calendar_search(page, username, password, origin, destination, date, cab
 
             body_text = page.evaluate("() => document.body?.innerText?.substring(0, 2000) || ''")
             if "heavy traffic" in body_text.lower() or "混み合っている" in body_text:
-                log("Calendar blocked: heavy traffic")
-                return results
+                log("Calendar blocked: heavy traffic — exit for retry")
+                sys.exit(1)
 
         # Check if we're on the calendar form
         body_text = page.evaluate("() => document.body?.innerText?.substring(0, 3000) || ''")
@@ -543,6 +638,11 @@ def parse_booking_results(page, origin, destination, date, cabin):
 
     except Exception as e:
         log(f"Parse error: {e}")
+
+    # Backfill pointsRequired with chart miles when the page didn't show them
+    for r in results:
+        if not r.get("pointsRequired"):
+            r["pointsRequired"] = get_chart_miles(origin, destination, date, cabin)
 
     return results
 
