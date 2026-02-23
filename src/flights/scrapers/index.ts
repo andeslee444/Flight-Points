@@ -285,7 +285,7 @@ export const SCRAPER_REGISTRY: Record<string, ScraperEntry> = {
     name: 'Air France/KLM Flying Blue',
     covers: ['skyteam'],
     search: searchFlyingBlueWithFallback,
-    status: 'blocked',  // 2026-02-22: CDP loads 622KB page, cookie banner dismissible, but "Book with Miles" requires Flying Blue login — no credentials
+    status: 'active',  // 2026-02-22: Real Chrome CDP WORKING — 22 business results JFK→CDG, ~50s, form-fill + calendar + DOM parse. Requires one-time login (OTP)
     coversPrograms: ['air-france-klm', 'delta'],
   },
   'alaska': {
@@ -428,7 +428,7 @@ export function getScrapersForProgram(programSlug: string): string[] {
 const LIVE_SEARCH_ALLIANCE_SCRAPERS: Record<string, string> = {
   'star': 'united',      // Blocked — Gigya reCAPTCHA required for Aeroplan login (errorCode 401020)
   'oneworld': 'aa',      // Real Chrome CDP (~20s) — 124 results, full Akamai bypass
-  'skyteam': 'delta',    // Delta/VA curl_cffi (~12s) — covers Delta, AF, KLM, Korean, VA
+  'skyteam': 'delta',    // Delta/VA curl_cffi (~12s) — covers Delta, AF, KLM, Korean, VA; flying-blue also active (~50s, more results)
 };
 
 /**
