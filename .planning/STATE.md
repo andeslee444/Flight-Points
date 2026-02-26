@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-02-26)
 Phase: 1 of 6 (Database Foundation)
 Plan: 4 of 4 in current phase
 Status: Phase 1 complete
-Last activity: 2026-02-26 — Plan 01-04 complete (availabilityType type field)
+Last activity: 2026-02-26 — Plan 01-03 complete (alert-checker skeleton + daemon wiring)
 
 Progress: [██████████] 100% (Phase 1 complete, 4/4 plans executed)
 
@@ -64,6 +64,8 @@ Recent decisions affecting current work:
 - [01-04]: AvailabilityType exported as type alias so ScraperRegistryEntry can reuse without duplicating union literal
 - [Phase 01-database-foundation]: drizzle-kit CLI SSL workaround: custom migrate.ts with pg Pool rejectUnauthorized:false bypasses drizzle-kit SSL bug against AWS RDS
 - [Phase 01-database-foundation]: db-drizzle.ts is Vercel-only (getDrizzle() for Next.js reads); daemon continues using raw pg pool in db.ts — strict boundary prevents dep bleeding
+- [01-03]: Used pointsRequired (not milesRequired) in flightMatchesSubscription — plan spec had wrong field name; auto-fixed
+- [01-03]: checkAlerts placed after writeToWebCache, before existing WhatsApp send block — both consume allResults from same cycle; scanTime reused as cycleId
 
 ### Pending Todos
 
@@ -80,5 +82,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 01-04-PLAN.md — Phase 1 fully executed (4/4 plans)
+Stopped at: Completed 01-03-PLAN.md — alert-checker skeleton + daemon wiring (plans 01, 03, 04 complete; 02 pending)
 Resume file: None
