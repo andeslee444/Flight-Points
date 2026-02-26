@@ -28,6 +28,7 @@ import {
 import { execFileSync } from 'child_process';
 import { recordSuccess, recordFailure, isScraperAvailable, writeHealthFile } from './scraper-health.js';
 import { checkAlerts } from './alert-checker.js';
+import { writeHistoryBatch } from './history-writer.js';
 import {
   initPool, closePool,
   loadSignups as dbLoadSignups,
@@ -262,6 +263,9 @@ async function runScan() {
   log('=== Starting scan ===');
   log(`Memory: ${getRssMB().toFixed(0)}MB RSS`);
 
+  // Generate cycleId once — shared across all writeHistoryBatch calls in this cycle
+  const cycleId = new Date().toISOString();
+
   // Load signups from DB (map DB rows to Signup interface)
   const signupRows = await dbLoadSignups();
   const signups: Signup[] = signupRows.map(row => ({
@@ -414,6 +418,17 @@ async function runScan() {
     }
 
     log(`${entry.params.origin}→${entry.params.destination} ${entry.params.date}: ${cabinResults.length} results`);
+  }
+
+  // Write confirmed results to price_history for time-series charts
+  // Best-effort: history write failure must never crash the daemon
+  try {
+    const historyCount = await writeHistoryBatch(allResults, 'daemon', 'confirmed', cycleId);
+    if (allResults.length > 0 && historyCount === 0) {
+      log('[daemon] Warning: confirmed scraper returned 0 valid history rows (possible session expiry)');
+    }
+  } catch (err: any) {
+    log(`[daemon] History write failed (non-fatal): ${err.message}`);
   }
 
   // Save scan to DB
