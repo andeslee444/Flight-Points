@@ -1,3 +1,16 @@
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: unknown
+last_updated: "2026-02-26T08:37:29.479Z"
+progress:
+  total_phases: 1
+  completed_phases: 0
+  total_plans: 4
+  completed_plans: 2
+---
+
 # Project State
 
 ## Project Reference
@@ -34,6 +47,7 @@ Progress: [██████████] 100% (Phase 1 complete, 4/4 plans exe
 - Trend: Steady
 
 *Updated after each plan completion*
+| Phase 01-database-foundation P01 | 3 | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -48,6 +62,8 @@ Recent decisions affecting current work:
 - [Roadmap]: Alert emails must include scrape timestamp and "verify before transferring" copy — non-reversible points transfers are the primary trust risk
 - [01-04]: availabilityType is optional on FlightResult — confirmed status is registry-level (Plan 02), not per-result
 - [01-04]: AvailabilityType exported as type alias so ScraperRegistryEntry can reuse without duplicating union literal
+- [Phase 01-database-foundation]: drizzle-kit CLI SSL workaround: custom migrate.ts with pg Pool rejectUnauthorized:false bypasses drizzle-kit SSL bug against AWS RDS
+- [Phase 01-database-foundation]: db-drizzle.ts is Vercel-only (getDrizzle() for Next.js reads); daemon continues using raw pg pool in db.ts — strict boundary prevents dep bleeding
 
 ### Pending Todos
 
