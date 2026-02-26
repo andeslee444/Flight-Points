@@ -27,6 +27,7 @@ import { searchFlyingBlue } from './flying-blue.js';
 import { searchVirginAtlantic } from './virgin-atlantic.js';
 import { searchVAFast } from './va-fast.js';
 import { searchJetBlue } from './jetblue.js';
+import { searchJetBlueApi } from './jetblue-api.js';
 import { searchSingaporeAirlines } from './singapore.js';
 import { searchSQCamoufox } from './sq-camoufox.js';
 import { searchDeltaViaCamoufox } from './delta-va-camoufox.js';
@@ -51,9 +52,11 @@ import { searchANAPatchright } from './ana-patchright.js';
 import { searchFlyingBlueCurlFfi } from './flying-blue-curlffi.js';
 import { searchUnitedViaAeroplanCurlFfi } from './united-aeroplan-curlffi.js';
 import { searchAACdp } from './aa-cdp.js';
+import { searchUnitedCdp } from './united-cdp.js';
 import { searchUnitedViaAeroplanCdp } from './united-aeroplan-cdp.js';
 import { searchFlyingBlueCdp } from './flying-blue-cdp.js';
-import type { FlightResult, SearchParams } from '../types.js';
+import { searchTurkishApi } from './turkish-api.js';
+import type { FlightResult, SearchParams, AvailabilityType } from '../types.js';
 import { getTransferPartnersForProgram, type TransferPartner } from '../transfer-partners.js';
 
 // ============================================================
@@ -116,7 +119,14 @@ async function searchDeltaWithFallback(params: SearchParams): Promise<FlightResu
 }
 
 async function searchUnitedWithFallback(params: SearchParams): Promise<FlightResult[]> {
-  // Real Chrome CDP FIRST — bypasses Akamai (no automation flags)
+  // United.com direct via Chrome CDP — bypasses Akamai, no Aeroplan login needed
+  try {
+    const results = await searchUnitedCdp(params);
+    if (results.length > 0) return results;
+  } catch (err: any) {
+    console.warn(`[Registry] United CDP failed: ${err.message}`);
+  }
+  // Aeroplan CDP fallback (blocked by Gigya reCAPTCHA)
   try {
     const results = await searchUnitedViaAeroplanCdp(params);
     if (results.length > 0) return results;
@@ -236,6 +246,18 @@ async function searchCathayWithFallback(params: SearchParams): Promise<FlightRes
   return searchCathay(params);
 }
 
+async function searchJetBlueWithFallback(params: SearchParams): Promise<FlightResult[]> {
+  // Fast REST API — no auth, no anti-bot (~1-2s)
+  try {
+    const results = await searchJetBlueApi(params);
+    if (results.length > 0) return results;
+  } catch (err: any) {
+    console.warn(`[Registry] JetBlue API failed: ${err.message}`);
+  }
+  // Playwright fallback (slow ~30s, fragile DOM parsing)
+  return searchJetBlue(params);
+}
+
 async function searchSQWithFallback(params: SearchParams): Promise<FlightResult[]> {
   // curl_cffi FIRST — fastest (~2-3s), Chrome 131 TLS impersonation
   try {
@@ -263,6 +285,8 @@ export interface ScraperEntry {
   search: (params: SearchParams) => Promise<FlightResult[]>;
   status: 'active' | 'testing' | 'blocked' | 'needs-login';
   coversPrograms: string[];  // program codes this scraper can search for
+  supportsNearbyAirports?: boolean;  // true = scraper includes nearby airports in results (e.g. AA origNearby=True)
+  availabilityType: AvailabilityType;  // 'confirmed' | 'calendar' | 'estimated' — controls price_history write gate
 }
 
 export const SCRAPER_REGISTRY: Record<string, ScraperEntry> = {
@@ -271,8 +295,9 @@ export const SCRAPER_REGISTRY: Record<string, ScraperEntry> = {
     name: 'United MileagePlus',
     covers: ['star'],
     search: searchUnitedWithFallback,
-    status: 'blocked',  // 2026-02-22: CDP finds iframe, showScreenSet reveals Gigya form, frame.fill() works — but Gigya returns 401020 "Login Failed Captcha Required" (reCAPTCHA)
-    coversPrograms: ['united', 'aeroplan', 'ana', 'singapore', 'turkish', 'avianca-lifemiles'],
+    status: 'blocked',  // 2026-02-24: United.com direct CDP works but requires SMS OTP every login; Aeroplan blocked by Gigya reCAPTCHA
+    coversPrograms: ['united', 'aeroplan', 'ana', 'singapore', 'avianca-lifemiles'],
+    availabilityType: 'confirmed',  // returns real bookable seats with point prices
   },
   'aa': {
     name: 'American AAdvantage',
@@ -280,6 +305,8 @@ export const SCRAPER_REGISTRY: Record<string, ScraperEntry> = {
     search: searchAAWithFallback,
     status: 'active',  // 2026-02-22: Real Chrome CDP WORKING — 124 results JFK→LHR, ~20s, full Akamai bypass
     coversPrograms: ['american', 'ba-avios', 'qantas'],
+    supportsNearbyAirports: true,  // origNearby=True / originNearbyAirports=True in search params
+    availabilityType: 'confirmed',  // real prices from AA award search results page / API
   },
   'flying-blue': {
     name: 'Air France/KLM Flying Blue',
@@ -287,6 +314,7 @@ export const SCRAPER_REGISTRY: Record<string, ScraperEntry> = {
     search: searchFlyingBlueWithFallback,
     status: 'active',  // 2026-02-22: Real Chrome CDP WORKING — 22 business results JFK→CDG, ~50s, form-fill + calendar + DOM parse. Requires one-time login (OTP)
     coversPrograms: ['air-france-klm', 'delta'],
+    availabilityType: 'confirmed',  // individual flight prices parsed from DOM/GQL — real bookable fares
   },
   'alaska': {
     name: 'Alaska Mileage Plan',
@@ -294,6 +322,7 @@ export const SCRAPER_REGISTRY: Record<string, ScraperEntry> = {
     search: searchAlaskaWithFallback,
     status: 'active',  // 2026-02-21: curl_cffi WORKING (34 results SEA->LAX via SvelteKit __data.json, bypasses bot check)
     coversPrograms: ['emirates'],
+    availabilityType: 'confirmed',  // real prices from Alaska SvelteKit __data.json
   },
   'google-flights': {
     name: 'Google Flights',
@@ -301,6 +330,7 @@ export const SCRAPER_REGISTRY: Record<string, ScraperEntry> = {
     search: searchGoogleFlights,
     status: 'active',
     coversPrograms: [],
+    availabilityType: 'confirmed',  // cash prices — confirmed fares, used for CPP calculation
   },
 
   // --- Tier 1b: Fast API scrapers (for live search) ---
@@ -310,6 +340,16 @@ export const SCRAPER_REGISTRY: Record<string, ScraperEntry> = {
     search: searchVAFast,
     status: 'blocked',  // 2026-02-19: session cookies expire (HTTP 444), fallback killed by timeout
     coversPrograms: ['virgin-atlantic', 'delta', 'air-france-klm'],
+    availabilityType: 'confirmed',  // real prices from VA fast API
+  },
+
+  'turkish': {
+    name: 'Turkish Miles&Smiles',
+    covers: ['star'],
+    search: searchTurkishApi,
+    status: 'active',  // 2026-02-26: Official API — no browser, no anti-bot, ~2-5s. TK-operated flights only.
+    coversPrograms: ['turkish'],
+    availabilityType: 'confirmed',  // official TK API — pending credential test, confirmed for now
   },
 
   // --- Tier 2: Supplementary ---
@@ -319,6 +359,7 @@ export const SCRAPER_REGISTRY: Record<string, ScraperEntry> = {
     search: searchDeltaWithFallback,
     status: 'active',  // 2026-02-21: curl_cffi WORKING (5 results JFK->LHR via VA GraphQL, ~12s with login)
     coversPrograms: ['delta'],
+    availabilityType: 'confirmed',  // real prices from VA GraphQL (delta-va-curlffi)
   },
   'ba-avios': {
     name: 'British Airways Avios',
@@ -326,6 +367,7 @@ export const SCRAPER_REGISTRY: Record<string, ScraperEntry> = {
     search: searchBAAvios,
     status: 'blocked',  // 2026-02-19: Auth0 CAPTCHA blocks login (both Camoufox and Playwright)
     coversPrograms: ['ba-avios'],
+    availabilityType: 'confirmed',  // returns real bookable award prices (when unblocked)
   },
   'aeroplan': {
     name: 'Air Canada Aeroplan',
@@ -333,6 +375,7 @@ export const SCRAPER_REGISTRY: Record<string, ScraperEntry> = {
     search: searchAeroplan,
     status: 'blocked',  // 2026-02-19: Akamai 403 on award search URL
     coversPrograms: ['aeroplan'],
+    availabilityType: 'confirmed',  // returns real bookable award prices (when unblocked)
   },
   'ana': {
     name: 'ANA Mileage Club',
@@ -340,6 +383,7 @@ export const SCRAPER_REGISTRY: Record<string, ScraperEntry> = {
     search: searchANAWithFallback,
     status: 'blocked',  // 2026-02-20: Cookie consent fix works, but "heavy traffic" anti-bot blocks after login; needs residential proxy or time
     coversPrograms: ['ana'],
+    availabilityType: 'confirmed',  // returns real bookable award prices (when unblocked)
   },
   'virgin-atlantic': {
     name: 'Virgin Atlantic Flying Club',
@@ -347,6 +391,7 @@ export const SCRAPER_REGISTRY: Record<string, ScraperEntry> = {
     search: searchVirginAtlanticWithFallback,
     status: 'active',  // 2026-02-21: curl_cffi WORKING (5 results JFK->LHR via VA GraphQL, ~12s with login)
     coversPrograms: ['virgin-atlantic', 'delta', 'air-france-klm'],
+    availabilityType: 'confirmed',  // real prices from VA GraphQL (delta-va-curlffi reused)
   },
   'singapore': {
     name: 'Singapore Airlines KrisFlyer',
@@ -354,13 +399,15 @@ export const SCRAPER_REGISTRY: Record<string, ScraperEntry> = {
     search: searchSQWithFallback,
     status: 'blocked',  // 2026-02-21: Login blocked by 428 JS challenge (not IP-based); histogram returns cash prices only, not award miles
     coversPrograms: ['singapore'],
+    availabilityType: 'confirmed',  // returns real bookable award prices (when unblocked)
   },
   'jetblue': {
     name: 'JetBlue TrueBlue',
-    covers: [],
-    search: searchJetBlue,
-    status: 'active',
-    coversPrograms: [],
+    covers: ['independent'],
+    search: searchJetBlueWithFallback,
+    status: 'active',  // 2026-02-26: Fast REST API working — no auth, no anti-bot, ~1-2s
+    coversPrograms: ['jetblue'],
+    availabilityType: 'confirmed',  // direct JetBlue REST API returns real bookable point prices
   },
   'cathay': {
     name: 'Cathay Pacific Asia Miles',
@@ -368,6 +415,7 @@ export const SCRAPER_REGISTRY: Record<string, ScraperEntry> = {
     search: searchCathayWithFallback,
     status: 'active',  // 2026-02-21: AFR API working — calendar-level availability for CX routes to/from HKG, no auth needed
     coversPrograms: ['cathay-asia-miles'],
+    availabilityType: 'calendar',  // AFR API returns H/L/NA availability codes only — no real point prices per flight
   },
 };
 
@@ -403,15 +451,25 @@ export function getScraperForPartner(partner: TransferPartner): string | null {
 
 /**
  * Determine which scrapers to run for a user's points program.
- * Returns deduplicated list of scraper keys.
+ * Returns ALL scrapers that cover any of the user's transfer partners
+ * (including blocked ones so the UI can show their status).
  */
 export function getScrapersForProgram(programSlug: string): string[] {
   const partners = getTransferPartnersForProgram(programSlug);
+  const programCodes = new Set(partners.map(p => p.programCode));
+  const alliances = new Set(partners.map(p => p.alliance));
   const scraperKeys = new Set<string>();
 
-  for (const partner of partners) {
-    const scraper = getScraperForPartner(partner);
-    if (scraper) scraperKeys.add(scraper);
+  for (const [key, entry] of Object.entries(SCRAPER_REGISTRY)) {
+    // Include if this scraper covers any of the user's program codes
+    if (entry.coversPrograms.some(pc => programCodes.has(pc))) {
+      scraperKeys.add(key);
+      continue;
+    }
+    // Include if this scraper covers an alliance the user has partners in
+    if (entry.covers.some(a => alliances.has(a))) {
+      scraperKeys.add(key);
+    }
   }
 
   return Array.from(scraperKeys);
@@ -422,51 +480,13 @@ export function getScrapersForProgram(programSlug: string): string[] {
 // ============================================================
 
 /**
- * For live search, use at most 1 scraper per alliance to avoid redundancy.
- * Prefers faster scrapers (va-fast over delta/flying-blue for SkyTeam).
- */
-const LIVE_SEARCH_ALLIANCE_SCRAPERS: Record<string, string> = {
-  'star': 'united',      // Blocked — Gigya reCAPTCHA required for Aeroplan login (errorCode 401020)
-  'oneworld': 'aa',      // Real Chrome CDP (~20s) — 124 results, full Akamai bypass
-  'skyteam': 'delta',    // Delta/VA curl_cffi (~12s) — covers Delta, AF, KLM, Korean, VA; flying-blue also active (~50s, more results)
-};
-
-/**
- * Get deduplicated scrapers for live search — 1 per alliance, preferring
- * fast API scrapers. Skips redundant scrapers that cover the same alliance.
+ * Get all relevant scrapers for live search — includes every active scraper
+ * for the program. They run in parallel and deduplicateResults() handles overlap.
+ * Blocked scrapers are still included so the UI can show their status.
  */
 export function getScrapersForLiveSearch(programSlug: string): string[] {
   const allKeys = getScrapersForProgram(programSlug);
-  const coveredAlliances = new Set<string>();
-  const result: string[] = [];
-
-  // First pass: add preferred alliance scrapers if they're in the candidate list
-  // or if any scraper covering that alliance is in the list
-  for (const key of allKeys) {
-    const entry = SCRAPER_REGISTRY[key];
-    if (!entry) continue;
-    for (const alliance of entry.covers) {
-      if (coveredAlliances.has(alliance)) continue;
-      const preferred = LIVE_SEARCH_ALLIANCE_SCRAPERS[alliance];
-      if (preferred && SCRAPER_REGISTRY[preferred] && SCRAPER_REGISTRY[preferred].status !== 'blocked') {
-        result.push(preferred);
-        coveredAlliances.add(alliance);
-      }
-    }
-  }
-
-  // Second pass: add any remaining scrapers whose alliances aren't covered
-  for (const key of allKeys) {
-    const entry = SCRAPER_REGISTRY[key];
-    if (!entry) continue;
-    const uncovered = entry.covers.some(a => !coveredAlliances.has(a));
-    if (uncovered && !result.includes(key)) {
-      result.push(key);
-      for (const a of entry.covers) coveredAlliances.add(a);
-    }
-  }
-
-  return [...new Set(result)];
+  return [...new Set(allKeys)];
 }
 
 /**
