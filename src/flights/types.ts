@@ -3,6 +3,8 @@
  * Created: 2026-02-16
  */
 
+export type AvailabilityType = 'confirmed' | 'calendar' | 'estimated';
+
 export interface FlightResult {
   source: string; // 'united' | 'google' | 'aeroplan'
   airline: string;
@@ -48,6 +50,11 @@ export interface FlightResult {
   direct?: boolean;
   route?: string;
   lastSeen?: string;
+
+  // Availability provenance — single source of truth for confirmed vs excluded data.
+  // Set at the scraper registry level (SCRAPER_REGISTRY.availabilityType) rather than
+  // per-result. Optional because existing scrapers inherit 'confirmed' from the registry entry.
+  availabilityType?: AvailabilityType;
 }
 
 export interface PriceHistory {
