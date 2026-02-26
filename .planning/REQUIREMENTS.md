@@ -59,11 +59,11 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Infrastructure
 
-- [ ] **INFR-01**: Normalized price_history table accumulates historical price data from daemon scrape cycles
-- [ ] **INFR-02**: Daemon history-writer extension appends time-series data on each scrape cycle
-- [ ] **INFR-03**: Alert-checker daemon extension compares fresh cache against user alert subscriptions
-- [ ] **INFR-04**: Frontend deployed to Vercel with Next.js; scrapers remain on Harbor daemon
-- [ ] **INFR-05**: PostgreSQL serves as sole integration boundary between Harbor (writes) and Vercel (reads)
+- [x] **INFR-01**: Normalized price_history table accumulates historical price data from daemon scrape cycles
+- [x] **INFR-02**: Daemon history-writer extension appends time-series data on each scrape cycle
+- [x] **INFR-03**: Alert-checker daemon extension compares fresh cache against user alert subscriptions
+- [x] **INFR-04**: Frontend deployed to Vercel with Next.js; scrapers remain on Harbor daemon
+- [x] **INFR-05**: PostgreSQL serves as sole integration boundary between Harbor (writes) and Vercel (reads)
 
 ## v2 Requirements
 
@@ -139,11 +139,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BOOK-01 | Phase 6 | Pending |
 | BOOK-02 | Phase 6 | Pending |
 | BOOK-03 | Phase 6 | Pending |
-| INFR-01 | Phase 1 | Pending |
-| INFR-02 | Phase 1 | Pending |
-| INFR-03 | Phase 1 | Pending |
-| INFR-04 | Phase 1 | Pending |
-| INFR-05 | Phase 1 | Pending |
+| INFR-01 | Phase 1 | Complete |
+| INFR-02 | Phase 1 | Complete |
+| INFR-03 | Phase 1 | Complete |
+| INFR-04 | Phase 1 | Complete |
+| INFR-05 | Phase 1 | Complete |
 
 **Coverage:**
 - v1 requirements: 37 total
@@ -152,4 +152,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-02-26*
-*Last updated: 2026-02-26 after roadmap creation — all 37 requirements mapped*
+*Last updated: 2026-02-26 — Phase 1 complete, INFR-01 through INFR-05 marked complete*

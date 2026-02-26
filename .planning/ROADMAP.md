@@ -12,7 +12,7 @@ Six phases take Flight Points from bare database infrastructure to a complete pu
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Database Foundation** - Normalize price_history, extend daemon, scaffold auth tables
+- [x] **Phase 1: Database Foundation** - Normalize price_history, extend daemon, scaffold auth tables
 - [ ] **Phase 2: App Shell + Deal Feed** - Next.js 16 app deployed to Vercel with static deal feed
 - [ ] **Phase 3: Search + Value Assessment** - Core route search with CPP, badges, transfer partners
 - [ ] **Phase 4: Price History Charts** - Historical trend chart and transfer bonus display
@@ -34,10 +34,10 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: TBD
 
 Plans:
-- [ ] 01-01: Create and apply Drizzle migrations for price_history, alert_subscriptions, and Better Auth tables
-- [ ] 01-02: Implement history-writer daemon extension (appends to price_history on each scrape cycle)
-- [ ] 01-03: Implement alert-checker daemon skeleton (compares flight_cache against alert_subscriptions)
-- [ ] 01-04: Add availabilityType field to FlightResult schema and propagate through existing scrapers
+- [x] 01-01: Create and apply Drizzle migrations for price_history, alert_subscriptions, and Better Auth tables
+- [x] 01-02: Implement history-writer daemon extension (appends to price_history on each scrape cycle)
+- [x] 01-03: Implement alert-checker daemon skeleton (compares flight_cache against alert_subscriptions)
+- [x] 01-04: Add availabilityType field to FlightResult schema and propagate through existing scrapers
 
 ### Phase 2: App Shell + Deal Feed
 **Goal**: A Next.js 16 app is deployed to Vercel with a dark-themed deal feed page showing the best current award deals from the existing flight cache
@@ -131,7 +131,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Database Foundation | 0/4 | Not started | - |
+| 1. Database Foundation | 4/4 | Complete | 2026-02-26 |
 | 2. App Shell + Deal Feed | 0/3 | Not started | - |
 | 3. Search + Value Assessment | 0/4 | Not started | - |
 | 4. Price History Charts | 0/3 | Not started | - |

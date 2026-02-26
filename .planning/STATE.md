@@ -10,28 +10,28 @@ See: .planning/PROJECT.md (updated 2026-02-26)
 ## Current Position
 
 Phase: 1 of 6 (Database Foundation)
-Plan: 0 of 4 in current phase
-Status: Ready to plan
-Last activity: 2026-02-26 — Roadmap created, all 37 v1 requirements mapped across 6 phases
+Plan: 4 of 4 in current phase
+Status: Phase 1 complete
+Last activity: 2026-02-26 — Plan 01-04 complete (availabilityType type field)
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██████████] 100% (Phase 1 complete, 4/4 plans executed)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 0
-- Average duration: —
-- Total execution time: 0 hours
+- Total plans completed: 4
+- Average duration: ~5 min
+- Total execution time: ~20 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 01-database-foundation | 4 | ~20 min | ~5 min |
 
 **Recent Trend:**
-- Last 5 plans: —
-- Trend: —
+- Last 5 plans: 01-01, 01-02, 01-03, 01-04
+- Trend: Steady
 
 *Updated after each plan completion*
 
@@ -46,6 +46,8 @@ Recent decisions affecting current work:
 - [Roadmap]: SSE live search (Phase 5) runs on Harbor Express proxy, never on Vercel serverless — Python scrapers can't run on Vercel
 - [Roadmap]: availabilityType field added to FlightResult in Phase 1 — retrofitting after UI is built is painful
 - [Roadmap]: Alert emails must include scrape timestamp and "verify before transferring" copy — non-reversible points transfers are the primary trust risk
+- [01-04]: availabilityType is optional on FlightResult — confirmed status is registry-level (Plan 02), not per-result
+- [01-04]: AvailabilityType exported as type alias so ScraperRegistryEntry can reuse without duplicating union literal
 
 ### Pending Todos
 
@@ -62,5 +64,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Roadmap created — ready to begin Phase 1 planning
+Stopped at: Completed 01-04-PLAN.md — Phase 1 fully executed (4/4 plans)
 Resume file: None
