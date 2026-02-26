@@ -27,6 +27,7 @@ import {
 } from './airports.js';
 import { execFileSync } from 'child_process';
 import { recordSuccess, recordFailure, isScraperAvailable, writeHealthFile } from './scraper-health.js';
+import { checkAlerts } from './alert-checker.js';
 import {
   initPool, closePool,
   loadSignups as dbLoadSignups,
@@ -427,6 +428,13 @@ async function runScan() {
   await pruneStaleCacheEntries(24 * 60 * 60 * 1000);
 
   log(`Scan complete: ${allResults.length} total results, ${newFlights.length} new/improved`);
+
+  // Check alert subscriptions against fresh cycle results (Phase 1: logs matches only)
+  try {
+    await checkAlerts(allResults, scanTime);
+  } catch (err: any) {
+    log(`[daemon] Alert checker failed (non-fatal): ${err.message}`);
+  }
 
   // Send alerts (dedup + deal quality filter)
   const sentAlerts = await dbLoadSentAlerts();
