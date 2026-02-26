@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-02-26T08:37:29.479Z"
+last_updated: "2026-02-26T08:43:55.306Z"
 progress:
   total_phases: 1
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 4
-  completed_plans: 2
+  completed_plans: 4
 ---
 
 # Project State
@@ -48,6 +48,7 @@ Progress: [██████████] 100% (Phase 1 complete, 4/4 plans exe
 
 *Updated after each plan completion*
 | Phase 01-database-foundation P01 | 3 | 2 tasks | 7 files |
+| Phase 01-database-foundation P02 | 4 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -66,6 +67,9 @@ Recent decisions affecting current work:
 - [Phase 01-database-foundation]: db-drizzle.ts is Vercel-only (getDrizzle() for Next.js reads); daemon continues using raw pg pool in db.ts — strict boundary prevents dep bleeding
 - [01-03]: Used pointsRequired (not milesRequired) in flightMatchesSubscription — plan spec had wrong field name; auto-fixed
 - [01-03]: checkAlerts placed after writeToWebCache, before existing WhatsApp send block — both consume allResults from same cycle; scanTime reused as cycleId
+- [Phase 01-02]: r.pointsRequired/r.taxesAndFees used in history-writer.ts (plan template had wrong field names milesRequired/taxesUSD)
+- [Phase 01-02]: scraperKey='daemon' with 'confirmed' for daemon's history writes — daemon uses legacy batch scrapers not in SCRAPER_REGISTRY
+- [Phase 01-02]: cathay is the only 'calendar' scraper — AFR API returns H/L/NA availability codes only, no real point prices
 
 ### Pending Todos
 
@@ -82,5 +86,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 01-03-PLAN.md — alert-checker skeleton + daemon wiring (plans 01, 03, 04 complete; 02 pending)
+Stopped at: Completed 01-02-PLAN.md — history-writer implemented, SCRAPER_REGISTRY availabilityType complete (all 4 Phase 1 plans now executed)
 Resume file: None
