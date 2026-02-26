@@ -107,49 +107,49 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SRCH-01 | — | Pending |
-| SRCH-02 | — | Pending |
-| SRCH-03 | — | Pending |
-| SRCH-04 | — | Pending |
-| SRCH-05 | — | Pending |
-| SRCH-06 | — | Pending |
-| SRCH-07 | — | Pending |
-| SRCH-08 | — | Pending |
-| SRCH-09 | — | Pending |
-| SRCH-10 | — | Pending |
-| VALU-01 | — | Pending |
-| VALU-02 | — | Pending |
-| VALU-03 | — | Pending |
-| VALU-04 | — | Pending |
-| VALU-05 | — | Pending |
-| VALU-06 | — | Pending |
-| DEAL-01 | — | Pending |
-| DEAL-02 | — | Pending |
-| DEAL-03 | — | Pending |
-| ALRT-01 | — | Pending |
-| ALRT-02 | — | Pending |
-| ALRT-03 | — | Pending |
-| ALRT-04 | — | Pending |
-| ALRT-05 | — | Pending |
-| ACCT-01 | — | Pending |
-| ACCT-02 | — | Pending |
-| ACCT-03 | — | Pending |
-| ACCT-04 | — | Pending |
-| ACCT-05 | — | Pending |
-| BOOK-01 | — | Pending |
-| BOOK-02 | — | Pending |
-| BOOK-03 | — | Pending |
-| INFR-01 | — | Pending |
-| INFR-02 | — | Pending |
-| INFR-03 | — | Pending |
-| INFR-04 | — | Pending |
-| INFR-05 | — | Pending |
+| SRCH-01 | Phase 3 | Pending |
+| SRCH-02 | Phase 3 | Pending |
+| SRCH-03 | Phase 3 | Pending |
+| SRCH-04 | Phase 3 | Pending |
+| SRCH-05 | Phase 5 | Pending |
+| SRCH-06 | Phase 3 | Pending |
+| SRCH-07 | Phase 3 | Pending |
+| SRCH-08 | Phase 3 | Pending |
+| SRCH-09 | Phase 3 | Pending |
+| SRCH-10 | Phase 3 | Pending |
+| VALU-01 | Phase 3 | Pending |
+| VALU-02 | Phase 3 | Pending |
+| VALU-03 | Phase 3 | Pending |
+| VALU-04 | Phase 3 | Pending |
+| VALU-05 | Phase 4 | Pending |
+| VALU-06 | Phase 4 | Pending |
+| DEAL-01 | Phase 2 | Pending |
+| DEAL-02 | Phase 2 | Pending |
+| DEAL-03 | Phase 2 | Pending |
+| ALRT-01 | Phase 6 | Pending |
+| ALRT-02 | Phase 6 | Pending |
+| ALRT-03 | Phase 6 | Pending |
+| ALRT-04 | Phase 6 | Pending |
+| ALRT-05 | Phase 6 | Pending |
+| ACCT-01 | Phase 6 | Pending |
+| ACCT-02 | Phase 6 | Pending |
+| ACCT-03 | Phase 6 | Pending |
+| ACCT-04 | Phase 6 | Pending |
+| ACCT-05 | Phase 6 | Pending |
+| BOOK-01 | Phase 6 | Pending |
+| BOOK-02 | Phase 6 | Pending |
+| BOOK-03 | Phase 6 | Pending |
+| INFR-01 | Phase 1 | Pending |
+| INFR-02 | Phase 1 | Pending |
+| INFR-03 | Phase 1 | Pending |
+| INFR-04 | Phase 1 | Pending |
+| INFR-05 | Phase 1 | Pending |
 
 **Coverage:**
 - v1 requirements: 37 total
-- Mapped to phases: 0
-- Unmapped: 37 ⚠️
+- Mapped to phases: 37
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-26*
-*Last updated: 2026-02-26 after initial definition*
+*Last updated: 2026-02-26 after roadmap creation — all 37 requirements mapped*
