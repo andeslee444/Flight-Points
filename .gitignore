@@ -12,6 +12,10 @@ logs/
 # Vercel build output
 public/
 
+# Next.js
+.next/
+next-env.d.ts
+
 # Terraform
 terraform/.terraform/
 terraform/*.tfstate
