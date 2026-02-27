@@ -23,11 +23,11 @@ See: .planning/PROJECT.md (updated 2026-02-26)
 ## Current Position
 
 Phase: 3 of 6 (Search + Value Assessment)
-Plan: 3 of 4 in current phase (complete)
-Status: Phase 3 in progress — FlightResultCard, SearchResults, search page integration complete
-Last activity: 2026-02-27 — Plan 03-03 complete (FlightResultCard with CPP/badges/transfer pills/book button, SearchResults wrapper, /search page integrated)
+Plan: 4 of 4 in current phase (complete)
+Status: Phase 3 complete — Metro dedup toggle, alliance coverage labels, scraper health notices added
+Last activity: 2026-02-27 — Plan 03-04 complete (metro dedup toggle, METRO_GROUPS constant, CoverageNotices component, alliance badges, health notices)
 
-Progress: [█████████░] 82% (Phase 1 complete, Phase 2 complete, Phase 3 plan 3/4 done)
+Progress: [██████████] 91% (Phase 1 complete, Phase 2 complete, Phase 3 complete)
 
 ## Performance Metrics
 
@@ -56,6 +56,7 @@ Progress: [█████████░] 82% (Phase 1 complete, Phase 2 comple
 | Phase 03-search-value-assessment P01 | 3 | 2 tasks | 10 files |
 | Phase 03-search-value-assessment P02 | 8 | 2 tasks | 6 files |
 | Phase 03-search-value-assessment P03 | 2 | 2 tasks | 3 files |
+| Phase 03-search-value-assessment P04 | 1 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -92,6 +93,9 @@ Recent decisions affecting current work:
 - [Phase 03-search-value-assessment]: Build verification requires npx next build --webpack (not default Turbopack) — Turbopack cannot resolve .js->ts extensionAlias
 - [03-03]: FlightResultCard imports EnrichedDeal from lib/enrichment directly; cashSavings() derives from CPP * points / 100 — taxes already on EnrichedDeal
 - [03-03]: SearchResults is 'use client' to support metro dedup toggle in Plan 03-04 without refactoring boundary
+- [03-04]: METRO_GROUPS constant copied into search-results.tsx (not imported from live-scraper.ts) to avoid daemon transitive deps
+- [03-04]: CoverageNotices is a Server Component — data is static from lib/coverage.ts, no client state needed
+- [03-04]: Metro dedup defaults to collapsed (showAllAirports=false) — clean view by default, toggle to expand
 
 ### Pending Todos
 
@@ -109,5 +113,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-27
-Stopped at: Completed 03-03-PLAN.md — FlightResultCard, SearchResults, /search page integration complete
+Stopped at: Completed 03-04-PLAN.md — Metro dedup toggle, alliance labels, coverage notices complete (Phase 3 done)
 Resume file: None

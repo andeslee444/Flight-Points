@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Database Foundation** - Normalize price_history, extend daemon, scaffold auth tables
 - [x] **Phase 2: App Shell + Deal Feed** - Next.js 16 app deployed to Vercel with static deal feed (completed 2026-02-27)
-- [ ] **Phase 3: Search + Value Assessment** - Core route search with CPP, badges, transfer partners
+- [x] **Phase 3: Search + Value Assessment** - Core route search with CPP, badges, transfer partners (completed 2026-02-27)
 - [ ] **Phase 4: Price History Charts** - Historical trend chart and transfer bonus display
 - [ ] **Phase 5: Live Search (SSE)** - Real-time scraper result streaming via Harbor proxy
 - [ ] **Phase 6: Auth + Alerts + Booking** - User accounts, email/WhatsApp alerts, booking guidance
@@ -133,7 +133,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 |-------|----------------|--------|-----------|
 | 1. Database Foundation | 4/4 | Complete   | 2026-02-26 |
 | 2. App Shell + Deal Feed | 3/3 | Complete   | 2026-02-27 |
-| 3. Search + Value Assessment | 3/4 | In Progress|  |
+| 3. Search + Value Assessment | 4/4 | Complete   | 2026-02-27 |
 | 4. Price History Charts | 0/3 | Not started | - |
 | 5. Live Search (SSE) | 0/3 | Not started | - |
 | 6. Auth + Alerts + Booking | 0/6 | Not started | - |
