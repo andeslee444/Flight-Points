@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: in_progress
-last_updated: "2026-02-27T22:00:40Z"
+status: unknown
+last_updated: "2026-02-27T22:12:17.016Z"
 progress:
-  total_phases: 6
+  total_phases: 2
   completed_phases: 1
   total_plans: 7
-  completed_plans: 5
+  completed_plans: 6
 ---
 
 # Project State
@@ -23,11 +23,11 @@ See: .planning/PROJECT.md (updated 2026-02-26)
 ## Current Position
 
 Phase: 2 of 6 (App Shell + Deal Feed)
-Plan: 1 of 3 in current phase (complete)
-Status: Phase 2 Plan 1 complete — Next.js scaffold deployed to Vercel
-Last activity: 2026-02-27 — Plan 02-01 complete (Next.js 16 scaffold + Vercel deployment)
+Plan: 2 of 3 in current phase (complete)
+Status: Phase 2 Plan 2 complete — Deal feed data layer and components complete
+Last activity: 2026-02-27 — Plan 02-02 complete (enrichment layer, DealCard/DealFeed, /deals RSC page)
 
-Progress: [████░░░░░░] 40% (Phase 1 complete, Phase 2 Plan 1 complete)
+Progress: [█████░░░░░] 50% (Phase 1 complete, Phase 2 Plans 1-2 complete)
 
 ## Performance Metrics
 
@@ -51,6 +51,7 @@ Progress: [████░░░░░░] 40% (Phase 1 complete, Phase 2 Plan 1
 | Phase 01-database-foundation P01 | 3 | 2 tasks | 7 files |
 | Phase 01-database-foundation P02 | 4 | 2 tasks | 3 files |
 | Phase 02-app-shell-deal-feed P01 | 10 | 2 tasks | 22 files |
+| Phase 02-app-shell-deal-feed P02 | 6 | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -76,6 +77,9 @@ Recent decisions affecting current work:
 - [Phase 01-02]: r.pointsRequired/r.taxesAndFees used in history-writer.ts (plan template had wrong field names milesRequired/taxesUSD)
 - [Phase 01-02]: scraperKey='daemon' with 'confirmed' for daemon's history writes — daemon uses legacy batch scrapers not in SCRAPER_REGISTRY
 - [Phase 01-02]: cathay is the only 'calendar' scraper — AFR API returns H/L/NA availability codes only, no real point prices
+- [Phase 02-02]: Helper functions copied from monitor.ts into lib/enrichment.ts to avoid transitive daemon import chain
+- [Phase 02-02]: webpack chosen over Turbopack for production build — experimental.extensionAlias resolves NodeNext .js→.ts imports; Turbopack cannot handle this
+- [Phase 02-02]: amex-mr used as default program perspective for deal feed — most popular transferable currency, plan 03 adds program filter
 
 ### Pending Todos
 
@@ -93,5 +97,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-27
-Stopped at: Completed 02-01-PLAN.md — Next.js 16 scaffold + Vercel deployment complete
+Stopped at: Completed 02-02-PLAN.md — deal feed data layer + components complete
 Resume file: None
