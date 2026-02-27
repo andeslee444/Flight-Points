@@ -1,6 +1,7 @@
 import { getSearchResults } from '@/lib/search';
 import { SearchForm } from '@/components/search-form';
 import { SearchResults } from '@/components/search-results';
+import { CoverageNotices } from '@/components/coverage-notices';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,6 +32,7 @@ export default async function SearchPage({
       </p>
 
       <SearchForm initialValues={params} />
+      <CoverageNotices />
 
       {hasSearch && (
         <div className="mt-8">
