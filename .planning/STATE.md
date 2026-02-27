@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-02-27T22:19:46.089Z"
+last_updated: "2026-02-27T22:56:34.708Z"
 progress:
-  total_phases: 2
+  total_phases: 3
   completed_phases: 2
-  total_plans: 7
-  completed_plans: 7
+  total_plans: 11
+  completed_plans: 8
 ---
 
 # Project State
@@ -18,16 +18,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-26)
 
 **Core value:** Users instantly know whether a points redemption is a good deal — and never miss an incredible one.
-**Current focus:** Phase 2 — App Shell + Deal Feed
+**Current focus:** Phase 3 — Search + Value Assessment
 
 ## Current Position
 
-Phase: 2 of 6 (App Shell + Deal Feed)
-Plan: 3 of 3 in current phase (complete)
-Status: Phase 2 complete — Filter bar and client-side filtering complete
-Last activity: 2026-02-27 — Plan 02-03 complete (Zustand filter store, FilterBar, client-side DealFeed)
+Phase: 3 of 6 (Search + Value Assessment)
+Plan: 1 of 4 in current phase (complete)
+Status: Phase 3 in progress — Search data layer, Route Handler, and shadcn components complete
+Last activity: 2026-02-27 — Plan 03-01 complete (getSearchResults, /api/flights/search, shadcn popover/command/input/separator)
 
-Progress: [██████░░░░] 60% (Phase 1 complete, Phase 2 complete)
+Progress: [███████░░░] 70% (Phase 1 complete, Phase 2 complete, Phase 3 plan 1/4 done)
 
 ## Performance Metrics
 
@@ -53,6 +53,7 @@ Progress: [██████░░░░] 60% (Phase 1 complete, Phase 2 comple
 | Phase 02-app-shell-deal-feed P01 | 10 | 2 tasks | 22 files |
 | Phase 02-app-shell-deal-feed P02 | 6 | 2 tasks | 8 files |
 | Phase 02-app-shell-deal-feed P03 | 2 | 2 tasks | 4 files |
+| Phase 03-search-value-assessment P01 | 3 | 2 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -83,6 +84,8 @@ Recent decisions affecting current work:
 - [Phase 02-02]: amex-mr used as default program perspective for deal feed — most popular transferable currency, plan 03 adds program filter
 - [Phase 02-03]: Client-side filtering via Zustand — RSC passes full deals array once, FilterBar and DealFeed share store without prop drilling
 - [Phase 02-03]: Two distinct empty states: DB empty ('check back soon') vs filter mismatch ('broaden your search') prevent user confusion
+- [Phase 03-search-value-assessment]: getSearchResults uses ANY() SQL for multi-airport comma-separated queries
+- [Phase 03-search-value-assessment]: coverage.ts uses hardcoded strings not SCRAPER_REGISTRY import to prevent daemon transitive deps
 
 ### Pending Todos
 
@@ -100,5 +103,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-27
-Stopped at: Completed 02-03-PLAN.md — filter bar and client-side filtering complete
+Stopped at: Completed 03-01-PLAN.md — search data layer, route handler, and shadcn components complete
 Resume file: None
