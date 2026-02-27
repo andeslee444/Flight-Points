@@ -34,11 +34,6 @@ export default async function SearchPage({
 
       {hasSearch && (
         <div className="mt-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">
-              {results.length} result{results.length !== 1 ? 's' : ''} for {from} &rarr; {to}
-            </h2>
-          </div>
           <SearchResults results={results} from={from!} to={to!} />
         </div>
       )}
