@@ -10,7 +10,7 @@
     "daemon": "tsx src/flights/flight-daemon.ts",
     "search": "tsx src/flights/scrapers/index.ts",
     "next-dev": "next dev",
-    "next-build": "next build"
+    "next-build": "next build --webpack"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",
