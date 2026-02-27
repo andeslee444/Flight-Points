@@ -46,6 +46,12 @@
   "exclude": [
     "node_modules",
     "dist",
-    ".next"
+    ".next",
+    "src/flights/scrapers",
+    "src/flights/flight-daemon.ts",
+    "src/flights/web-server.ts",
+    "src/flights/monitor.ts",
+    "src/flights/live-scraper.ts",
+    "tests"
   ]
 }
