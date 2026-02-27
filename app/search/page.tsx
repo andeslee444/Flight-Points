@@ -1,5 +1,6 @@
 import { getSearchResults } from '@/lib/search';
 import { SearchForm } from '@/components/search-form';
+import { SearchResults } from '@/components/search-results';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,34 +39,7 @@ export default async function SearchPage({
               {results.length} result{results.length !== 1 ? 's' : ''} for {from} &rarr; {to}
             </h2>
           </div>
-          {results.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <p className="text-lg">No award flights found</p>
-              <p className="text-sm mt-2">
-                The daemon scrapes this route periodically — try again later or adjust your search
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {results.map((deal) => (
-                <div key={deal.id} className="p-4 border border-border rounded-lg">
-                  <div className="flex justify-between">
-                    <span className="font-medium">
-                      {deal.airline} {deal.flightNumber}
-                    </span>
-                    <span className="text-primary font-bold">
-                      {deal.pointsRequired.toLocaleString()} pts
-                    </span>
-                  </div>
-                  <div className="text-sm text-muted-foreground mt-1">
-                    {deal.origin} &rarr; {deal.destination} &middot; {deal.cabinDisplay} &middot;{' '}
-                    {deal.departureDate}
-                    {deal.cpp != null && ` · ${deal.cpp}¢/pt`}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <SearchResults results={results} from={from!} to={to!} />
         </div>
       )}
 
