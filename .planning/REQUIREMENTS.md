@@ -31,7 +31,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Deal Discovery
 
-- [ ] **DEAL-01**: User can browse a global deal feed showing best current deals across all routes
+- [x] **DEAL-01**: User can browse a global deal feed showing best current deals across all routes
 - [ ] **DEAL-02**: Deal feed can be filtered by cabin class, region, and credit card program
 - [ ] **DEAL-03**: Deal feed highlights sweet spot matches with tier badges
 
@@ -123,7 +123,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | VALU-04 | Phase 3 | Pending |
 | VALU-05 | Phase 4 | Pending |
 | VALU-06 | Phase 4 | Pending |
-| DEAL-01 | Phase 2 | Pending |
+| DEAL-01 | Phase 2 | Complete |
 | DEAL-02 | Phase 2 | Pending |
 | DEAL-03 | Phase 2 | Pending |
 | ALRT-01 | Phase 6 | Pending |
