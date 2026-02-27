@@ -16,9 +16,9 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **SRCH-05**: User sees real-time loading progress as scrapers return results via SSE
 - [x] **SRCH-06**: User sees when results were last scraped (freshness indicator)
 - [x] **SRCH-07**: User experience is fully responsive on mobile devices
-- [ ] **SRCH-08**: Nearby airports are deduplicated by default (JFK/EWR/LGA as one metro) with expand option
-- [ ] **SRCH-09**: Results show alliance gateway coverage labels ("Covers 80+ airlines via oneworld")
-- [ ] **SRCH-10**: User sees scraper health transparency ("Star Alliance data temporarily unavailable")
+- [x] **SRCH-08**: Nearby airports are deduplicated by default (JFK/EWR/LGA as one metro) with expand option
+- [x] **SRCH-09**: Results show alliance gateway coverage labels ("Covers 80+ airlines via oneworld")
+- [x] **SRCH-10**: User sees scraper health transparency ("Star Alliance data temporarily unavailable")
 
 ### Value Assessment
 
@@ -114,9 +114,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SRCH-05 | Phase 5 | Pending |
 | SRCH-06 | Phase 3 | Complete |
 | SRCH-07 | Phase 3 | Complete |
-| SRCH-08 | Phase 3 | Pending |
-| SRCH-09 | Phase 3 | Pending |
-| SRCH-10 | Phase 3 | Pending |
+| SRCH-08 | Phase 3 | Complete |
+| SRCH-09 | Phase 3 | Complete |
+| SRCH-10 | Phase 3 | Complete |
 | VALU-01 | Phase 3 | Complete |
 | VALU-02 | Phase 3 | Complete |
 | VALU-03 | Phase 3 | Complete |
