@@ -12,7 +12,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **SRCH-01**: User can search award flights by origin, destination, cabin class, and date
 - [x] **SRCH-02**: User sees results from multiple airline programs in a single search
 - [x] **SRCH-03**: User sees which credit card programs can transfer to each result (e.g., "Amex MR, Chase UR")
-- [ ] **SRCH-04**: User can click a direct booking link to the airline's award booking page
+- [x] **SRCH-04**: User can click a direct booking link to the airline's award booking page
 - [ ] **SRCH-05**: User sees real-time loading progress as scrapers return results via SSE
 - [x] **SRCH-06**: User sees when results were last scraped (freshness indicator)
 - [x] **SRCH-07**: User experience is fully responsive on mobile devices
@@ -22,10 +22,10 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Value Assessment
 
-- [ ] **VALU-01**: User sees cents-per-point (CPP) for each result
-- [ ] **VALU-02**: User sees a deal quality badge on each result (good / great / incredible)
-- [ ] **VALU-03**: User sees cash price comparison showing dollar savings ("Saves you $X vs cash")
-- [ ] **VALU-04**: Results matching known sweet spots show S/A/B tier badge ("S-Tier: Holy Grail")
+- [x] **VALU-01**: User sees cents-per-point (CPP) for each result
+- [x] **VALU-02**: User sees a deal quality badge on each result (good / great / incredible)
+- [x] **VALU-03**: User sees cash price comparison showing dollar savings ("Saves you $X vs cash")
+- [x] **VALU-04**: Results matching known sweet spots show S/A/B tier badge ("S-Tier: Holy Grail")
 - [ ] **VALU-05**: User sees historical price trend chart for a route ("this route usually costs X points")
 - [ ] **VALU-06**: User sees when active transfer bonuses reduce the effective cost of a redemption
 
@@ -110,17 +110,17 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SRCH-01 | Phase 3 | Complete |
 | SRCH-02 | Phase 3 | Complete |
 | SRCH-03 | Phase 3 | Complete |
-| SRCH-04 | Phase 3 | Pending |
+| SRCH-04 | Phase 3 | Complete |
 | SRCH-05 | Phase 5 | Pending |
 | SRCH-06 | Phase 3 | Complete |
 | SRCH-07 | Phase 3 | Complete |
 | SRCH-08 | Phase 3 | Pending |
 | SRCH-09 | Phase 3 | Pending |
 | SRCH-10 | Phase 3 | Pending |
-| VALU-01 | Phase 3 | Pending |
-| VALU-02 | Phase 3 | Pending |
-| VALU-03 | Phase 3 | Pending |
-| VALU-04 | Phase 3 | Pending |
+| VALU-01 | Phase 3 | Complete |
+| VALU-02 | Phase 3 | Complete |
+| VALU-03 | Phase 3 | Complete |
+| VALU-04 | Phase 3 | Complete |
 | VALU-05 | Phase 4 | Pending |
 | VALU-06 | Phase 4 | Pending |
 | DEAL-01 | Phase 2 | Complete |

@@ -23,11 +23,11 @@ See: .planning/PROJECT.md (updated 2026-02-26)
 ## Current Position
 
 Phase: 3 of 6 (Search + Value Assessment)
-Plan: 2 of 4 in current phase (complete)
-Status: Phase 3 in progress — Search form, /search RSC page, nav header complete
-Last activity: 2026-02-27 — Plan 03-02 complete (SearchForm with airport combobox, /search RSC page, nav header, / redirects to /search)
+Plan: 3 of 4 in current phase (complete)
+Status: Phase 3 in progress — FlightResultCard, SearchResults, search page integration complete
+Last activity: 2026-02-27 — Plan 03-03 complete (FlightResultCard with CPP/badges/transfer pills/book button, SearchResults wrapper, /search page integrated)
 
-Progress: [████████░░] 75% (Phase 1 complete, Phase 2 complete, Phase 3 plan 2/4 done)
+Progress: [█████████░] 82% (Phase 1 complete, Phase 2 complete, Phase 3 plan 3/4 done)
 
 ## Performance Metrics
 
@@ -55,6 +55,7 @@ Progress: [████████░░] 75% (Phase 1 complete, Phase 2 comple
 | Phase 02-app-shell-deal-feed P03 | 2 | 2 tasks | 4 files |
 | Phase 03-search-value-assessment P01 | 3 | 2 tasks | 10 files |
 | Phase 03-search-value-assessment P02 | 8 | 2 tasks | 6 files |
+| Phase 03-search-value-assessment P03 | 2 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -89,6 +90,8 @@ Recent decisions affecting current work:
 - [Phase 03-search-value-assessment]: coverage.ts uses hardcoded strings not SCRAPER_REGISTRY import to prevent daemon transitive deps
 - [Phase 03-search-value-assessment]: SearchForm uses initialValues prop (from RSC) not useSearchParams() — avoids Suspense boundary requirement
 - [Phase 03-search-value-assessment]: Build verification requires npx next build --webpack (not default Turbopack) — Turbopack cannot resolve .js->ts extensionAlias
+- [03-03]: FlightResultCard imports EnrichedDeal from lib/enrichment directly; cashSavings() derives from CPP * points / 100 — taxes already on EnrichedDeal
+- [03-03]: SearchResults is 'use client' to support metro dedup toggle in Plan 03-04 without refactoring boundary
 
 ### Pending Todos
 
@@ -106,5 +109,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-27
-Stopped at: Completed 03-02-PLAN.md — search form, /search RSC page, nav header, and / redirect complete
+Stopped at: Completed 03-03-PLAN.md — FlightResultCard, SearchResults, /search page integration complete
 Resume file: None
