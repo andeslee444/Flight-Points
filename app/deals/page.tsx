@@ -1,5 +1,6 @@
 import { getTopDeals } from '@/lib/deals';
 import { DealFeed } from '@/components/deal-feed';
+import { FilterBar } from '@/components/filter-bar';
 
 export const dynamic = 'force-dynamic'; // Always fetch fresh data from flight_cache
 
@@ -12,6 +13,7 @@ export default async function DealsPage() {
       <p className="text-muted-foreground mb-6">
         Best current award flight deals across all programs
       </p>
+      <FilterBar />
       <DealFeed deals={deals} />
     </main>
   );
