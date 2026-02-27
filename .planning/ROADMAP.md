@@ -13,7 +13,7 @@ Six phases take Flight Points from bare database infrastructure to a complete pu
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Database Foundation** - Normalize price_history, extend daemon, scaffold auth tables
-- [ ] **Phase 2: App Shell + Deal Feed** - Next.js 16 app deployed to Vercel with static deal feed
+- [x] **Phase 2: App Shell + Deal Feed** - Next.js 16 app deployed to Vercel with static deal feed (completed 2026-02-27)
 - [ ] **Phase 3: Search + Value Assessment** - Core route search with CPP, badges, transfer partners
 - [ ] **Phase 4: Price History Charts** - Historical trend chart and transfer bonus display
 - [ ] **Phase 5: Live Search (SSE)** - Real-time scraper result streaming via Harbor proxy
@@ -132,7 +132,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Database Foundation | 4/4 | Complete   | 2026-02-26 |
-| 2. App Shell + Deal Feed | 2/3 | In Progress|  |
+| 2. App Shell + Deal Feed | 3/3 | Complete   | 2026-02-27 |
 | 3. Search + Value Assessment | 0/4 | Not started | - |
 | 4. Price History Charts | 0/3 | Not started | - |
 | 5. Live Search (SSE) | 0/3 | Not started | - |
