@@ -48,11 +48,11 @@ Plans:
   2. A user can filter the deal feed by cabin class, region, and credit card program and the results update without a full page reload
   3. Deal cards on the feed show S/A/B tier sweet spot badges where applicable
   4. The app is dark-themed, mobile-responsive, and uses consistent shadcn/ui components throughout
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 02-01: Scaffold Next.js 16 app (App Router, TypeScript, Tailwind v4, shadcn/ui, Biome) and deploy to Vercel
-- [ ] 02-02: Build deal feed page as React Server Component reading from existing flight_cache via Drizzle
+- [ ] 02-01: Scaffold Next.js 16 app with Tailwind v4, shadcn/ui, Biome, dark theme, and deploy to Vercel
+- [ ] 02-02: Build deal feed data layer (enrichment + Drizzle query) and DealCard/DealFeed components with sweet spot badges
 - [ ] 02-03: Add filter bar (cabin, region, credit card program) as Client Component with Zustand state
 
 ### Phase 3: Search + Value Assessment
