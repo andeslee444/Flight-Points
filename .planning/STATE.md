@@ -23,11 +23,11 @@ See: .planning/PROJECT.md (updated 2026-02-26)
 ## Current Position
 
 Phase: 5 of 6 (Live Search SSE)
-Plan: 1 of 3 in current phase (complete)
-Status: Phase 5 in progress — SSE proxy via next.config.ts rewrites + live search Zustand store complete
-Last activity: 2026-02-28 — Plan 05-01 complete (next.config.ts rewrites, X-Accel-Buffering header, stores/live-search-store.ts)
+Plan: 2 of 3 in current phase (complete)
+Status: Phase 5 in progress — useLiveSearch hook with EventSource lifecycle complete
+Last activity: 2026-02-28 — Plan 05-02 complete (hooks/use-live-search.ts, tsconfig.json hooks include)
 
-Progress: [████████░░] 60% (Phase 1 complete, Phase 2 complete, Phase 3 complete, Phase 4 complete, Phase 5 Plan 1 complete)
+Progress: [████████░░] 63% (Phase 1 complete, Phase 2 complete, Phase 3 complete, Phase 4 complete, Phase 5 Plans 1-2 complete)
 
 ## Performance Metrics
 
@@ -61,6 +61,7 @@ Progress: [████████░░] 60% (Phase 1 complete, Phase 2 comple
 | Phase 04-price-history-charts P02 | 2 | 2 tasks | 2 files |
 | Phase 04-price-history-charts P03 | 2 | 2 tasks | 3 files |
 | Phase 05-live-search-sse P01 | 2 | 2 tasks | 3 files |
+| Phase 05-live-search-sse P02 | 1 | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -113,6 +114,10 @@ Recent decisions affecting current work:
 - [05-01]: HARBOR_URL fallback is http://HARBOR_URL_NOT_SET (not localhost) — missing env var fails loudly at rewrite layer, not silently
 - [05-01]: rewrites() preferred over Route Handler for SSE proxy — no Vercel serverless timeout, transparent TCP proxy
 - [05-01]: LiveFlightResult not EnrichedDeal — Harbor enrichment omits transferFrom/sweetSpot/region/transferBonuses/scrapedAt; component layer maps in Plan 05-03
+- [05-02]: useLiveSearch accesses useLiveSearchStore() at hook top level; stable Zustand ref safe to exclude from effect deps — adding would cause infinite re-renders
+- [05-02]: class param (not cabin) in URLSearchParams — matches Harbor Express req.query.class
+- [05-02]: search-error stored as __search-error pseudo-scraper key — allows uniform rendering in LiveSearchProgress without special-casing
+- [05-02]: onerror only triggers finishLive() when readyState === CLOSED; CONNECTING state means auto-reconnecting — let it retry
 
 ### Pending Todos
 
@@ -130,5 +135,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Completed 05-01-PLAN.md — SSE proxy via next.config.ts rewrites, X-Accel-Buffering header, stores/live-search-store.ts Zustand store
+Stopped at: Completed 05-02-PLAN.md — useLiveSearch hook with EventSource lifecycle, hooks/use-live-search.ts, tsconfig.json hooks include
 Resume file: None
