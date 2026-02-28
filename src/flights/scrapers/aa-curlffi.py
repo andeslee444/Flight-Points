@@ -59,9 +59,9 @@ def build_payload(origin, destination, date, cabin):
             "cabin": CABIN_MAP.get(cabin, ''),
             "departureDate": date,
             "destination": destination,
-            "destinationNearbyAirports": False,
+            "destinationNearbyAirports": True,
             "origin": origin,
-            "originNearbyAirports": False,
+            "originNearbyAirports": True,
         }],
         "tripOptions": {
             "searchType": "Award",
@@ -124,6 +124,18 @@ def parse_response(data, params):
         dep_time = first_leg.get('departureDateTime', '')
         arr_time = last_leg.get('arrivalDateTime', '')
 
+        # Extract actual origin/destination (important for nearby airport searches)
+        def get_airport_code(leg_or_seg, field, fallback):
+            val = leg_or_seg.get(field, '')
+            if isinstance(val, dict):
+                return val.get('code', '') or fallback
+            return val or fallback
+
+        origin_code = get_airport_code(first_leg, 'origin', '') or \
+                      get_airport_code(first_seg, 'origin', params['origin'])
+        dest_code = get_airport_code(last_leg, 'destination', '') or \
+                    get_airport_code(last_seg, 'destination', params['destination'])
+
         # Get operating airline from first segment
         operating = first_seg.get('legs', [{}])[0] if first_seg.get('legs') else {}
         airline_code = operating.get('operatingCarrier', {}).get('code', 'AA')
@@ -178,8 +190,8 @@ def parse_response(data, params):
                     'source': 'american-airlines',
                     'airline': airline_name,
                     'flightNumber': flight_number_str,
-                    'origin': params['origin'],
-                    'destination': params['destination'],
+                    'origin': origin_code,
+                    'destination': dest_code,
                     'departureDate': params['date'],
                     'departureTime': format_time(dep_time),
                     'arrivalTime': format_time(arr_time),

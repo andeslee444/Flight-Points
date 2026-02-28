@@ -1,0 +1,381 @@
+[     296ms] [ERROR] Failed to load resource: the server responded with a status of 403 () @ https://www.jetblue.com/booking/klarheit-xbold.68e4c2abe7a37ca4.woff2:0
+[    1759ms] Identifier 'loggerRoute' has already been declared
+[    1765ms] [WARNING] [crystal-blue-feature-flags.js] window.__ENV_CONFIG_RWB.CRYSTAL_BLUE_FEATURE_FLAGS {crystal_blue_checkout_page: false, crystal_blue_discover: true, crystal_blue_logger: true, crystal_blue_payment_page: true, crystal_blue_price_summary: true} @ https://www.jetblue.com/booking/assets/crystal-blue-feature-flags.24c84ded3dfa254971ca56af4d3e425a3d9ad520267da8ddf5df95dd3e1a36d1.js:219
+[    1859ms] [ERROR] ERROR TypeError: d is not a function
+    at https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:397979
+    at Array.forEach (<anonymous>)
+    at t._loadComponent (https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:397968)
+    at t.bootstrap (https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:397480)
+    at https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:395831
+    at Array.forEach (<anonymous>)
+    at t._moduleDoBootstrap (https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:395818)
+    at https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:395522
+    at f.invoke (https://www.jetblue.com/booker/booker-element-es2015.js:3:25873)
+    at Object.onInvoke (https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:332134) @ https://www.jetblue.com/booking/assets/monitoring/adrum.js:703
+[    1899ms] [ERROR] TypeError: d is not a function
+    at https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:397979
+    at Array.forEach (<anonymous>)
+    at t._loadComponent (https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:397968)
+    at t.bootstrap (https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:397480)
+    at https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:395831
+    at Array.forEach (<anonymous>)
+    at t._moduleDoBootstrap (https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:395818)
+    at https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:395522
+    at f.invoke (https://www.jetblue.com/booker/booker-element-es2015.js:3:25873)
+    at Object.onInvoke (https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:332134) @ https://www.jetblue.com/booking/assets/monitoring/adrum.js:703
+[    2152ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://accounts.jetblue.com/api/v1/sessions/me:0
+[   12157ms] [ERROR] Error: timeout
+    at a (https://cdn.dynamicyield.com/api/8791140/api_dynamic.js:1:974529)
+    at P.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11424)
+    at f.invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:26491)
+    at t.runTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:21789)
+    at invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:27573)
+    at T.g.useG.invoke (https://www.jetblue.com/booker/booker-element-es2015.js:3:27474)
+    at E._.args.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11045)
+    at b.xg (https://www.jetblue.com/booking/assets/monitoring/adrum.js:1764:74)
+    at https://www.jetblue.com/booking/assets/monitoring/adrum.js:1791:24 @ https://www.jetblue.com/booking/assets/monitoring/adrum.js:703
+[   12231ms] [ERROR] Error: timeout
+    at a (https://cdn.dynamicyield.com/api/8791140/api_dynamic.js:1:974529)
+    at P.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11424)
+    at f.invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:26491)
+    at t.runTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:21789)
+    at invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:27573)
+    at T.g.useG.invoke (https://www.jetblue.com/booker/booker-element-es2015.js:3:27474)
+    at E._.args.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11045)
+    at b.xg (https://www.jetblue.com/booking/assets/monitoring/adrum.js:1764:74)
+    at https://www.jetblue.com/booking/assets/monitoring/adrum.js:1791:24 @ https://www.jetblue.com/booking/assets/monitoring/adrum.js:703
+[   12232ms] [ERROR] Error: timeout
+    at a (https://cdn.dynamicyield.com/api/8791140/api_dynamic.js:1:974529)
+    at P.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11424)
+    at f.invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:26491)
+    at t.runTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:21789)
+    at invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:27573)
+    at T.g.useG.invoke (https://www.jetblue.com/booker/booker-element-es2015.js:3:27474)
+    at E._.args.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11045)
+    at b.xg (https://www.jetblue.com/booking/assets/monitoring/adrum.js:1764:74)
+    at https://www.jetblue.com/booking/assets/monitoring/adrum.js:1791:24 @ https://www.jetblue.com/booking/assets/monitoring/adrum.js:703
+[   12233ms] [ERROR] Error: timeout
+    at a (https://cdn.dynamicyield.com/api/8791140/api_dynamic.js:1:974529)
+    at P.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11424)
+    at f.invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:26491)
+    at t.runTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:21789)
+    at invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:27573)
+    at T.g.useG.invoke (https://www.jetblue.com/booker/booker-element-es2015.js:3:27474)
+    at E._.args.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11045)
+    at b.xg (https://www.jetblue.com/booking/assets/monitoring/adrum.js:1764:74)
+    at https://www.jetblue.com/booking/assets/monitoring/adrum.js:1791:24 @ https://www.jetblue.com/booking/assets/monitoring/adrum.js:703
+[   12233ms] [ERROR] Error: timeout
+    at a (https://cdn.dynamicyield.com/api/8791140/api_dynamic.js:1:974529)
+    at P.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11424)
+    at f.invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:26491)
+    at t.runTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:21789)
+    at invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:27573)
+    at T.g.useG.invoke (https://www.jetblue.com/booker/booker-element-es2015.js:3:27474)
+    at E._.args.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11045)
+    at b.xg (https://www.jetblue.com/booking/assets/monitoring/adrum.js:1764:74)
+    at https://www.jetblue.com/booking/assets/monitoring/adrum.js:1791:24 @ https://www.jetblue.com/booking/assets/monitoring/adrum.js:703
+[   12234ms] [ERROR] Error: timeout
+    at a (https://cdn.dynamicyield.com/api/8791140/api_dynamic.js:1:974529)
+    at P.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11424)
+    at f.invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:26491)
+    at t.runTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:21789)
+    at invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:27573)
+    at T.g.useG.invoke (https://www.jetblue.com/booker/booker-element-es2015.js:3:27474)
+    at E._.args.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11045)
+    at b.xg (https://www.jetblue.com/booking/assets/monitoring/adrum.js:1764:74)
+    at https://www.jetblue.com/booking/assets/monitoring/adrum.js:1791:24 @ https://www.jetblue.com/booking/assets/monitoring/adrum.js:703
+[   12244ms] [ERROR] Error: timeout
+    at a (https://cdn.dynamicyield.com/api/8791140/api_dynamic.js:1:974529)
+    at P.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11424)
+    at f.invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:26491)
+    at t.runTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:21789)
+    at invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:27573)
+    at T.g.useG.invoke (https://www.jetblue.com/booker/booker-element-es2015.js:3:27474)
+    at E._.args.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11045)
+    at b.xg (https://www.jetblue.com/booking/assets/monitoring/adrum.js:1764:74)
+    at https://www.jetblue.com/booking/assets/monitoring/adrum.js:1791:24 @ https://www.jetblue.com/booking/assets/monitoring/adrum.js:703
+[   37458ms] Identifier 'loggerRoute' has already been declared
+[   37467ms] [WARNING] [crystal-blue-feature-flags.js] window.__ENV_CONFIG_RWB.CRYSTAL_BLUE_FEATURE_FLAGS {crystal_blue_checkout_page: false, crystal_blue_discover: true, crystal_blue_logger: true, crystal_blue_payment_page: true, crystal_blue_price_summary: true} @ https://www.jetblue.com/booking/assets/crystal-blue-feature-flags.24c84ded3dfa254971ca56af4d3e425a3d9ad520267da8ddf5df95dd3e1a36d1.js:219
+[   37552ms] [ERROR] ERROR TypeError: d is not a function
+    at https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:397979
+    at Array.forEach (<anonymous>)
+    at t._loadComponent (https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:397968)
+    at t.bootstrap (https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:397480)
+    at https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:395831
+    at Array.forEach (<anonymous>)
+    at t._moduleDoBootstrap (https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:395818)
+    at https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:395522
+    at f.invoke (https://www.jetblue.com/booker/booker-element-es2015.js:3:25873)
+    at Object.onInvoke (https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:332134) @ https://www.jetblue.com/booking/assets/monitoring/adrum.js:703
+[   37593ms] [ERROR] TypeError: d is not a function
+    at https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:397979
+    at Array.forEach (<anonymous>)
+    at t._loadComponent (https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:397968)
+    at t.bootstrap (https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:397480)
+    at https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:395831
+    at Array.forEach (<anonymous>)
+    at t._moduleDoBootstrap (https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:395818)
+    at https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:395522
+    at f.invoke (https://www.jetblue.com/booker/booker-element-es2015.js:3:25873)
+    at Object.onInvoke (https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:332134) @ https://www.jetblue.com/booking/assets/monitoring/adrum.js:703
+[   37881ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://accounts.jetblue.com/api/v1/sessions/me:0
+[   47681ms] [ERROR] Error: timeout
+    at a (https://cdn.dynamicyield.com/api/8791140/api_dynamic.js:1:974529)
+    at P.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11424)
+    at f.invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:26491)
+    at t.runTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:21789)
+    at invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:27573)
+    at T.g.useG.invoke (https://www.jetblue.com/booker/booker-element-es2015.js:3:27474)
+    at E._.args.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11045)
+    at b.xg (https://www.jetblue.com/booking/assets/monitoring/adrum.js:1764:74)
+    at https://www.jetblue.com/booking/assets/monitoring/adrum.js:1791:24 @ https://www.jetblue.com/booking/assets/monitoring/adrum.js:703
+[   47953ms] [ERROR] Error: timeout
+    at a (https://cdn.dynamicyield.com/api/8791140/api_dynamic.js:1:974529)
+    at P.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11424)
+    at f.invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:26491)
+    at t.runTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:21789)
+    at invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:27573)
+    at T.g.useG.invoke (https://www.jetblue.com/booker/booker-element-es2015.js:3:27474)
+    at E._.args.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11045)
+    at b.xg (https://www.jetblue.com/booking/assets/monitoring/adrum.js:1764:74)
+    at https://www.jetblue.com/booking/assets/monitoring/adrum.js:1791:24 @ https://www.jetblue.com/booking/assets/monitoring/adrum.js:703
+[   47964ms] [ERROR] Error: timeout
+    at a (https://cdn.dynamicyield.com/api/8791140/api_dynamic.js:1:974529)
+    at P.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11424)
+    at f.invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:26491)
+    at t.runTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:21789)
+    at invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:27573)
+    at T.g.useG.invoke (https://www.jetblue.com/booker/booker-element-es2015.js:3:27474)
+    at E._.args.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11045)
+    at b.xg (https://www.jetblue.com/booking/assets/monitoring/adrum.js:1764:74)
+    at https://www.jetblue.com/booking/assets/monitoring/adrum.js:1791:24 @ https://www.jetblue.com/booking/assets/monitoring/adrum.js:703
+[   47965ms] [ERROR] Error: timeout
+    at a (https://cdn.dynamicyield.com/api/8791140/api_dynamic.js:1:974529)
+    at P.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11424)
+    at f.invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:26491)
+    at t.runTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:21789)
+    at invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:27573)
+    at T.g.useG.invoke (https://www.jetblue.com/booker/booker-element-es2015.js:3:27474)
+    at E._.args.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11045)
+    at b.xg (https://www.jetblue.com/booking/assets/monitoring/adrum.js:1764:74)
+    at https://www.jetblue.com/booking/assets/monitoring/adrum.js:1791:24 @ https://www.jetblue.com/booking/assets/monitoring/adrum.js:703
+[   47965ms] [ERROR] Error: timeout
+    at a (https://cdn.dynamicyield.com/api/8791140/api_dynamic.js:1:974529)
+    at P.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11424)
+    at f.invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:26491)
+    at t.runTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:21789)
+    at invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:27573)
+    at T.g.useG.invoke (https://www.jetblue.com/booker/booker-element-es2015.js:3:27474)
+    at E._.args.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11045)
+    at b.xg (https://www.jetblue.com/booking/assets/monitoring/adrum.js:1764:74)
+    at https://www.jetblue.com/booking/assets/monitoring/adrum.js:1791:24 @ https://www.jetblue.com/booking/assets/monitoring/adrum.js:703
+[   47965ms] [ERROR] Error: timeout
+    at a (https://cdn.dynamicyield.com/api/8791140/api_dynamic.js:1:974529)
+    at P.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11424)
+    at f.invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:26491)
+    at t.runTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:21789)
+    at invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:27573)
+    at T.g.useG.invoke (https://www.jetblue.com/booker/booker-element-es2015.js:3:27474)
+    at E._.args.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11045)
+    at b.xg (https://www.jetblue.com/booking/assets/monitoring/adrum.js:1764:74)
+    at https://www.jetblue.com/booking/assets/monitoring/adrum.js:1791:24 @ https://www.jetblue.com/booking/assets/monitoring/adrum.js:703
+[   47965ms] [ERROR] Error: timeout
+    at a (https://cdn.dynamicyield.com/api/8791140/api_dynamic.js:1:974529)
+    at P.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11424)
+    at f.invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:26491)
+    at t.runTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:21789)
+    at invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:27573)
+    at T.g.useG.invoke (https://www.jetblue.com/booker/booker-element-es2015.js:3:27474)
+    at E._.args.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11045)
+    at b.xg (https://www.jetblue.com/booking/assets/monitoring/adrum.js:1764:74)
+    at https://www.jetblue.com/booking/assets/monitoring/adrum.js:1791:24 @ https://www.jetblue.com/booking/assets/monitoring/adrum.js:703
+[  103092ms] [WARNING] [crystal-blue-feature-flags.js] window.__ENV_CONFIG_RWB.CRYSTAL_BLUE_FEATURE_FLAGS {crystal_blue_checkout_page: false, crystal_blue_discover: true, crystal_blue_logger: true, crystal_blue_payment_page: true, crystal_blue_price_summary: true} @ https://www.jetblue.com/booking/assets/crystal-blue-feature-flags.24c84ded3dfa254971ca56af4d3e425a3d9ad520267da8ddf5df95dd3e1a36d1.js:219
+[  103830ms] Identifier 'loggerRoute' has already been declared
+[  103929ms] [ERROR] ERROR TypeError: d is not a function
+    at https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:397979
+    at Array.forEach (<anonymous>)
+    at t._loadComponent (https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:397968)
+    at t.bootstrap (https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:397480)
+    at https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:395831
+    at Array.forEach (<anonymous>)
+    at t._moduleDoBootstrap (https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:395818)
+    at https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:395522
+    at f.invoke (https://www.jetblue.com/booker/booker-element-es2015.js:3:25873)
+    at Object.onInvoke (https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:332134) @ https://www.jetblue.com/booking/assets/monitoring/adrum.js:703
+[  103967ms] [ERROR] TypeError: d is not a function
+    at https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:397979
+    at Array.forEach (<anonymous>)
+    at t._loadComponent (https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:397968)
+    at t.bootstrap (https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:397480)
+    at https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:395831
+    at Array.forEach (<anonymous>)
+    at t._moduleDoBootstrap (https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:395818)
+    at https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:395522
+    at f.invoke (https://www.jetblue.com/booker/booker-element-es2015.js:3:25873)
+    at Object.onInvoke (https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:332134) @ https://www.jetblue.com/booking/assets/monitoring/adrum.js:703
+[  104240ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://accounts.jetblue.com/api/v1/sessions/me:0
+[  114249ms] [ERROR] Error: timeout
+    at a (https://cdn.dynamicyield.com/api/8791140/api_dynamic.js:1:974529)
+    at P.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11424)
+    at f.invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:26491)
+    at t.runTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:21789)
+    at invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:27573)
+    at T.g.useG.invoke (https://www.jetblue.com/booker/booker-element-es2015.js:3:27474)
+    at E._.args.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11045)
+    at b.xg (https://www.jetblue.com/booking/assets/monitoring/adrum.js:1764:74)
+    at https://www.jetblue.com/booking/assets/monitoring/adrum.js:1791:24 @ https://www.jetblue.com/booking/assets/monitoring/adrum.js:703
+[  114338ms] [ERROR] Error: timeout
+    at a (https://cdn.dynamicyield.com/api/8791140/api_dynamic.js:1:974529)
+    at P.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11424)
+    at f.invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:26491)
+    at t.runTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:21789)
+    at invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:27573)
+    at T.g.useG.invoke (https://www.jetblue.com/booker/booker-element-es2015.js:3:27474)
+    at E._.args.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11045)
+    at b.xg (https://www.jetblue.com/booking/assets/monitoring/adrum.js:1764:74)
+    at https://www.jetblue.com/booking/assets/monitoring/adrum.js:1791:24 @ https://www.jetblue.com/booking/assets/monitoring/adrum.js:703
+[  114339ms] [ERROR] Error: timeout
+    at a (https://cdn.dynamicyield.com/api/8791140/api_dynamic.js:1:974529)
+    at P.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11424)
+    at f.invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:26491)
+    at t.runTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:21789)
+    at invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:27573)
+    at T.g.useG.invoke (https://www.jetblue.com/booker/booker-element-es2015.js:3:27474)
+    at E._.args.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11045)
+    at b.xg (https://www.jetblue.com/booking/assets/monitoring/adrum.js:1764:74)
+    at https://www.jetblue.com/booking/assets/monitoring/adrum.js:1791:24 @ https://www.jetblue.com/booking/assets/monitoring/adrum.js:703
+[  114354ms] [ERROR] Error: timeout
+    at a (https://cdn.dynamicyield.com/api/8791140/api_dynamic.js:1:974529)
+    at P.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11424)
+    at f.invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:26491)
+    at t.runTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:21789)
+    at invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:27573)
+    at T.g.useG.invoke (https://www.jetblue.com/booker/booker-element-es2015.js:3:27474)
+    at E._.args.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11045)
+    at b.xg (https://www.jetblue.com/booking/assets/monitoring/adrum.js:1764:74)
+    at https://www.jetblue.com/booking/assets/monitoring/adrum.js:1791:24 @ https://www.jetblue.com/booking/assets/monitoring/adrum.js:703
+[  114355ms] [ERROR] Error: timeout
+    at a (https://cdn.dynamicyield.com/api/8791140/api_dynamic.js:1:974529)
+    at P.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11424)
+    at f.invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:26491)
+    at t.runTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:21789)
+    at invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:27573)
+    at T.g.useG.invoke (https://www.jetblue.com/booker/booker-element-es2015.js:3:27474)
+    at E._.args.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11045)
+    at b.xg (https://www.jetblue.com/booking/assets/monitoring/adrum.js:1764:74)
+    at https://www.jetblue.com/booking/assets/monitoring/adrum.js:1791:24 @ https://www.jetblue.com/booking/assets/monitoring/adrum.js:703
+[  114355ms] [ERROR] Error: timeout
+    at a (https://cdn.dynamicyield.com/api/8791140/api_dynamic.js:1:974529)
+    at P.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11424)
+    at f.invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:26491)
+    at t.runTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:21789)
+    at invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:27573)
+    at T.g.useG.invoke (https://www.jetblue.com/booker/booker-element-es2015.js:3:27474)
+    at E._.args.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11045)
+    at b.xg (https://www.jetblue.com/booking/assets/monitoring/adrum.js:1764:74)
+    at https://www.jetblue.com/booking/assets/monitoring/adrum.js:1791:24 @ https://www.jetblue.com/booking/assets/monitoring/adrum.js:703
+[  114355ms] [ERROR] Error: timeout
+    at a (https://cdn.dynamicyield.com/api/8791140/api_dynamic.js:1:974529)
+    at P.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11424)
+    at f.invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:26491)
+    at t.runTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:21789)
+    at invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:27573)
+    at T.g.useG.invoke (https://www.jetblue.com/booker/booker-element-es2015.js:3:27474)
+    at E._.args.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11045)
+    at b.xg (https://www.jetblue.com/booking/assets/monitoring/adrum.js:1764:74)
+    at https://www.jetblue.com/booking/assets/monitoring/adrum.js:1791:24 @ https://www.jetblue.com/booking/assets/monitoring/adrum.js:703
+[  141634ms] Identifier 'loggerRoute' has already been declared
+[  141651ms] [WARNING] [crystal-blue-feature-flags.js] window.__ENV_CONFIG_RWB.CRYSTAL_BLUE_FEATURE_FLAGS {crystal_blue_checkout_page: false, crystal_blue_discover: true, crystal_blue_logger: true, crystal_blue_payment_page: true, crystal_blue_price_summary: true} @ https://www.jetblue.com/booking/assets/crystal-blue-feature-flags.24c84ded3dfa254971ca56af4d3e425a3d9ad520267da8ddf5df95dd3e1a36d1.js:219
+[  141742ms] [ERROR] ERROR TypeError: d is not a function
+    at https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:397979
+    at Array.forEach (<anonymous>)
+    at t._loadComponent (https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:397968)
+    at t.bootstrap (https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:397480)
+    at https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:395831
+    at Array.forEach (<anonymous>)
+    at t._moduleDoBootstrap (https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:395818)
+    at https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:395522
+    at f.invoke (https://www.jetblue.com/booker/booker-element-es2015.js:3:25873)
+    at Object.onInvoke (https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:332134) @ https://www.jetblue.com/booking/assets/monitoring/adrum.js:703
+[  141778ms] [ERROR] TypeError: d is not a function
+    at https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:397979
+    at Array.forEach (<anonymous>)
+    at t._loadComponent (https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:397968)
+    at t.bootstrap (https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:397480)
+    at https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:395831
+    at Array.forEach (<anonymous>)
+    at t._moduleDoBootstrap (https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:395818)
+    at https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:395522
+    at f.invoke (https://www.jetblue.com/booker/booker-element-es2015.js:3:25873)
+    at Object.onInvoke (https://www.jetblue.com/booking/vendor.19aea2396b11dd62.js:1:332134) @ https://www.jetblue.com/booking/assets/monitoring/adrum.js:703
+[  142047ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://accounts.jetblue.com/api/v1/sessions/me:0
+[  152108ms] [ERROR] Error: timeout
+    at a (https://cdn.dynamicyield.com/api/8791140/api_dynamic.js:1:974529)
+    at P.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11424)
+    at f.invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:26491)
+    at t.runTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:21789)
+    at invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:27573)
+    at T.g.useG.invoke (https://www.jetblue.com/booker/booker-element-es2015.js:3:27474)
+    at E._.args.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11045)
+    at b.xg (https://www.jetblue.com/booking/assets/monitoring/adrum.js:1764:74)
+    at https://www.jetblue.com/booking/assets/monitoring/adrum.js:1791:24 @ https://www.jetblue.com/booking/assets/monitoring/adrum.js:703
+[  152223ms] [ERROR] Error: timeout
+    at a (https://cdn.dynamicyield.com/api/8791140/api_dynamic.js:1:974529)
+    at P.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11424)
+    at f.invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:26491)
+    at t.runTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:21789)
+    at invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:27573)
+    at T.g.useG.invoke (https://www.jetblue.com/booker/booker-element-es2015.js:3:27474)
+    at E._.args.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11045)
+    at b.xg (https://www.jetblue.com/booking/assets/monitoring/adrum.js:1764:74)
+    at https://www.jetblue.com/booking/assets/monitoring/adrum.js:1791:24 @ https://www.jetblue.com/booking/assets/monitoring/adrum.js:703
+[  152224ms] [ERROR] Error: timeout
+    at a (https://cdn.dynamicyield.com/api/8791140/api_dynamic.js:1:974529)
+    at P.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11424)
+    at f.invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:26491)
+    at t.runTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:21789)
+    at invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:27573)
+    at T.g.useG.invoke (https://www.jetblue.com/booker/booker-element-es2015.js:3:27474)
+    at E._.args.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11045)
+    at b.xg (https://www.jetblue.com/booking/assets/monitoring/adrum.js:1764:74)
+    at https://www.jetblue.com/booking/assets/monitoring/adrum.js:1791:24 @ https://www.jetblue.com/booking/assets/monitoring/adrum.js:703
+[  152224ms] [ERROR] Error: timeout
+    at a (https://cdn.dynamicyield.com/api/8791140/api_dynamic.js:1:974529)
+    at P.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11424)
+    at f.invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:26491)
+    at t.runTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:21789)
+    at invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:27573)
+    at T.g.useG.invoke (https://www.jetblue.com/booker/booker-element-es2015.js:3:27474)
+    at E._.args.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11045)
+    at b.xg (https://www.jetblue.com/booking/assets/monitoring/adrum.js:1764:74)
+    at https://www.jetblue.com/booking/assets/monitoring/adrum.js:1791:24 @ https://www.jetblue.com/booking/assets/monitoring/adrum.js:703
+[  152224ms] [ERROR] Error: timeout
+    at a (https://cdn.dynamicyield.com/api/8791140/api_dynamic.js:1:974529)
+    at P.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11424)
+    at f.invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:26491)
+    at t.runTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:21789)
+    at invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:27573)
+    at T.g.useG.invoke (https://www.jetblue.com/booker/booker-element-es2015.js:3:27474)
+    at E._.args.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11045)
+    at b.xg (https://www.jetblue.com/booking/assets/monitoring/adrum.js:1764:74)
+    at https://www.jetblue.com/booking/assets/monitoring/adrum.js:1791:24 @ https://www.jetblue.com/booking/assets/monitoring/adrum.js:703
+[  152231ms] [ERROR] Error: timeout
+    at a (https://cdn.dynamicyield.com/api/8791140/api_dynamic.js:1:974529)
+    at P.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11424)
+    at f.invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:26491)
+    at t.runTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:21789)
+    at invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:27573)
+    at T.g.useG.invoke (https://www.jetblue.com/booker/booker-element-es2015.js:3:27474)
+    at E._.args.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11045)
+    at b.xg (https://www.jetblue.com/booking/assets/monitoring/adrum.js:1764:74)
+    at https://www.jetblue.com/booking/assets/monitoring/adrum.js:1791:24 @ https://www.jetblue.com/booking/assets/monitoring/adrum.js:703
+[  152231ms] [ERROR] Error: timeout
+    at a (https://cdn.dynamicyield.com/api/8791140/api_dynamic.js:1:974529)
+    at P.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11424)
+    at f.invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:26491)
+    at t.runTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:21789)
+    at invokeTask (https://www.jetblue.com/booker/booker-element-es2015.js:3:27573)
+    at T.g.useG.invoke (https://www.jetblue.com/booker/booker-element-es2015.js:3:27474)
+    at E._.args.<computed> (https://www.jetblue.com/booker/booker-element-es2015.js:3:11045)
+    at b.xg (https://www.jetblue.com/booking/assets/monitoring/adrum.js:1764:74)
+    at https://www.jetblue.com/booking/assets/monitoring/adrum.js:1791:24 @ https://www.jetblue.com/booking/assets/monitoring/adrum.js:703

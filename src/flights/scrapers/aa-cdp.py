@@ -53,8 +53,8 @@ def main():
     passengers = params.get("passengers", 1)
 
     slices = json.dumps([{
-        "orig": origin, "origNearby": False,
-        "dest": destination, "destNearby": False,
+        "orig": origin, "origNearby": True,
+        "dest": destination, "destNearby": True,
         "date": date,
     }])
 

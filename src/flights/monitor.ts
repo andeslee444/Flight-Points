@@ -152,7 +152,16 @@ function processScraperResults(
  * Find the transfer partner that matches a scraper source.
  */
 function findPartnerForSource(source: string, program: string | undefined, partners: TransferPartner[]): TransferPartner | undefined {
-  // Direct match by source → programCode
+  // Try matching by program name first (most accurate — uses what the scraper actually reports)
+  if (program) {
+    const match = partners.find(p =>
+      p.program.toLowerCase().includes(program.toLowerCase()) ||
+      program.toLowerCase().includes(p.programCode)
+    );
+    if (match) return match;
+  }
+
+  // Fallback: map source → programCode(s)
   const sourceToCode: Record<string, string[]> = {
     'united': ['united'],
     'aa': ['american', 'ba-avios'],
@@ -166,15 +175,6 @@ function findPartnerForSource(source: string, program: string | undefined, partn
   const codes = sourceToCode[source] || [];
   for (const code of codes) {
     const match = partners.find(p => p.programCode === code);
-    if (match) return match;
-  }
-
-  // Try matching by program name
-  if (program) {
-    const match = partners.find(p =>
-      p.program.toLowerCase().includes(program.toLowerCase()) ||
-      program.toLowerCase().includes(p.programCode)
-    );
     if (match) return match;
   }
 

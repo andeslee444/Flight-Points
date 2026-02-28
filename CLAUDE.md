@@ -41,6 +41,14 @@ TypeScript `.ts` wrappers call Python `.py` scripts via `execFile`. All scrapers
 
 **Chrome CDP module** (`chrome_cdp.py`): `create_cdp_browser(profile_name)` → `(browser, context, page, cleanup_fn)`. Launches Chrome normally (no automation flags), uses `/tmp/chrome-cdp-<name>` for profile isolation.
 
+### Alliance Gateway Strategy
+
+~4 scrapers cover ~80% of all award flights by searching partner availability across entire alliances:
+- **AA** → all oneworld partners (Cathay, JAL, Qatar, Qantas, BA, Finnair, Iberia)
+- **United/Aeroplan** → all Star Alliance partners (ANA, Singapore, Lufthansa, Turkish, EVA)
+- **Delta / Flying Blue** → all SkyTeam partners
+- **Google Flights** → cash prices for CPP calculation
+
 ### Daemon Flow (`flight-daemon.ts`)
 
 The daemon is the production entry point:
@@ -67,6 +75,8 @@ The daemon is the production entry point:
 - **`scraper-health.ts`** — Circuit breaker + per-scraper success/failure tracking
 - **`history.ts`** — Price history tracking with 90-day pruning and atomic writes
 - **`utils.ts`** — `atomicWriteFileSync` and async `atomicWriteFile` for data integrity
+- **`db.ts`** — PostgreSQL via `pg` singleton pool, typed query functions, graceful degradation (requires `DATABASE_URL`)
+- **`live-scraper.ts`** — On-demand SSE scraping from web UI, max 2 concurrent, metro airport dedup
 - **`scrapers/index.ts`** — Scraper registry (`SCRAPER_REGISTRY`); ~4 alliance-gateway scrapers cover ~80% of flights
 - **`scrapers/cache.ts`** — Bounded in-memory cache (500 max entries, 30min TTL) with optional disk persistence
 - **`scrapers/camoufox-runner.ts`** — Shared Camoufox Python subprocess runner with retry logic
@@ -84,6 +94,7 @@ The daemon is the production entry point:
 - `sent-alerts.json` — Alert dedup tracking (90-day TTL)
 - `daemon-status.json` — Daemon health metrics (pid, RSS, last scan time)
 - `scraper-health.json` — Per-scraper success/failure stats and circuit breaker state
+- `flight-cache.json` — Web cache for frontend display
 
 ### Web Server & Frontend (`web-server.ts`, `web/public/`)
 
@@ -122,7 +133,8 @@ Config in `config/stealth-config.json`. `cookie_farm.py` provides Akamai _abck c
 - **Camoufox** — Anti-detect Firefox fork (Python subprocess)
 - **curl_cffi** — Python HTTP client with TLS fingerprint impersonation
 - **Patchright** — Patched Playwright for stealth browser automation (Python)
-- **Express** — Dev-mode web server
+- **Express** — Web server (port 3000)
+- **PostgreSQL** — AWS RDS via `pg` (signups, alerts, history)
 - **tsx** — TypeScript execution (dev/tests)
 - Target: ES2022, module: NodeNext, strict mode
 
@@ -150,6 +162,16 @@ Key environment variables (see `.env.example` for full list with descriptions):
 - `SQ_KRISFLYER_ID`, `SQ_KRISFLYER_PASSWORD` — Singapore Airlines scraper
 - `BA_EXEC_CLUB_NUMBER`, `BA_EXEC_CLUB_PASSWORD` — British Airways scraper
 - `AEROPLAN_USERNAME`, `AEROPLAN_PASSWORD` — United via Aeroplan scraper
+- `DATABASE_URL` — PostgreSQL connection string (required for web server)
+- `PG_SSL` — Set to `"false"` for local dev (default: SSL enabled)
 - `DATA_DIR` — Base directory for data files (default: `./data`)
-- `PROXY_URL` — SOCKS5 proxy for anti-detect browsers
+- `PROXY_URL` — SOCKS5 proxy for anti-detect browsers (e.g. `socks5://127.0.0.1:1081`)
 - `SCRAPER_CACHE_DIR` — Enable disk-backed scraper cache
+- `WEB_CACHE_PATH` — Path to shared flight cache JSON for frontend
+- `DATE_SAMPLING_DAYS` — Days between sampled search dates (default: 14)
+
+## Deployment
+
+- **Production**: Daemon runs on Harbor (Mac Mini) via `npm run daemon`
+- **Vercel**: Frontend deployed via GitHub (`andeslee444/Flight-Points`). SSE/live-search and Python scrapers do NOT work on Vercel (no Python runtime). `npm run vercel-build` copies `web/public/` to `public/` for static hosting.
+- **Database**: AWS RDS PostgreSQL — `DATABASE_URL` must be set in both local `.env` and Vercel dashboard

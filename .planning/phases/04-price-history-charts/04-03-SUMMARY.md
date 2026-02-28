@@ -111,6 +111,16 @@ Transfer bonuses are manually maintained in `lib/transfer-bonuses.ts`. To add an
 - `lib/transfer-bonuses.ts` is easy to update when new promotions are announced
 - Build verified clean: `npm run next-build` passes with all routes
 
+## Self-Check: PASSED
+
+- FOUND: lib/transfer-bonuses.ts
+- FOUND: lib/enrichment.ts (modified)
+- FOUND: components/flight-result-card.tsx (modified)
+- FOUND: .planning/phases/04-price-history-charts/04-03-SUMMARY.md
+- FOUND commit: 3cc9a2b (Task 1 — transfer bonus config + enrichment)
+- FOUND commit: 694512c (Task 2 — FlightResultCard amber label)
+- FOUND commit: 5481771 (docs — plan metadata)
+
 ---
 *Phase: 04-price-history-charts*
 *Completed: 2026-02-28*

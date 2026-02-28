@@ -612,8 +612,7 @@
       });
 
       liveEventSource.addEventListener('scraper-skipped', (e) => {
-        const d = JSON.parse(e.data);
-        addOrUpdateScraperRow(d.scraper, d.name, 'skipped', d.reason);
+        // Don't show blocked scrapers in the UI — only show active ones
       });
 
       liveEventSource.addEventListener('complete', (e) => {

@@ -23,8 +23,9 @@ export function canStartLiveScrape(): boolean {
 // ── Metro airport collapse ──────────────────────────────────
 
 /**
- * Metro airport groups: award availability is identical across
- * airports in the same metro area, so we only need to search one.
+ * Metro airport groups: for scrapers with supportsNearbyAirports=true,
+ * one search covers the entire metro area. For other scrapers, we
+ * search each airport individually to avoid missing nearby results.
  */
 const METRO_GROUPS: Record<string, string> = {
   // NYC
@@ -130,25 +131,30 @@ export async function runLiveScrape(
   let scrapersFailed = 0;
 
   try {
-    // Collapse metro airports: JFK,LGA,EWR → JFK; NRT,HND → NRT
+    // Collapse metro airports for scrapers with supportsNearbyAirports
+    // (one search covers entire metro area). Other scrapers get the full list.
     const collapsedOrigins = collapseToRepresentative(origins);
     let collapsedDests = collapseToRepresentative(dests);
     if (collapsedOrigins.length < origins.length || collapsedDests.length < dests.length) {
-      console.log(`[LiveScrape] Collapsed: [${origins}]→[${collapsedOrigins}], [${dests}]→[${collapsedDests}]`);
+      console.log(`[LiveScrape] Collapsed (for nearby-capable scrapers): [${origins}]→[${collapsedOrigins}], [${dests}]→[${collapsedDests}]`);
     }
 
-    // Cap destinations to avoid very long searches (e.g. "Italy" = 14 airports)
+    // Cap airports to avoid very long searches (e.g. "Italy" = 14 airports)
     const MAX_LIVE_DESTS = 3;
+    const MAX_LIVE_ORIGINS = 3;
     if (collapsedDests.length > MAX_LIVE_DESTS) {
-      console.log(`[LiveScrape] Capping destinations from ${collapsedDests.length} to ${MAX_LIVE_DESTS}: [${collapsedDests.slice(0, MAX_LIVE_DESTS)}] (dropped: [${collapsedDests.slice(MAX_LIVE_DESTS)}])`);
+      console.log(`[LiveScrape] Capping collapsed destinations from ${collapsedDests.length} to ${MAX_LIVE_DESTS}: [${collapsedDests.slice(0, MAX_LIVE_DESTS)}] (dropped: [${collapsedDests.slice(MAX_LIVE_DESTS)}])`);
       collapsedDests = collapsedDests.slice(0, MAX_LIVE_DESTS);
     }
+    // Cap un-collapsed airports too (for non-nearby scrapers)
+    let cappedOrigins = origins.length > MAX_LIVE_ORIGINS ? origins.slice(0, MAX_LIVE_ORIGINS) : origins;
+    let cappedDests = dests.length > MAX_LIVE_DESTS ? dests.slice(0, MAX_LIVE_DESTS) : dests;
 
     // Use deduplicated scrapers (1 per alliance) and fewer dates for live search
     const scraperKeys = getScrapersForLiveSearch(programSlug);
     const dates = date ? [date] : generateSampleDates(LIVE_SEARCH_DATE_COUNT);
 
-    console.log(`[LiveScrape] Starting for ${programSlug}: scrapers=${scraperKeys.join(',')}, origins=${collapsedOrigins}, dests=${collapsedDests}, dates=${dates.join(',')}`);
+    console.log(`[LiveScrape] Starting for ${programSlug}: scrapers=${scraperKeys.join(',')}, origins=${collapsedOrigins}(collapsed)/${cappedOrigins}(full), dests=${collapsedDests}(collapsed)/${cappedDests}(full), dates=${dates.join(',')}`);
 
     const scraperPromises = scraperKeys.map(async (key) => {
       const entry = SCRAPER_REGISTRY[key];
@@ -172,11 +178,16 @@ export async function runLiveScrape(
       const perCallTimeout = LIVE_SEARCH_PER_CALL_TIMEOUT_MS;
       let scraperResults: FlightResult[] = [];
 
+      // Scrapers with supportsNearbyAirports only need collapsed metro airports
+      // (one search covers all nearby airports). Others search each airport individually.
+      const useOrigins = entry.supportsNearbyAirports ? collapsedOrigins : cappedOrigins;
+      const useDests = entry.supportsNearbyAirports ? collapsedDests : cappedDests;
+
       try {
         // Run each origin x dest x date sequentially within this scraper
-        for (const origin of collapsedOrigins) {
+        for (const origin of useOrigins) {
           if (signal?.aborted) break;
-          for (const dest of collapsedDests) {
+          for (const dest of useDests) {
             if (signal?.aborted) break;
             for (const date of dates) {
               if (signal?.aborted) break;

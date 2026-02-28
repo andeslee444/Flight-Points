@@ -1,0 +1,173 @@
+[     410ms] [WARNING] single-spa-react: @smiles/mobile-header's rootComponent should implement componentDidCatch to avoid accidentally unmounting the entire single-spa application. @ https://www.smiles.com.br/mfe-portal/static/0.smiles-root-config.js:0
+[     412ms] [WARNING] single-spa-react: @smiles/header's rootComponent should implement componentDidCatch to avoid accidentally unmounting the entire single-spa application. @ https://www.smiles.com.br/mfe-portal/static/0.smiles-root-config.js:0
+[     414ms] [WARNING] single-spa-react: @smiles/footer's rootComponent should implement componentDidCatch to avoid accidentally unmounting the entire single-spa application. @ https://www.smiles.com.br/mfe-portal/static/0.smiles-root-config.js:0
+[     419ms] Error: application '@smiles/mobile-header' died in status SKIP_BECAUSE_BROKEN: single-spa-react: domElementGetter function for application '@smiles/mobile-header' did not return a valid dom element. Please pass a valid domElement or domElementGetter via opts or props
+    at https://www.smiles.com.br/mfe-portal/static/0.smiles-root-config.js:1:2844
+    at https://www.smiles.com.br/mfe-portal/static/0.smiles-root-config.js:1:3063
+    at new Promise (<anonymous>)
+    at c (https://www.smiles.com.br/mfe-portal/static/0.smiles-root-config.js:1:1337)
+    at https://www.smiles.com.br/mfe-portal/static/smiles-root-config.js?v=0.95.1743:1:6188
+[     598ms] [WARNING] [Endpoints] Endpoint ApiGwBr is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     598ms] [WARNING] [Endpoints] Endpoint ApiOAG is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     651ms] [WARNING] [Endpoints] Endpoint ApiGwBr is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     651ms] [WARNING] [Endpoints] Endpoint ApiOAG is registered 3 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     651ms] [WARNING] [Endpoints] Endpoint ApiAirports is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     652ms] [WARNING] [Endpoints] Endpoint ApiBoardingTax is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     675ms] [WARNING] [Endpoints] Endpoint ApiGwBr is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     675ms] [WARNING] [Endpoints] Endpoint ApiOAG is registered 4 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     675ms] [WARNING] [Endpoints] Endpoint ApiAccount is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     675ms] [WARNING] [Endpoints] Endpoint ApiAirports is registered 3 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     675ms] [WARNING] [Endpoints] Endpoint ApiBoardingTax is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     702ms] [WARNING] [Endpoints] Endpoint ApiGwBr is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     702ms] [WARNING] [Endpoints] Endpoint ApiOAG is registered 4 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     702ms] [WARNING] [Endpoints] Endpoint ApiAccount is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     702ms] [WARNING] [Endpoints] Endpoint ApiAirports is registered 3 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     702ms] [WARNING] [Endpoints] Endpoint ApiBoardingTax is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     713ms] [WARNING] [Endpoints] Endpoint ApiGwBr is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     713ms] [WARNING] [Endpoints] Endpoint ApiGwBrOther is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     713ms] [WARNING] [Endpoints] Endpoint ApiOAG is registered 4 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     713ms] [WARNING] [Endpoints] Endpoint ApiAccount is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     713ms] [WARNING] [Endpoints] Endpoint ApiAirports is registered 3 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     713ms] [WARNING] [Endpoints] Endpoint ApiBoardingTax is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     726ms] [WARNING] [Endpoints] Endpoint ApiGwBr is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     726ms] [WARNING] [Endpoints] Endpoint ApiGwBrOther is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     726ms] [WARNING] [Endpoints] Endpoint ApiOAG is registered 5 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     726ms] [WARNING] [Endpoints] Endpoint ApiAccount is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     727ms] [WARNING] [Endpoints] Endpoint ApiAirports is registered 4 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     727ms] [WARNING] [Endpoints] Endpoint ApiBoardingTax is registered 3 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     727ms] [WARNING] [Endpoints] Endpoint ApiAirlinesCarousel is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     727ms] [WARNING] [Endpoints] Endpoint ApiAirlinesCalendar is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     727ms] [WARNING] [Endpoints] Endpoint ApiFlightSearch is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     727ms] [WARNING] [Endpoints] Endpoint ApiFlightAvailability is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     727ms] [WARNING] [Endpoints] Endpoint CheckelEgibilityUpgrade is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     727ms] [WARNING] [Endpoints] Endpoint ApiOptinWhatsApp is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     727ms] [WARNING] [Endpoints] Endpoint ApiRadar is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     727ms] [WARNING] [Endpoints] Endpoint ApiRetroCredit is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     727ms] [WARNING] [Endpoints] Endpoint ApiMemberFlight is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     740ms] [WARNING] [Endpoints] Endpoint ApiGwBr is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     741ms] [WARNING] [Endpoints] Endpoint ApiGwBrOther is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     741ms] [WARNING] [Endpoints] Endpoint ApiOAG is registered 5 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     741ms] [WARNING] [Endpoints] Endpoint ApiAccount is registered 3 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     741ms] [WARNING] [Endpoints] Endpoint ApiClubPlan is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     741ms] [WARNING] [Endpoints] Endpoint ApiAirports is registered 5 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     741ms] [WARNING] [Endpoints] Endpoint ApiBoardingTax is registered 4 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     741ms] [WARNING] [Endpoints] Endpoint ApiGraphQL is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     741ms] [WARNING] [Endpoints] Endpoint ApiTier is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     741ms] [WARNING] [Endpoints] Endpoint ApiAirlinesCarousel is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     741ms] [WARNING] [Endpoints] Endpoint ApiAirlinesCalendar is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     741ms] [WARNING] [Endpoints] Endpoint ApiFlightSearch is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     741ms] [WARNING] [Endpoints] Endpoint ApiFlightAvailability is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     741ms] [WARNING] [Endpoints] Endpoint CheckelEgibilityUpgrade is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     741ms] [WARNING] [Endpoints] Endpoint ApiOptinWhatsApp is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     741ms] [WARNING] [Endpoints] Endpoint ApiRadar is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     741ms] [WARNING] [Endpoints] Endpoint ApiRetroCredit is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     741ms] [WARNING] [Endpoints] Endpoint ApiMemberFlight is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     747ms] [WARNING] [Endpoints] Endpoint ApiGwBr is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     747ms] [WARNING] [Endpoints] Endpoint ApiGwBrOther is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     747ms] [WARNING] [Endpoints] Endpoint ApiOAG is registered 5 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     747ms] [WARNING] [Endpoints] Endpoint ApiAccount is registered 3 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     747ms] [WARNING] [Endpoints] Endpoint ApiClubPlan is registered 3 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     747ms] [WARNING] [Endpoints] Endpoint ApiAirports is registered 5 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     747ms] [WARNING] [Endpoints] Endpoint ApiBoardingTax is registered 4 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     748ms] [WARNING] [Endpoints] Endpoint ApiGraphQL is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     748ms] [WARNING] [Endpoints] Endpoint ApiTier is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     748ms] [WARNING] [Endpoints] Endpoint ApiAirlinesCarousel is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     748ms] [WARNING] [Endpoints] Endpoint ApiAirlinesCalendar is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     748ms] [WARNING] [Endpoints] Endpoint ApiFlightSearch is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     748ms] [WARNING] [Endpoints] Endpoint ApiFlightAvailability is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     748ms] [WARNING] [Endpoints] Endpoint CheckelEgibilityUpgrade is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     748ms] [WARNING] [Endpoints] Endpoint ApiOptinWhatsApp is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     748ms] [WARNING] [Endpoints] Endpoint ApiRadar is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     748ms] [WARNING] [Endpoints] Endpoint ApiRetroCredit is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     748ms] [WARNING] [Endpoints] Endpoint ApiMemberFlight is registered 2 times @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[     754ms] [WARNING] single-spa-react: @smiles/flight-availability's rootComponent should implement componentDidCatch to avoid accidentally unmounting the entire single-spa application. @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[    1004ms] [ERROR] ValidationError: departureDate field must be later than 2026-02-23T19:49:36.903Z
+    at h (https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:2:8203974)
+    at t (https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:2:8204459)
+    at Tn (https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:2:8201860)
+    at https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:2:8209802
+    at https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:2:8201722
+    at https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:2:8202058
+    at t (https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:2:8204447)
+    at Tn (https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:2:8201860)
+    at Zn._validate (https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:2:8209736)
+    at Zn.validate (https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:2:8209964) @ https://www.datadoghq-browser-agent.com/us1/v6/datadog-rum.js:0
+[    1020ms] [ERROR] ValidationError: departureDate field must be later than 2026-02-23T19:49:36.903Z
+    at h (https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:2:8203974)
+    at t (https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:2:8204459)
+    at Tn (https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:2:8201860)
+    at https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:2:8209802
+    at https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:2:8201722
+    at https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:2:8202058
+    at t (https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:2:8204447)
+    at Tn (https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:2:8201860)
+    at Zn._validate (https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:2:8209736)
+    at Zn.validate (https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:2:8209964) @ https://www.datadoghq-browser-agent.com/us1/v6/datadog-rum.js:0
+[    1021ms] [WARNING] INVALID SEARCH QUERY @ https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:1
+[    1029ms] [ERROR] TypeError: Cannot read properties of null (reading 'memberNumber')
+    at dp (https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:2:8363087)
+    at dp.next (<anonymous>)
+    at c (https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:2:8254671)
+    at l (https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:2:8254989)
+    at ys.<computed> (https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:2:8251693)
+    at https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:2:8254302
+    at m (https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:2:8255204)
+    at c (https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:2:8254731)
+    at _s (https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:2:8254496)
+    at https://www.smiles.com.br/mfe-apps/flight-availability/0.32.649/smiles-flight-availability.js:2:8251113 @ https://www.datadoghq-browser-agent.com/us1/v6/datadog-rum.js:0
+[    1030ms] [ERROR] The above error occurred in task dp
+    created by takeLatest(global/changeMemberData, dp)
+    created by mp
+Tasks cancelled due to error:
+takeLatest(global/changeMemberData, dp)
+takeLatest(global/init, up)
+takeLatest(global/persistStore, cp) @ https://www.datadoghq-browser-agent.com/us1/v6/datadog-rum.js:0
+[    1034ms] [ERROR] TypeError: Cannot read properties of null (reading 'querySelector')
+    at Object.smlsManageMenuOption (https://static.smiler.com.br/hf/header.js?v=0.95.1743:1334:37)
+    at Object.initCommonsElements (https://static.smiler.com.br/hf/header.js?v=0.95.1743:1949:12)
+    at Object.init (https://static.smiler.com.br/hf/header.js?v=0.95.1743:2787:12)
+    at window.smlsReloadHeader (https://static.smiler.com.br/hf/header.js?v=0.95.1743:3011:22)
+    at https://www.smiles.com.br/mfe-portal/static/9.smiles-root-config.js:1:775
+    at la (https://www.smiles.com.br/mfe-portal/static/0.smiles-root-config.js:22:83209)
+    at gu (https://www.smiles.com.br/mfe-portal/static/0.smiles-root-config.js:22:102288)
+    at t.unstable_runWithPriority (https://www.smiles.com.br/mfe-portal/static/0.smiles-root-config.js:30:3844)
+    at Bl (https://www.smiles.com.br/mfe-portal/static/0.smiles-root-config.js:22:45024)
+    at hu (https://www.smiles.com.br/mfe-portal/static/0.smiles-root-config.js:22:102047) @ https://www.datadoghq-browser-agent.com/us1/v6/datadog-rum.js:0
+[    1065ms] [ERROR] Failed to load resource: the server responded with a status of 452 () @ https://airports-green.smiles.com.br/v1/airports?size=50:0
+[    1773ms] [ERROR] Creating a worker from 'blob:https://www.smiles.com.br/420c28c9-77a3-4ccf-9132-0f739c831963' violates the following Content Security Policy directive: "script-src 'unsafe-inline' 'unsafe-eval' https: localhost:*". Note that 'worker-src' was not explicitly set, so 'script-src' is used as a fallback. The action has been blocked. @ https://www.smiles.com.br/_lx-MWATM/tNJsL-Y/Wgg4mB6/2Kcg/w0t9hfEcau/B1p4AQ/MAstMGhu/MVUPAg?v=e33b60b4-2206-52f2-711f-e1f32ad91730:0
+[    1817ms] [ERROR] Creating a worker from 'blob:https://www.smiles.com.br/70a1fdec-bce3-48de-b0b1-40c5312653b2' violates the following Content Security Policy directive: "script-src 'unsafe-inline' 'unsafe-eval' https: localhost:*". Note that 'worker-src' was not explicitly set, so 'script-src' is used as a fallback. The action has been blocked. @ https://www.smiles.com.br/_lx-MWATM/tNJsL-Y/Wgg4mB6/2Kcg/fit9hfzhzzbhN0uN/eXZvAQ/K1tkI0sJ/NVYB:0
+[    3038ms] Uncaught TypeError: Cannot read properties of null (reading 'querySelector')
+    at smlsManageMenuOption (https://static.smiler.com.br/hf/header.js?v=0.95.1743:1333:36)
+    at initCommonsElements (https://static.smiler.com.br/hf/header.js?v=0.95.1743:1948:11)
+    at init (https://static.smiler.com.br/hf/header.js?v=0.95.1743:2786:11)
+    at <anonymous> (https://static.smiler.com.br/hf/header.js?v=0.95.1743:1903:46)
+[    5039ms] Uncaught TypeError: Cannot read properties of null (reading 'querySelector')
+    at smlsManageMenuOption (https://static.smiler.com.br/hf/header.js?v=0.95.1743:1333:36)
+    at initCommonsElements (https://static.smiler.com.br/hf/header.js?v=0.95.1743:1948:11)
+    at init (https://static.smiler.com.br/hf/header.js?v=0.95.1743:2786:11)
+    at <anonymous> (https://static.smiler.com.br/hf/header.js?v=0.95.1743:1903:46)
+[    7041ms] Uncaught TypeError: Cannot read properties of null (reading 'querySelector')
+    at smlsManageMenuOption (https://static.smiler.com.br/hf/header.js?v=0.95.1743:1333:36)
+    at initCommonsElements (https://static.smiler.com.br/hf/header.js?v=0.95.1743:1948:11)
+    at init (https://static.smiler.com.br/hf/header.js?v=0.95.1743:2786:11)
+    at <anonymous> (https://static.smiler.com.br/hf/header.js?v=0.95.1743:1903:46)
+[    9045ms] Uncaught TypeError: Cannot read properties of null (reading 'querySelector')
+    at smlsManageMenuOption (https://static.smiler.com.br/hf/header.js?v=0.95.1743:1333:36)
+    at initCommonsElements (https://static.smiler.com.br/hf/header.js?v=0.95.1743:1948:11)
+    at init (https://static.smiler.com.br/hf/header.js?v=0.95.1743:2786:11)
+    at <anonymous> (https://static.smiler.com.br/hf/header.js?v=0.95.1743:1903:46)
+[   11045ms] Uncaught TypeError: Cannot read properties of null (reading 'querySelector')
+    at smlsManageMenuOption (https://static.smiler.com.br/hf/header.js?v=0.95.1743:1333:36)
+    at initCommonsElements (https://static.smiler.com.br/hf/header.js?v=0.95.1743:1948:11)
+    at init (https://static.smiler.com.br/hf/header.js?v=0.95.1743:2786:11)
+    at <anonymous> (https://static.smiler.com.br/hf/header.js?v=0.95.1743:1903:46)
+[   13046ms] Uncaught TypeError: Cannot read properties of null (reading 'querySelector')
+    at smlsManageMenuOption (https://static.smiler.com.br/hf/header.js?v=0.95.1743:1333:36)
+    at initCommonsElements (https://static.smiler.com.br/hf/header.js?v=0.95.1743:1948:11)
+    at init (https://static.smiler.com.br/hf/header.js?v=0.95.1743:2786:11)
+    at <anonymous> (https://static.smiler.com.br/hf/header.js?v=0.95.1743:1903:46)
+[   15048ms] Uncaught TypeError: Cannot read properties of null (reading 'querySelector')
+    at smlsManageMenuOption (https://static.smiler.com.br/hf/header.js?v=0.95.1743:1333:36)
+    at initCommonsElements (https://static.smiler.com.br/hf/header.js?v=0.95.1743:1948:11)
+    at init (https://static.smiler.com.br/hf/header.js?v=0.95.1743:2786:11)
+    at <anonymous> (https://static.smiler.com.br/hf/header.js?v=0.95.1743:1903:46)
