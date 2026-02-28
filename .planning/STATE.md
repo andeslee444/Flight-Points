@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-02-27T23:11:46.959Z"
+last_updated: "2026-02-28T00:33:00.000Z"
 progress:
-  total_phases: 3
+  total_phases: 6
   completed_phases: 3
-  total_plans: 11
-  completed_plans: 11
+  total_plans: 12
+  completed_plans: 12
 ---
 
 # Project State
@@ -18,16 +18,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-26)
 
 **Core value:** Users instantly know whether a points redemption is a good deal — and never miss an incredible one.
-**Current focus:** Phase 3 — Search + Value Assessment
+**Current focus:** Phase 4 — Price History Charts
 
 ## Current Position
 
-Phase: 3 of 6 (Search + Value Assessment)
-Plan: 4 of 4 in current phase (complete)
-Status: Phase 3 complete — Metro dedup toggle, alliance coverage labels, scraper health notices added
-Last activity: 2026-02-27 — Plan 03-04 complete (metro dedup toggle, METRO_GROUPS constant, CoverageNotices component, alliance badges, health notices)
+Phase: 4 of 6 (Price History Charts)
+Plan: 1 of 3 in current phase (complete)
+Status: Phase 4 in progress — Price history API route + shadcn chart installed
+Last activity: 2026-02-28 — Plan 04-01 complete (getPriceHistory query, /api/flights/history route, shadcn chart, --chart-* CSS vars)
 
-Progress: [██████████] 91% (Phase 1 complete, Phase 2 complete, Phase 3 complete)
+Progress: [████████░░] 50% (Phase 1 complete, Phase 2 complete, Phase 3 complete, Phase 4 Plan 1 complete)
 
 ## Performance Metrics
 
@@ -57,6 +57,7 @@ Progress: [██████████] 91% (Phase 1 complete, Phase 2 comple
 | Phase 03-search-value-assessment P02 | 8 | 2 tasks | 6 files |
 | Phase 03-search-value-assessment P03 | 2 | 2 tasks | 3 files |
 | Phase 03-search-value-assessment P04 | 1 | 2 tasks | 4 files |
+| Phase 04-price-history-charts P01 | 6 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -96,6 +97,10 @@ Recent decisions affecting current work:
 - [03-04]: METRO_GROUPS constant copied into search-results.tsx (not imported from live-scraper.ts) to avoid daemon transitive deps
 - [03-04]: CoverageNotices is a Server Component — data is static from lib/coverage.ts, no client state needed
 - [03-04]: Metro dedup defaults to collapsed (showAllAirports=false) — clean view by default, toggle to expand
+- [04-01]: INTERVAL '1 day' * ${days} syntax for parameterized SQL — avoids sql.raw() injection risk while keeping Drizzle parameterization
+- [04-01]: Multi-airport from/to params in history route take only first airport for v1 (split on comma) — matches getSearchResults() pattern
+- [04-01]: availability_type = 'confirmed' filter in getPriceHistory() SQL — ensures only real live deal history, not estimated/calendar data
+- [04-01]: Chart CSS vars added to @theme inline block (not @layer base) — required for Tailwind 4 CSS variable system
 
 ### Pending Todos
 
@@ -112,6 +117,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-27
-Stopped at: Completed 03-04-PLAN.md — Metro dedup toggle, alliance labels, coverage notices complete (Phase 3 done)
+Last session: 2026-02-28
+Stopped at: Completed 04-01-PLAN.md — shadcn chart installed, /api/flights/history route + getPriceHistory() query function added
 Resume file: None
