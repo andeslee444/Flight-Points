@@ -10,6 +10,25 @@ const config: NextConfig = {
       '.js': ['.ts', '.tsx', '.js'],
     },
   },
+  async rewrites() {
+    const harborUrl = process.env.HARBOR_URL || 'http://HARBOR_URL_NOT_SET';
+    return [
+      {
+        source: '/api/flights/live-search',
+        destination: `${harborUrl}/api/flights/live-search`,
+      },
+    ];
+  },
+  async headers() {
+    return [
+      {
+        source: '/api/flights/live-search',
+        headers: [
+          { key: 'X-Accel-Buffering', value: 'no' },
+        ],
+      },
+    ];
+  },
 };
 
 export default config;
