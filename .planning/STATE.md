@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-02-28T02:39:16Z"
+last_updated: "2026-02-28T02:47:00Z"
 progress:
   total_phases: 6
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 17
-  completed_plans: 15
+  completed_plans: 16
 ---
 
 # Project State
@@ -23,11 +23,11 @@ See: .planning/PROJECT.md (updated 2026-02-26)
 ## Current Position
 
 Phase: 5 of 6 (Live Search SSE)
-Plan: 2 of 3 in current phase (complete)
-Status: Phase 5 in progress — useLiveSearch hook with EventSource lifecycle complete
-Last activity: 2026-02-28 — Plan 05-02 complete (hooks/use-live-search.ts, tsconfig.json hooks include)
+Plan: 3 of 3 in current phase (complete)
+Status: Phase 5 complete — LiveSearchProgress component + SearchResults integration with live result merging
+Last activity: 2026-02-28 — Plan 05-03 complete (LiveSearchProgress, SearchResults full rewrite with useLiveSearch)
 
-Progress: [████████░░] 63% (Phase 1 complete, Phase 2 complete, Phase 3 complete, Phase 4 complete, Phase 5 Plans 1-2 complete)
+Progress: [█████████░] 94% (Phase 1 complete, Phase 2 complete, Phase 3 complete, Phase 4 complete, Phase 5 complete)
 
 ## Performance Metrics
 
@@ -62,6 +62,7 @@ Progress: [████████░░] 63% (Phase 1 complete, Phase 2 comple
 | Phase 04-price-history-charts P03 | 2 | 2 tasks | 3 files |
 | Phase 05-live-search-sse P01 | 2 | 2 tasks | 3 files |
 | Phase 05-live-search-sse P02 | 1 | 1 tasks | 2 files |
+| Phase 05-live-search-sse P03 | 1 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -118,6 +119,10 @@ Recent decisions affecting current work:
 - [05-02]: class param (not cabin) in URLSearchParams — matches Harbor Express req.query.class
 - [05-02]: search-error stored as __search-error pseudo-scraper key — allows uniform rendering in LiveSearchProgress without special-casing
 - [05-02]: onerror only triggers finishLive() when readyState === CLOSED; CONNECTING state means auto-reconnecting — let it retry
+- [05-03]: LiveSearchProgress reads directly from useLiveSearchStore (no props) — leaf 'use client' component avoids prop drilling
+- [05-03]: liveResultToEnrichedDeal fills transferFrom=[], sweetSpot=null, region='' as sensible defaults for Harbor-enriched flights
+- [05-03]: SSR results placed before live results in merge — they have full enrichment (sweetSpot, transferFrom, transferBonuses)
+- [05-03]: Metro dedup operates on mergedResults (SSR+live combined) not just SSR results
 
 ### Pending Todos
 
@@ -135,5 +140,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Completed 05-02-PLAN.md — useLiveSearch hook with EventSource lifecycle, hooks/use-live-search.ts, tsconfig.json hooks include
+Stopped at: Completed 05-03-PLAN.md — LiveSearchProgress component, SearchResults integration with useLiveSearch and live result merging
 Resume file: None
