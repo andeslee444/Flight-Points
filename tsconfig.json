@@ -35,6 +35,7 @@
     "components/**/*",
     "lib/**/*",
     "stores/**/*",
+    "hooks/**/*",
     "src/flights/db-drizzle.ts",
     "src/flights/db-schema.ts",
     "src/flights/sweet-spots.ts",
