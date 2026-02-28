@@ -135,5 +135,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 2. App Shell + Deal Feed | 3/3 | Complete   | 2026-02-27 |
 | 3. Search + Value Assessment | 4/4 | Complete   | 2026-02-27 |
 | 4. Price History Charts | 3/3 | Complete   | 2026-02-28 |
-| 5. Live Search (SSE) | 0/3 | Not started | - |
+| 5. Live Search (SSE) | 1/3 | In Progress|  |
 | 6. Auth + Alerts + Booking | 0/6 | Not started | - |

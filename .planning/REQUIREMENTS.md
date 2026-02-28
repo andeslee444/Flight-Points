@@ -13,7 +13,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **SRCH-02**: User sees results from multiple airline programs in a single search
 - [x] **SRCH-03**: User sees which credit card programs can transfer to each result (e.g., "Amex MR, Chase UR")
 - [x] **SRCH-04**: User can click a direct booking link to the airline's award booking page
-- [ ] **SRCH-05**: User sees real-time loading progress as scrapers return results via SSE
+- [x] **SRCH-05**: User sees real-time loading progress as scrapers return results via SSE
 - [x] **SRCH-06**: User sees when results were last scraped (freshness indicator)
 - [x] **SRCH-07**: User experience is fully responsive on mobile devices
 - [x] **SRCH-08**: Nearby airports are deduplicated by default (JFK/EWR/LGA as one metro) with expand option
@@ -111,7 +111,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SRCH-02 | Phase 3 | Complete |
 | SRCH-03 | Phase 3 | Complete |
 | SRCH-04 | Phase 3 | Complete |
-| SRCH-05 | Phase 5 | Pending |
+| SRCH-05 | Phase 5 | Complete |
 | SRCH-06 | Phase 3 | Complete |
 | SRCH-07 | Phase 3 | Complete |
 | SRCH-08 | Phase 3 | Complete |

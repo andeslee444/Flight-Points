@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-02-28T00:37:34.423Z"
+last_updated: "2026-02-28T02:39:16Z"
 progress:
-  total_phases: 4
+  total_phases: 6
   completed_phases: 4
-  total_plans: 14
-  completed_plans: 14
+  total_plans: 17
+  completed_plans: 15
 ---
 
 # Project State
@@ -18,16 +18,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-26)
 
 **Core value:** Users instantly know whether a points redemption is a good deal — and never miss an incredible one.
-**Current focus:** Phase 4 — Price History Charts
+**Current focus:** Phase 5 — Live Search SSE
 
 ## Current Position
 
-Phase: 4 of 6 (Price History Charts)
-Plan: 3 of 3 in current phase (complete)
-Status: Phase 4 in progress — Transfer bonus config, enrichment, and FlightResultCard label complete
-Last activity: 2026-02-28 — Plan 04-03 complete (lib/transfer-bonuses.ts, EnrichedDeal.transferBonuses, amber bonus label on FlightResultCard)
+Phase: 5 of 6 (Live Search SSE)
+Plan: 1 of 3 in current phase (complete)
+Status: Phase 5 in progress — SSE proxy via next.config.ts rewrites + live search Zustand store complete
+Last activity: 2026-02-28 — Plan 05-01 complete (next.config.ts rewrites, X-Accel-Buffering header, stores/live-search-store.ts)
 
-Progress: [████████░░] 56% (Phase 1 complete, Phase 2 complete, Phase 3 complete, Phase 4 Plans 1-3 complete)
+Progress: [████████░░] 60% (Phase 1 complete, Phase 2 complete, Phase 3 complete, Phase 4 complete, Phase 5 Plan 1 complete)
 
 ## Performance Metrics
 
@@ -60,6 +60,7 @@ Progress: [████████░░] 56% (Phase 1 complete, Phase 2 comple
 | Phase 04-price-history-charts P01 | 6 | 2 tasks | 6 files |
 | Phase 04-price-history-charts P02 | 2 | 2 tasks | 2 files |
 | Phase 04-price-history-charts P03 | 2 | 2 tasks | 3 files |
+| Phase 05-live-search-sse P01 | 2 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -109,6 +110,9 @@ Recent decisions affecting current work:
 - [04-03]: ACTIVE_TRANSFER_BONUSES starts empty with commented example — avoids including potentially-expired bonuses at launch; maintainer adds current bonuses before deploying
 - [04-03]: transferBonuses cross-references transferFrom list — only shows bonus if CC program already has transfer path to the airline
 - [04-03]: FlightResultCard shows best bonus only (highest bonusPct) when multiple apply — avoids cluttering card with multiple promotional labels
+- [05-01]: HARBOR_URL fallback is http://HARBOR_URL_NOT_SET (not localhost) — missing env var fails loudly at rewrite layer, not silently
+- [05-01]: rewrites() preferred over Route Handler for SSE proxy — no Vercel serverless timeout, transparent TCP proxy
+- [05-01]: LiveFlightResult not EnrichedDeal — Harbor enrichment omits transferFrom/sweetSpot/region/transferBonuses/scrapedAt; component layer maps in Plan 05-03
 
 ### Pending Todos
 
@@ -126,5 +130,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Completed 04-03-PLAN.md — transfer bonus config, EnrichedDeal.transferBonuses, amber bonus label on FlightResultCard
+Stopped at: Completed 05-01-PLAN.md — SSE proxy via next.config.ts rewrites, X-Accel-Buffering header, stores/live-search-store.ts Zustand store
 Resume file: None
