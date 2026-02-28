@@ -44,7 +44,14 @@ export default async function SearchPage({
 
       {hasSearch && (
         <div className="mt-8">
-          <SearchResults results={results} from={from!} to={to!} />
+          <SearchResults
+            results={results}
+            from={from!}
+            to={to!}
+            cabin={cabin}
+            program={program}
+            date={date}
+          />
         </div>
       )}
 
