@@ -15,6 +15,10 @@ import {
   type TransferPartner,
 } from '@/src/flights/transfer-partners';
 import {
+  getBonusesForProgram,
+  effectiveBonusCost,
+} from './transfer-bonuses';
+import {
   getRegion,
   JAPAN_AIRPORTS,
   EUROPE_AIRPORTS,
@@ -68,6 +72,13 @@ export interface EnrichedDeal {
   sweetSpot: SweetSpotEntry | null;
   // Region (for filtering in Plan 03)
   region: string; // from getRegion(destination)
+  // Transfer bonuses (Phase 4)
+  transferBonuses: Array<{
+    ccProgram: string;       // CC slug, e.g. 'chase-ur'
+    bonusPct: number;        // e.g. 40
+    effectiveCost: number;   // Reduced CC points needed
+    description: string;     // e.g. '40% Chase UR -> Virgin Atlantic'
+  }>;
   // Metadata
   source: string;
   scrapedAt: string;
@@ -255,6 +266,22 @@ export function enrichFlightResult(
     }
   }
 
+  // Transfer bonus computation
+  const airlineProgramCode = partner?.programCode || (f.source as string);
+  const bonuses = getBonusesForProgram(airlineProgramCode);
+  const transferBonuses = bonuses
+    .filter((b) => transferFrom.includes(b.fromProgram))
+    .map((b) => {
+      const ccPartner = partners.find((p) => p.programCode === airlineProgramCode);
+      const baseRatio = ccPartner?.ratio || 1;
+      return {
+        ccProgram: b.fromProgram,
+        bonusPct: b.bonusPct,
+        effectiveCost: effectiveBonusCost(pointsRequired, baseRatio, b.bonusPct),
+        description: b.description,
+      };
+    });
+
   const id = `${f.source}-${origin}-${destination}-${date}-${(f.departureTime as string) || ''}-${cabin}-${(f.flightNumber as string) || 'nonum'}`;
 
   return {
@@ -284,6 +311,7 @@ export function enrichFlightResult(
     bookingUrl,
     sweetSpot,
     region: getRegion(destination),
+    transferBonuses,
     source: (f.source as string) || '',
     scrapedAt: (f.scrapedAt as string) || new Date().toISOString(),
     id,
