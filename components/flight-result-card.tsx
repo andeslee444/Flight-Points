@@ -136,6 +136,17 @@ export function FlightResultCard({ deal }: { deal: EnrichedDeal }) {
           </div>
         )}
 
+        {/* Transfer bonus label */}
+        {deal.transferBonuses.length > 0 && (() => {
+          // Show the best bonus (highest %)
+          const best = deal.transferBonuses.reduce((a, b) => a.bonusPct > b.bonusPct ? a : b);
+          return (
+            <div className="mt-2 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded px-3 py-1.5">
+              {best.description} bonus: effectively {best.effectiveCost.toLocaleString()} pts
+            </div>
+          );
+        })()}
+
         {/* Footer: freshness + book button */}
         <div className="mt-3 flex items-center justify-between gap-2">
           <span className="text-xs text-muted-foreground">
