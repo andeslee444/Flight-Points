@@ -23,11 +23,11 @@ See: .planning/PROJECT.md (updated 2026-02-26)
 ## Current Position
 
 Phase: 4 of 6 (Price History Charts)
-Plan: 2 of 3 in current phase (complete)
-Status: Phase 4 in progress — PriceHistoryChart component built and integrated into search page
-Last activity: 2026-02-28 — Plan 04-02 complete (PriceHistoryChart component, server-side history fetch in app/search/page.tsx)
+Plan: 3 of 3 in current phase (complete)
+Status: Phase 4 in progress — Transfer bonus config, enrichment, and FlightResultCard label complete
+Last activity: 2026-02-28 — Plan 04-03 complete (lib/transfer-bonuses.ts, EnrichedDeal.transferBonuses, amber bonus label on FlightResultCard)
 
-Progress: [████████░░] 53% (Phase 1 complete, Phase 2 complete, Phase 3 complete, Phase 4 Plans 1-2 complete)
+Progress: [████████░░] 56% (Phase 1 complete, Phase 2 complete, Phase 3 complete, Phase 4 Plans 1-3 complete)
 
 ## Performance Metrics
 
@@ -59,6 +59,7 @@ Progress: [████████░░] 53% (Phase 1 complete, Phase 2 comple
 | Phase 03-search-value-assessment P04 | 1 | 2 tasks | 4 files |
 | Phase 04-price-history-charts P01 | 6 | 2 tasks | 6 files |
 | Phase 04-price-history-charts P02 | 2 | 2 tasks | 2 files |
+| Phase 04-price-history-charts P03 | 2 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -105,6 +106,9 @@ Recent decisions affecting current work:
 - [04-02]: ChartTooltip from shadcn chart.tsx used (not raw Tooltip from recharts) — ChartTooltipContent calls useChart() which requires ChartContext provider in ChartContainer
 - [04-02]: Server Component fetches getPriceHistory; Client Component renders AreaChart — clean SSR/CSR boundary, no extra client fetch
 - [04-02]: primaryFrom/primaryTo split on comma for multi-airport params before history query — consistent with getSearchResults() ANY() SQL pattern
+- [04-03]: ACTIVE_TRANSFER_BONUSES starts empty with commented example — avoids including potentially-expired bonuses at launch; maintainer adds current bonuses before deploying
+- [04-03]: transferBonuses cross-references transferFrom list — only shows bonus if CC program already has transfer path to the airline
+- [04-03]: FlightResultCard shows best bonus only (highest bonusPct) when multiple apply — avoids cluttering card with multiple promotional labels
 
 ### Pending Todos
 
@@ -122,5 +126,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Completed 04-02-PLAN.md — PriceHistoryChart component created and integrated into search page
+Stopped at: Completed 04-03-PLAN.md — transfer bonus config, EnrichedDeal.transferBonuses, amber bonus label on FlightResultCard
 Resume file: None

@@ -27,7 +27,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **VALU-03**: User sees cash price comparison showing dollar savings ("Saves you $X vs cash")
 - [x] **VALU-04**: Results matching known sweet spots show S/A/B tier badge ("S-Tier: Holy Grail")
 - [x] **VALU-05**: User sees historical price trend chart for a route ("this route usually costs X points")
-- [ ] **VALU-06**: User sees when active transfer bonuses reduce the effective cost of a redemption
+- [x] **VALU-06**: User sees when active transfer bonuses reduce the effective cost of a redemption
 
 ### Deal Discovery
 
@@ -122,7 +122,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | VALU-03 | Phase 3 | Complete |
 | VALU-04 | Phase 3 | Complete |
 | VALU-05 | Phase 4 | Complete |
-| VALU-06 | Phase 4 | Pending |
+| VALU-06 | Phase 4 | Complete |
 | DEAL-01 | Phase 2 | Complete |
 | DEAL-02 | Phase 2 | Complete |
 | DEAL-03 | Phase 2 | Complete |
