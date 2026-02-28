@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-02-28T00:33:00.000Z"
+last_updated: "2026-02-28T00:32:10Z"
 progress:
   total_phases: 6
   completed_phases: 3
@@ -23,11 +23,11 @@ See: .planning/PROJECT.md (updated 2026-02-26)
 ## Current Position
 
 Phase: 4 of 6 (Price History Charts)
-Plan: 1 of 3 in current phase (complete)
-Status: Phase 4 in progress — Price history API route + shadcn chart installed
-Last activity: 2026-02-28 — Plan 04-01 complete (getPriceHistory query, /api/flights/history route, shadcn chart, --chart-* CSS vars)
+Plan: 2 of 3 in current phase (complete)
+Status: Phase 4 in progress — PriceHistoryChart component built and integrated into search page
+Last activity: 2026-02-28 — Plan 04-02 complete (PriceHistoryChart component, server-side history fetch in app/search/page.tsx)
 
-Progress: [████████░░] 50% (Phase 1 complete, Phase 2 complete, Phase 3 complete, Phase 4 Plan 1 complete)
+Progress: [████████░░] 53% (Phase 1 complete, Phase 2 complete, Phase 3 complete, Phase 4 Plans 1-2 complete)
 
 ## Performance Metrics
 
@@ -58,6 +58,7 @@ Progress: [████████░░] 50% (Phase 1 complete, Phase 2 comple
 | Phase 03-search-value-assessment P03 | 2 | 2 tasks | 3 files |
 | Phase 03-search-value-assessment P04 | 1 | 2 tasks | 4 files |
 | Phase 04-price-history-charts P01 | 6 | 2 tasks | 6 files |
+| Phase 04-price-history-charts P02 | 2 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -101,6 +102,9 @@ Recent decisions affecting current work:
 - [04-01]: Multi-airport from/to params in history route take only first airport for v1 (split on comma) — matches getSearchResults() pattern
 - [04-01]: availability_type = 'confirmed' filter in getPriceHistory() SQL — ensures only real live deal history, not estimated/calendar data
 - [04-01]: Chart CSS vars added to @theme inline block (not @layer base) — required for Tailwind 4 CSS variable system
+- [04-02]: ChartTooltip from shadcn chart.tsx used (not raw Tooltip from recharts) — ChartTooltipContent calls useChart() which requires ChartContext provider in ChartContainer
+- [04-02]: Server Component fetches getPriceHistory; Client Component renders AreaChart — clean SSR/CSR boundary, no extra client fetch
+- [04-02]: primaryFrom/primaryTo split on comma for multi-airport params before history query — consistent with getSearchResults() ANY() SQL pattern
 
 ### Pending Todos
 
@@ -118,5 +122,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Completed 04-01-PLAN.md — shadcn chart installed, /api/flights/history route + getPriceHistory() query function added
+Stopped at: Completed 04-02-PLAN.md — PriceHistoryChart component created and integrated into search page
 Resume file: None
