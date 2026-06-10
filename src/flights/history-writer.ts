@@ -9,6 +9,7 @@
  * The plan referenced r.milesRequired/r.taxesUSD which do not exist on FlightResult.
  */
 import { getPool } from './db.js';
+import { MAX_REASONABLE_POINTS, MAX_REASONABLE_TAXES_USD } from './scraper-config.js';
 import type { FlightResult, AvailabilityType } from './types.js';
 
 export async function writeHistoryBatch(
@@ -22,7 +23,15 @@ export async function writeHistoryBatch(
   if (availabilityType !== 'confirmed') return 0;
 
   const validResults = results.filter(
-    r => r.pointsRequired && r.origin && r.destination && r.departureDate
+    r =>
+      r.pointsRequired &&
+      r.origin &&
+      r.destination &&
+      r.departureDate &&
+      // Upper-bound sanity: reject parser-corrupted outliers so they never
+      // pollute the time-series charts (lower bounds handled by the truthiness check).
+      r.pointsRequired <= MAX_REASONABLE_POINTS &&
+      (r.taxesAndFees == null || r.taxesAndFees <= MAX_REASONABLE_TAXES_USD),
   );
   if (validResults.length === 0) return 0;
 

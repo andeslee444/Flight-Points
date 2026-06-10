@@ -217,19 +217,25 @@ def parse_sveltekit_response(text, params):
                     if not isinstance(cabin_str, str):
                         cabin_str = 'COACH'
 
-                    # Map Alaska cabin names
-                    if cabin_str in ('FIRST', 'first', 'First Class'):
+                    # Map Alaska cabin names to our schema from the ACTUAL fare
+                    # cabin, independent of the requested cabin. The daemon passes
+                    # a single cabin per search but wants all cabins back (it
+                    # filters by signup downstream) — filtering here silently
+                    # dropped economy/first the user was watching.
+                    # CabinCode is economy|business|first; premium economy folds
+                    # into the economy bucket (house convention) but keeps its real
+                    # label in cabin_display.
+                    cabin_upper = cabin_str.upper()
+                    cabin_display = None
+                    if 'FIRST' in cabin_upper:
                         cabin = 'first'
+                    elif 'BUSINESS' in cabin_upper:
+                        cabin = 'business'
+                    elif 'PREMIUM' in cabin_upper:
+                        cabin = 'economy'
+                        cabin_display = 'Premium Economy'
                     else:
                         cabin = 'economy'
-
-                    # Alaska uses "first" for what others call "business" on most routes
-                    if cabin == 'first' and params.get('cabin') == 'business':
-                        cabin = 'business'
-
-                    # Filter by requested cabin
-                    if cabin != params.get('cabin', 'economy'):
-                        continue
 
                     results.append({
                         'source': 'alaska-airlines',
@@ -243,6 +249,7 @@ def parse_sveltekit_response(text, params):
                         'duration': f"{int(duration_mins) // 60}h {int(duration_mins) % 60}m" if duration_mins else '',
                         'stops': stops,
                         'cabin': cabin,
+                        'cabinDisplay': cabin_display,
                         'pointsRequired': int(miles),
                         'pointsProgram': 'Alaska Mileage Plan',
                         'taxesAndFees': cash,

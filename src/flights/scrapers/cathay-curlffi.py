@@ -26,7 +26,8 @@ except ImportError:
 
 PROXY = os.environ.get("PROXY_URL", "")
 API_BASE = "https://api.cathaypacific.com"
-IMPERSONATE = "chrome131"
+# Newest target curl_cffi 0.14 ships — keep in sync with curlffi_base.IMPERSONATE_TARGET
+IMPERSONATE = "chrome142"
 
 CABIN_MAP = {
     "economy": "eco",

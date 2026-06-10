@@ -16,6 +16,11 @@ import string
 from urllib.parse import urlparse
 from curl_cffi.requests import Session
 
+# Newest impersonation target curl_cffi 0.14 ships. Shared by all curl_cffi
+# scrapers so the TLS/JA3 fingerprint stays close to the real installed Chrome
+# (a stale target like chrome131 against Chrome 148+ is a detection signal).
+IMPERSONATE_TARGET = "chrome142"
+
 
 def log(label, msg):
     """Log to stderr with timestamp."""
@@ -82,14 +87,18 @@ def get_proxy_config():
 
 
 def create_session(label):
-    """Create a curl_cffi Session with Chrome 131 impersonation and proxy.
+    """Create a curl_cffi Session with current-Chrome impersonation and proxy.
 
     Returns (session, proxy_info_string).
+
+    Pin to the newest target curl_cffi 0.14 ships (chrome142). A stale fingerprint
+    (chrome131) against a real Chrome that's on 148+ is itself a detection signal —
+    the TLS/JA3 version skews from the User-Agent. Bump as curl_cffi adds targets.
     """
     proxies, proxy_info = get_proxy_config()
     log(label, f"Proxy: {proxy_info}")
 
-    session = Session(impersonate="chrome131")
+    session = Session(impersonate=IMPERSONATE_TARGET)
     if proxies:
         session.proxies = proxies
 

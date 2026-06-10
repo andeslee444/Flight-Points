@@ -55,3 +55,20 @@ export const CIRCUIT_BREAKER_THRESHOLD = 5;
 
 /** Circuit breaker: cooldown period after tripping (ms) */
 export const CIRCUIT_BREAKER_COOLDOWN_MS = 15 * 60 * 1000; // 15 minutes
+
+/**
+ * Silent-zero detection: how many consecutive cycles a scraper may return
+ * 0 results (with no thrown error) before it's flagged "suspect". A genuinely
+ * working scraper hitting low-availability dates returns 0 occasionally; a
+ * soft-blocked or DOM-drifted scraper returns 0 every cycle. This flag is a
+ * SIGNAL (surfaced in health + alerts), not an auto-disable — zeros can be
+ * legitimate, so we never trip the circuit breaker on them.
+ */
+export const ZERO_SUSPECT_THRESHOLD = 3;
+
+/**
+ * Sanity ceilings to catch parser corruption (e.g. a DOM-drift bug reading a
+ * flight number as a mileage value). Real award fares stay well under these.
+ */
+export const MAX_REASONABLE_POINTS = 2_000_000;
+export const MAX_REASONABLE_TAXES_USD = 5_000;

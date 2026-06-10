@@ -15,7 +15,7 @@
 
 import 'dotenv/config';
 import { SCRAPER_REGISTRY, deduplicateResults } from './scrapers/index.js';
-import { SCRAPER_TIMEOUTS, DEFAULT_SCRAPER_TIMEOUT_MS } from './scraper-config.js';
+import { SCRAPER_TIMEOUTS, DEFAULT_SCRAPER_TIMEOUT_MS, ZERO_SUSPECT_THRESHOLD, MAX_REASONABLE_POINTS, MAX_REASONABLE_TAXES_USD } from './scraper-config.js';
 import { SearchParams, FlightResult } from './types.js';
 import { matchSweetSpots } from './sweet-spots.js';
 import {
@@ -24,7 +24,7 @@ import {
   isInternational as isInternationalRoute,
 } from './airports.js';
 import { execFileSync } from 'child_process';
-import { recordSuccess, recordFailure, isScraperAvailable, writeHealthFile } from './scraper-health.js';
+import { recordSuccess, recordFailure, recordZero, isScraperAvailable, writeHealthFile, getSuspectScrapers } from './scraper-health.js';
 import { checkAlerts } from './alert-checker.js';
 import { writeHistoryBatch } from './history-writer.js';
 import {
@@ -165,6 +165,10 @@ function isValidFlight(f: FlightResult): boolean {
   if (!f.airline || f.airline.trim() === '' || f.airline === 'N/A' || f.airline === 'Unknown') return false;
   if (!f.pointsRequired || !Number.isFinite(f.pointsRequired) || f.pointsRequired <= 0) return false;
   if (f.taxesAndFees == null || !Number.isFinite(f.taxesAndFees) || f.taxesAndFees < 0) return false;
+  // Upper bounds catch parser corruption (e.g. a DOM-drift bug reading a flight
+  // number or row index as a mileage/tax value) before it pollutes price_history.
+  if (f.pointsRequired > MAX_REASONABLE_POINTS) return false;
+  if (f.taxesAndFees > MAX_REASONABLE_TAXES_USD) return false;
   if (!f.origin || !f.destination || !f.departureDate) return false;
   return true;
 }
@@ -356,6 +360,13 @@ async function runScan() {
       return;
     }
 
+    // Per-cycle outcome: distinguish "ran clean but every search was empty"
+    // (silent-zero — could be a soft block / DOM drift / expired session) from
+    // a healthy cycle (any search returned results) or an errored one.
+    let cycleGot = 0;
+    let cycleErrored = 0;
+    let cycleRan = 0;
+
     for (const params of paramsList) {
       if (shuttingDown) break;
 
@@ -366,6 +377,7 @@ async function runScan() {
       }
 
       const key = `${params.origin}-${params.destination}-${params.date}`;
+      cycleRan++;
 
       try {
         const flights = await withTimeout(entry.search(params), timeoutMs, scraperKey);
@@ -375,17 +387,37 @@ async function runScan() {
           if (entry.availabilityType !== 'confirmed') {
             for (const f of flights) nonConfirmedFlights.add(f);
           }
+          cycleGot += flights.length;
           recordSuccess(scraperKey);
         }
-        // 0 results — not a failure, but not a success either
+        // 0 results on this search — tallied below at cycle granularity
       } catch (e: any) {
         log(`[${scraperKey}] Error for ${key}: ${e?.message || e}`);
+        cycleErrored++;
         recordFailure(scraperKey);
+      }
+    }
+
+    // If the scraper ran searches, hit no errors, and returned nothing all
+    // cycle, record a clean-zero. Repeated across cycles flips it to "suspect".
+    if (cycleRan > 0 && cycleGot === 0 && cycleErrored === 0) {
+      const newlySuspect = recordZero(scraperKey);
+      log(`[${scraperKey}] 0 results across ${cycleRan} searches this cycle (clean zero)`);
+      if (newlySuspect) {
+        log(`[${scraperKey}] ⚠️ SUSPECT — returned 0 results for ${ZERO_SUSPECT_THRESHOLD}+ consecutive cycles; likely soft-blocked, DOM-drifted, or session expired`);
       }
     }
   });
 
   await Promise.allSettled(scraperTasks);
+
+  // Surface any scrapers stuck at clean-zero — the silent-block signal that
+  // (one level up) caused the 4-month outage. The staleness watchdog / canary
+  // can escalate; here we make it loud in the daemon log every cycle.
+  const suspects = getSuspectScrapers();
+  if (suspects.length > 0) {
+    log(`⚠️ Suspect scrapers (stuck returning 0): ${suspects.join(', ')} — verify they aren't silently blocked`);
+  }
 
   // Deduplicate overlap across scrapers covering the same alliance
   for (const [key, results] of batchResults) {
@@ -628,7 +660,27 @@ async function main() {
   process.on('SIGTERM', () => shutdown('SIGTERM'));
   process.on('SIGINT', () => shutdown('SIGINT'));
 
-  log('Signal handlers registered (SIGTERM, SIGINT)');
+  // Crash visibility: before this, an unhandled rejection/exception killed the
+  // process with no record — the literal mechanism behind the 4-month silent
+  // outage. Record status=crashed (so the staleness watchdog and /status see it)
+  // then exit non-zero so launchd restarts us with a clean slate.
+  const onFatal = (kind: string) => (err: unknown) => {
+    const e = err as Error;
+    log(`FATAL ${kind}: ${e?.stack || e?.message || String(err)}`);
+    dbWriteDaemonStatus({
+      pid: process.pid,
+      status: `crashed:${kind}`,
+      signal: kind,
+    })
+      .catch(() => {})
+      .finally(() => process.exit(1));
+    // Hard backstop if the status write hangs.
+    setTimeout(() => process.exit(1), 3000).unref();
+  };
+  process.on('uncaughtException', onFatal('uncaughtException'));
+  process.on('unhandledRejection', onFatal('unhandledRejection'));
+
+  log('Signal handlers registered (SIGTERM, SIGINT, uncaughtException, unhandledRejection)');
 
   await dbWriteDaemonStatus({
     pid: process.pid,

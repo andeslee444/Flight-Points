@@ -1,0 +1,13 @@
+#!/bin/sh
+# Guard against the Vercel Hobby "commit author not a team member" deploy block:
+# every push must originate from the Vercel-linked owner identity. The repo's
+# git config drifted to a noreply email once, which silently blocked all deploys.
+EXPECTED_EMAIL="andes.lee444@gmail.com"
+ACTUAL_EMAIL="$(git config user.email)"
+if [ "$ACTUAL_EMAIL" != "$EXPECTED_EMAIL" ]; then
+  echo "✗ pre-push blocked: git user.email is '$ACTUAL_EMAIL', expected '$EXPECTED_EMAIL'." >&2
+  echo "  Vercel Hobby rejects deploys whose commit author isn't the project owner." >&2
+  echo "  Fix: git config user.email $EXPECTED_EMAIL  (and amend mis-authored commits)." >&2
+  exit 1
+fi
+exit 0
