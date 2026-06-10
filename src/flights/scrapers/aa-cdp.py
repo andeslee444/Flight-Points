@@ -166,7 +166,9 @@ def main():
             # Step 4: Parse results from DOM
             results = page.evaluate("""(sp) => {
                 const flights = [];
-                const rows = document.querySelectorAll('.results-grid-container > .grid-x.grid-padding-x');
+                // AA migrated this page to Angular: rows are now `.flight-row`
+                // inside `.results-grid-container` (was Foundation `.grid-x.grid-padding-x`).
+                const rows = document.querySelectorAll('.results-grid-container .flight-row');
                 rows.forEach((row) => {
                     const originCode = row.querySelector('.origin .city-code')?.textContent?.trim() || sp.origin;
                     const destCode = row.querySelector('.destination .city-code')?.textContent?.trim() || sp.destination;
@@ -189,7 +191,9 @@ def main():
                         .map(el => el.textContent?.trim() || '').filter(Boolean);
 
                     const cabinPrices = [];
-                    row.querySelectorAll('.cell.auto.pad-left-xxs.pad-right-xxs').forEach(btn => {
+                    // Price buttons are now `.btn-flight` (was `.cell.auto.pad-left-xxs.pad-right-xxs`).
+                    // Text format: "Business One way 77K + $5.60 ..." — regexes below still apply.
+                    row.querySelectorAll('.btn-flight').forEach(btn => {
                         const text = btn.textContent?.replace(/\\s+/g, ' ').trim() || '';
                         const cabinMatch = text.match(/^(Main|Economy|Premium Economy|Business|First)/i);
                         const milesMatch = text.match(/([\\d,.]+)K/);
