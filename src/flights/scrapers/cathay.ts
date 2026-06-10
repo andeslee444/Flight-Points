@@ -2,13 +2,15 @@
  * Cathay Pacific Asia Miles Award Search Scraper
  *
  * Cathay Pacific requires Asia Miles login for award search — no guest search.
- * 
- * Strategy (in priority order):
- *   1. seats.aero API — CX metal visible via `qantas` and `qatar` sources (no login needed)
- *   2. Playwright login-based scraper — requires CATHAY_MEMBER_ID + CATHAY_PASSWORD env vars
- *      - Logs into cathaypacific.com, fills award search form
- *      - Intercepts `milesInfo` API responses + window.pageBom for flight data
- *      - Based on reverse-engineering from flightplan-tool/flightplan CX engine
+ *
+ * Strategy:
+ *   Playwright login-based scraper — requires CATHAY_MEMBER_ID + CATHAY_PASSWORD env vars
+ *     - Logs into cathaypacific.com, fills award search form
+ *     - Intercepts `milesInfo` API responses + window.pageBom for flight data
+ *     - Based on reverse-engineering from flightplan-tool/flightplan CX engine
+ *
+ * Note: the public Cathay AFR API path lives in cathay-curlffi.ts and runs first
+ * via the registry's searchCathayWithFallback; this module is the login fallback.
  *
  * Coverage: CX-operated flights + oneworld partner awards
  * Alliance: oneworld (complements AA scraper for Asia routes)
@@ -30,7 +32,6 @@ chromium.use(StealthPlugin());
 // ============================================================
 
 const CX_AWARD_URL = 'https://www.cathaypacific.com/cx/en_US/book-a-trip/redeem-flights/redeem-flight-awards.html';
-const SEATS_AERO_API = 'https://seats.aero/partnerapi';
 
 const CABIN_MAP: Record<CabinCode, string> = {
   economy: 'Y',
@@ -38,92 +39,11 @@ const CABIN_MAP: Record<CabinCode, string> = {
   first: 'F',
 };
 
-// seats.aero cabin field mapping
-const SEATS_CABIN_FIELD: Record<CabinCode, { available: string; airlines: string; miles: string; seats: string }> = {
-  economy: { available: 'YAvailable', airlines: 'YAirlines', miles: 'YMileageCost', seats: 'YRemainingSeats' },
-  business: { available: 'JAvailable', airlines: 'JAirlines', miles: 'JMileageCost', seats: 'JRemainingSeats' },
-  first: { available: 'FAvailable', airlines: 'FAirlines', miles: 'FMileageCost', seats: 'FRemainingSeats' },
-};
-
 const MAX_RETRIES = 2;
 const PAGE_TIMEOUT = 30000;
 
 // ============================================================
-// SEATS.AERO APPROACH (Primary — no login needed)
-// ============================================================
-
-/**
- * Search for CX availability via seats.aero API.
- * CX metal shows up in `qantas` and `qatar` sources.
- * Filters results to only include entries with CX in the airline list.
- */
-async function searchViaSeatsAero(params: SearchParams): Promise<FlightResult[]> {
-  const apiKey = process.env.SEATS_AERO_API_KEY;
-  if (!apiKey) {
-    console.log('[cathay] No SEATS_AERO_API_KEY — skipping seats.aero');
-    return [];
-  }
-
-  const cabinField = SEATS_CABIN_FIELD[params.cabin || 'business'];
-  const results: FlightResult[] = [];
-
-  // Query both qantas and qatar sources (they show CX metal)
-  for (const source of ['qantas', 'qatar']) {
-    try {
-      const url = new URL(`${SEATS_AERO_API}/search`);
-      url.searchParams.set('origin_airport', params.origin);
-      url.searchParams.set('destination_airport', params.destination);
-      url.searchParams.set('cabin', params.cabin === 'first' ? 'first' : params.cabin === 'business' ? 'business' : 'economy');
-      url.searchParams.set('source', source);
-      if (params.date) {
-        url.searchParams.set('start_date', params.date);
-        url.searchParams.set('end_date', params.date);
-      }
-
-      const resp = await fetch(url.toString(), {
-        headers: { 'Partner-Authorization': apiKey },
-      });
-
-      if (!resp.ok) {
-        console.log(`[cathay] seats.aero ${source} returned ${resp.status}`);
-        continue;
-      }
-
-      const data = await resp.json() as any;
-      for (const entry of data.data || []) {
-        const airlines = entry[cabinField.airlines] || '';
-        const available = entry[cabinField.available];
-
-        // Only include if CX is in the airline list for the requested cabin
-        if (!available || !airlines.includes('CX')) continue;
-
-        results.push({
-          airline: 'CX',
-          flightNumber: `CX (via ${source})`, // seats.aero doesn't provide flight numbers
-          origin: entry.Route?.OriginAirport || params.origin,
-          destination: entry.Route?.DestinationAirport || params.destination,
-          departureDate: entry.Date || params.date,
-          departureTime: `${entry.Date}T00:00:00`,
-          arrivalTime: `${entry.Date}T23:59:59`,
-          duration: '', // Not available from seats.aero
-          stops: -1, // Unknown
-          cabin: params.cabin || 'business',
-          pointsRequired: parseInt(entry[cabinField.miles]) || 0,
-          taxesAndFees: 0,
-          source: `seats.aero/${source}`,
-          scrapedAt: new Date().toISOString(),
-        });
-      }
-    } catch (err) {
-      console.error(`[cathay] seats.aero ${source} error:`, err);
-    }
-  }
-
-  return results;
-}
-
-// ============================================================
-// PLAYWRIGHT LOGIN APPROACH (Secondary — needs credentials)
+// PLAYWRIGHT LOGIN APPROACH (needs credentials)
 // ============================================================
 
 /**
@@ -410,13 +330,8 @@ export async function searchCathay(params: SearchParams): Promise<FlightResult[]
 
   console.log(`[cathay] Searching ${params.origin}→${params.destination} ${params.date} ${params.cabin}`);
 
-  // Try seats.aero first (reliable, no login)
-  let flights = await searchViaSeatsAero(params);
-
-  // If no seats.aero results, try direct website scraping
-  if (flights.length === 0) {
-    flights = await searchViaCathayWebsite(params);
-  }
+  // Login-based website scrape (the public AFR API path runs first in the registry)
+  const flights = await searchViaCathayWebsite(params);
 
   if (flights.length > 0) {
     setCache(cacheKey, flights);
