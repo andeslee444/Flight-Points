@@ -1,23 +1,28 @@
 /**
  * Test All Flight Scrapers
- * 
- * Tests each scraper with JFK → NRT, 2026-03-15, Business
+ *
+ * Tests each scraper with JFK → NRT, today + 45 days, Business
  * Saves report to data/scraper-test-report.json
- * 
- * Run: npx tsx src/flights/test-all-scrapers.ts
+ *
+ * Run: npx tsx tests/test-all-scrapers.ts
  */
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { SCRAPER_REGISTRY } from './scrapers/index.js';
-import type { SearchParams } from './types.js';
+import { SCRAPER_REGISTRY } from '../src/flights/scrapers/index.js';
+import type { SearchParams } from '../src/flights/types.js';
 
-const DATA_DIR = path.join(__dirname, '../../data');
+const DATA_DIR = path.join(__dirname, '../data');
+
+// Dynamic test date: today + 45 days (YYYY-MM-DD)
+const futureDate = new Date();
+futureDate.setDate(futureDate.getDate() + 45);
+const TEST_DATE = futureDate.toISOString().split('T')[0];
 
 const TEST_PARAMS: SearchParams = {
   origin: 'JFK',
   destination: 'NRT',
-  date: '2026-03-15',
+  date: TEST_DATE,
   cabin: 'business',
 };
 
@@ -111,7 +116,12 @@ async function main() {
   console.log(`\n📄 Report saved to: ${reportPath}`);
 }
 
-main().catch(err => {
-  console.error('Test runner failed:', err);
-  process.exit(1);
-});
+// Only run when executed directly (npx tsx tests/test-all-scrapers.ts),
+// not when imported by another module.
+const isDirectRun = !!process.argv[1] && process.argv[1].includes('test-all-scrapers');
+if (isDirectRun) {
+  main().catch(err => {
+    console.error('Test runner failed:', err);
+    process.exit(1);
+  });
+}

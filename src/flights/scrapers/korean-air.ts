@@ -41,14 +41,15 @@ interface SkyTeamAvailability {
   remainingSeats: number;
   origin: string;
   destination: string;
-  cabin: string;
+  cabin: CabinCode;
 }
 
 /**
  * Search SkyTeam award availability via seats.aero Flying Blue + Delta sources.
  * This is the best available proxy for Korean Air / SkyTeam coverage.
+ * Returns standard FlightResult[] (date-level availability, no flight numbers).
  */
-export async function searchSkyTeam(params: SearchParams): Promise<SkyTeamAvailability[]> {
+export async function searchSkyTeam(params: SearchParams): Promise<FlightResult[]> {
   const apiKey = getApiKey();
   if (!apiKey) {
     console.warn('[korean-air] No SEATS_AERO_API_KEY set');
@@ -59,14 +60,14 @@ export async function searchSkyTeam(params: SearchParams): Promise<SkyTeamAvaila
   const fields = CABIN_TO_FIELD[cabin];
   if (!fields) return [];
 
-  const results: SkyTeamAvailability[] = [];
+  const results: FlightResult[] = [];
 
   // Query both Flying Blue and Delta for SkyTeam coverage
   for (const source of ['flyingblue', 'delta'] as const) {
     const cacheKey = `ke-skyteam-${source}-${params.origin}-${params.destination}-${params.date}-${cabin}`;
     const cached = getCached(cacheKey);
     if (cached) {
-      results.push(...(cached as SkyTeamAvailability[]));
+      results.push(...cached);
       continue;
     }
 
@@ -107,8 +108,9 @@ export async function searchSkyTeam(params: SearchParams): Promise<SkyTeamAvaila
         }
       }
 
-      setCache(cacheKey, sourceResults, 3600); // 1hr cache
-      results.push(...sourceResults);
+      const sourceFlights = toFlightResults(sourceResults);
+      setCache(cacheKey, sourceFlights); // TTL governed by shared CACHE_TTL_MS
+      results.push(...sourceFlights);
     } catch (err) {
       console.error(`[korean-air] Error querying ${source}:`, err);
     }
@@ -123,20 +125,22 @@ export async function searchSkyTeam(params: SearchParams): Promise<SkyTeamAvaila
  * Results represent date-level availability.
  */
 export function toFlightResults(avail: SkyTeamAvailability[]): FlightResult[] {
+  const scrapedAt = new Date().toISOString();
   return avail.map(a => ({
     airline: a.source === 'flyingblue' ? 'AF/KL/KE' : 'DL/KE',
     flightNumber: 'unknown', // seats.aero cached doesn't include flight numbers
     origin: a.origin,
     destination: a.destination,
+    departureDate: a.date,
     departureTime: `${a.date}T00:00:00Z`,
     arrivalTime: `${a.date}T00:00:00Z`,
-    duration: 0,
+    duration: '',
     stops: -1, // unknown
-    cabin: a.cabin as any,
-    miles: a.miles,
-    taxes: 0,
-    seatsAvailable: a.remainingSeats,
+    cabin: a.cabin,
+    pointsRequired: a.miles,
+    taxesAndFees: 0,
     source: `seats.aero/${a.source}`,
+    scrapedAt,
   }));
 }
 
@@ -144,12 +148,12 @@ export function toFlightResults(avail: SkyTeamAvailability[]): FlightResult[] {
 export const koreanAirScraper = {
   name: 'korean-air-skyteam',
   async search(params: SearchParams) {
-    const avail = await searchSkyTeam(params);
+    const flights = await searchSkyTeam(params);
     return {
-      flights: toFlightResults(avail),
+      flights,
       searchedAt: new Date().toISOString(),
       source: 'korean-air-skyteam (via seats.aero flyingblue+delta)',
-      error: avail.length === 0 ? 'No SkyTeam availability found (seats.aero cached data)' : undefined,
+      error: flights.length === 0 ? 'No SkyTeam availability found (seats.aero cached data)' : undefined,
     };
   },
 };

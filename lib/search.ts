@@ -18,6 +18,7 @@ import {
   POINTS_PROGRAMS,
   getTransferPartnersForProgram,
 } from '@/src/flights/transfer-partners';
+import { getDealMaxAgeHours } from './deals';
 
 export interface SearchResultsParams {
   from: string; // comma-separated or single IATA code
@@ -40,12 +41,14 @@ export async function getSearchResults(params: SearchResultsParams): Promise<Enr
   const programSlug = params.program || 'amex-mr';
 
   const db = getDrizzle();
+  const maxAgeHours = getDealMaxAgeHours();
   // flight_cache is NOT in Drizzle schema — use raw SQL (same as getTopDeals)
   const result = await db.execute(
     sql`SELECT origin, destination, date, cabin, award_flights, updated_at
         FROM flight_cache
         WHERE origin = ANY(${origins})
         AND destination = ANY(${dests})
+        AND updated_at >= NOW() - INTERVAL '1 hour' * ${maxAgeHours}
         ${cabin ? sql`AND cabin = ${cabin}` : sql``}
         ORDER BY updated_at DESC`,
   );

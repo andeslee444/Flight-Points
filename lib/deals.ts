@@ -23,14 +23,26 @@ import {
 
 export type { EnrichedDeal } from './enrichment';
 
+/**
+ * Max age (in hours) for flight_cache rows to count as current deals.
+ * Configurable via DEAL_MAX_AGE_HOURS; defaults to 48h so months-old
+ * scrapes never surface as live availability.
+ */
+export function getDealMaxAgeHours(): number {
+  const parsed = Number(process.env.DEAL_MAX_AGE_HOURS);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 48;
+}
+
 export async function getTopDeals({ limit = 50 }: { limit?: number } = {}): Promise<
   EnrichedDeal[]
 > {
   const db = getDrizzle();
+  const maxAgeHours = getDealMaxAgeHours();
 
   const result = await db.execute(
     sql`SELECT origin, destination, date, cabin, award_flights, updated_at
         FROM flight_cache
+        WHERE updated_at >= NOW() - INTERVAL '1 hour' * ${maxAgeHours}
         ORDER BY updated_at DESC
         LIMIT 200`,
   );
@@ -45,7 +57,7 @@ export async function getTopDeals({ limit = 50 }: { limit?: number } = {}): Prom
         (f.pointsRequired as number) > 0 &&
         !NON_BOOKABLE_SOURCES.has(f.source as string)
       ) {
-        rawFlights.push(f);
+        rawFlights.push({ ...f, scrapedAt: row.updated_at });
       }
     }
   }

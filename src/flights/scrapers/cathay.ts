@@ -102,15 +102,16 @@ async function searchViaSeatsAero(params: SearchParams): Promise<FlightResult[]>
           flightNumber: `CX (via ${source})`, // seats.aero doesn't provide flight numbers
           origin: entry.Route?.OriginAirport || params.origin,
           destination: entry.Route?.DestinationAirport || params.destination,
+          departureDate: entry.Date || params.date,
           departureTime: `${entry.Date}T00:00:00`,
           arrivalTime: `${entry.Date}T23:59:59`,
-          duration: 0, // Not available from seats.aero
+          duration: '', // Not available from seats.aero
           stops: -1, // Unknown
           cabin: params.cabin || 'business',
-          miles: parseInt(entry[cabinField.miles]) || 0,
-          taxes: 0,
-          seatsAvailable: entry[cabinField.seats] || undefined,
+          pointsRequired: parseInt(entry[cabinField.miles]) || 0,
+          taxesAndFees: 0,
           source: `seats.aero/${source}`,
+          scrapedAt: new Date().toISOString(),
         });
       }
     } catch (err) {
@@ -335,17 +336,16 @@ function parseCathayResults(
             flightNumber: flight.flightNumber || 'CX???',
             origin: flight.origin || params.origin,
             destination: flight.destination || params.destination,
+            departureDate: params.date,
             departureTime: flight.departureDate || params.date,
             arrivalTime: flight.arrivalDate || params.date,
-            duration: flight.duration || 0,
+            duration: flight.duration ? String(flight.duration) : '',
             stops: flight.stopCount ?? 0,
             cabin: params.cabin || 'business',
-            miles: flight.miles || 0,
-            taxes: flight.tax || 0,
-            seatsAvailable: flight.seatsAvailable,
-            bookingClass: flight.bookingClass,
-            aircraft: flight.aircraft,
+            pointsRequired: flight.miles || 0,
+            taxesAndFees: flight.tax || 0,
             source: 'cathay-website',
+            scrapedAt: new Date().toISOString(),
           });
         } catch {}
       }
@@ -364,14 +364,16 @@ function parseCathayResults(
             flightNumber: flight.flightNo || 'CX???',
             origin: flight.depAirport || params.origin,
             destination: flight.arrAirport || params.destination,
+            departureDate: params.date,
             departureTime: flight.depDateTime || params.date,
             arrivalTime: flight.arrDateTime || params.date,
-            duration: flight.duration || 0,
+            duration: flight.duration ? String(flight.duration) : '',
             stops: flight.stops || 0,
             cabin: params.cabin || 'business',
-            miles: 0,
-            taxes: 0,
+            pointsRequired: 0,
+            taxesAndFees: 0,
             source: 'cathay-website',
+            scrapedAt: new Date().toISOString(),
           });
         } catch {}
       }
@@ -388,8 +390,8 @@ function parseCathayResults(
     for (const flight of results) {
       const key = flight.flightNumber;
       if (mergedMiles[key]) {
-        flight.miles = mergedMiles[key].miles || flight.miles;
-        flight.taxes = mergedMiles[key].tax || flight.taxes;
+        flight.pointsRequired = mergedMiles[key].miles || flight.pointsRequired;
+        flight.taxesAndFees = mergedMiles[key].tax || flight.taxesAndFees;
       }
     }
   }

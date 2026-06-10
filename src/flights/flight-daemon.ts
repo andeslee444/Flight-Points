@@ -9,15 +9,13 @@
  * Updated: 2026-02-17 — shared airports, sweet-spots integration, parallel scrapers,
  *   graceful shutdown, health metrics, configurable date sampling, atomic writes
  * Updated: 2026-02-18 — migrated all data storage from JSON files to PostgreSQL
+ * Updated: 2026-06-10 — registry-driven scraping (SCRAPER_REGISTRY) with
+ *   DAEMON_SCRAPERS allowlist; replaces hardcoded AA/ANA/SQ/BA chains
  */
 
 import 'dotenv/config';
-import { searchAABatch } from './scrapers/aa.js';
-import { searchAACamoufoxBatch } from './scrapers/aa-camoufox.js';
-import { searchAAFastBatch } from './scrapers/aa-fast.js';
-import { searchANACamoufox } from './scrapers/ana-camoufox.js';
-import { searchBACamoufox } from './scrapers/ba-camoufox.js';
-import { searchSQCamoufox } from './scrapers/sq-camoufox.js';
+import { SCRAPER_REGISTRY, deduplicateResults } from './scrapers/index.js';
+import { SCRAPER_TIMEOUTS, DEFAULT_SCRAPER_TIMEOUT_MS } from './scraper-config.js';
 import { SearchParams, FlightResult } from './types.js';
 import { matchSweetSpots } from './sweet-spots.js';
 import {
@@ -259,6 +257,36 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
   ]);
 }
 
+// ── Registry-driven scraper selection ──
+
+/**
+ * Resolve which SCRAPER_REGISTRY entries the daemon should run this cycle.
+ * - Skips status==='blocked' entries (mirrors live-scraper.ts)
+ * - Skips cash-price-only entries (Google Flights — not award results)
+ * - Honors the optional DAEMON_SCRAPERS allowlist (comma-separated registry
+ *   keys; empty/unset = all non-blocked entries)
+ */
+function getDaemonScraperKeys(): string[] {
+  const allowlist = (process.env.DAEMON_SCRAPERS || '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  const unknown = allowlist.filter(k => !SCRAPER_REGISTRY[k]);
+  if (unknown.length > 0) {
+    log(`DAEMON_SCRAPERS contains unknown registry keys (ignored): ${unknown.join(', ')}`);
+  }
+
+  const keys: string[] = [];
+  for (const [key, entry] of Object.entries(SCRAPER_REGISTRY)) {
+    if (entry.status === 'blocked') continue;
+    if (entry.covers.includes('cash-prices')) continue; // Google Flights — cash only
+    if (allowlist.length > 0 && !allowlist.includes(key)) continue;
+    keys.push(key);
+  }
+  return keys;
+}
+
 async function runScan() {
   log('=== Starting scan ===');
   log(`Memory: ${getRssMB().toFixed(0)}MB RSS`);
@@ -297,94 +325,67 @@ async function runScan() {
 
   log(`This cycle: searches ${offset + 1}–${offset + cycleSearches.length} of ${allSearches.length} (rotating)`);
 
-  // Use our own AA Playwright scraper (NOT seats.aero — non-commercial use only)
+  // Run registry scrapers over this cycle's searches (own scrapers only —
+  // NOT seats.aero, non-commercial use only). Mirrors live-scraper.ts:
+  // skip blocked entries, respect the circuit breaker, run each entry's
+  // fallback chain. Scrapers run in parallel; each scraper works through
+  // the cycle's searches sequentially.
   const paramsList = cycleSearches.map(s => s.params);
-  let batchResults: Map<string, FlightResult[]>;
-
-  // Try fast cookie-replay first (curl_cffi, ~2s per search)
-  try {
-    log('Trying AA Fast (cookie replay) scraper...');
-    batchResults = await searchAAFastBatch(paramsList, 2000);
-    let totalResults = 0;
-    for (const [, flights] of batchResults) totalResults += flights.length;
-    if (totalResults === 0) {
-      log('AA Fast returned 0 results, falling back to Camoufox...');
-      throw new Error('NO_RESULTS');
-    }
-    log(`AA Fast succeeded: ${totalResults} total results`);
-  } catch (e: any) {
-    log(`AA Fast failed (${e.message}), trying Camoufox...`);
-    try {
-      batchResults = await searchAACamoufoxBatch(paramsList, 30000);
-      let camoTotal = 0;
-      for (const [, flights] of batchResults) camoTotal += flights.length;
-      if (camoTotal === 0) throw new Error('CAMOUFOX_EMPTY');
-      log(`Camoufox succeeded: ${camoTotal} total results`);
-    } catch (e2: any) {
-      log(`Camoufox also failed (${e2.message}), trying Playwright...`);
-      try {
-        batchResults = await searchAABatch(paramsList, 30000, 15);
-      } catch (e3: any) {
-        log(`All AA scrapers failed: ${e3.message}`);
-        batchResults = new Map();
-        for (const p of paramsList) {
-          batchResults.set(`${p.origin}-${p.destination}-${p.date}`, []);
-        }
-      }
-    }
+  const batchResults = new Map<string, FlightResult[]>();
+  for (const p of paramsList) {
+    batchResults.set(`${p.origin}-${p.destination}-${p.date}`, []);
   }
 
-  // Run ANA, SQ, BA scrapers in parallel per route (keep routes sequential)
-  for (const { params } of cycleSearches) {
-    if (shuttingDown) break;
+  // Flights from calendar/estimated scrapers — excluded from price_history
+  // (history-writer only accepts confirmed availability).
+  const nonConfirmedFlights = new Set<FlightResult>();
 
-    const key = `${params.origin}-${params.destination}-${params.date}`;
-    const existing = batchResults.get(key) || [];
+  const scraperKeys = getDaemonScraperKeys();
+  log(`Registry scrapers this cycle: ${scraperKeys.join(', ') || '(none)'}`);
 
-    // Build scraper promises for this route (circuit breaker gated)
-    const scraperPromises: Array<{ label: string; promise: Promise<FlightResult[]> }> = [];
+  const scraperTasks = scraperKeys.map(async (scraperKey) => {
+    const entry = SCRAPER_REGISTRY[scraperKey];
+    const timeoutMs = SCRAPER_TIMEOUTS[scraperKey] ?? DEFAULT_SCRAPER_TIMEOUT_MS;
 
-    if (isScraperAvailable('ana')) {
-      scraperPromises.push({ label: 'ANA', promise: withTimeout(searchANACamoufox(params), 45000, 'ANA') });
-    } else {
-      log(`[ANA] Circuit breaker open — skipping`);
+    if (!isScraperAvailable(scraperKey)) {
+      log(`[${scraperKey}] Circuit breaker open — skipping this cycle`);
+      return;
     }
 
-    if (isScraperAvailable('singapore')) {
-      scraperPromises.push({ label: 'SQ', promise: withTimeout(searchSQCamoufox(params), 180000, 'SQ') });
-    } else {
-      log(`[SQ] Circuit breaker open — skipping`);
-    }
+    for (const params of paramsList) {
+      if (shuttingDown) break;
 
-    if (process.env.BA_EXEC_CLUB_NUMBER && isScraperAvailable('ba-avios')) {
-      scraperPromises.push({ label: 'BA', promise: withTimeout(searchBACamoufox(params), 150000, 'BA') });
-    } else if (process.env.BA_EXEC_CLUB_NUMBER) {
-      log(`[BA] Circuit breaker open — skipping`);
-    }
+      // Circuit may trip mid-cycle after consecutive failures
+      if (!isScraperAvailable(scraperKey)) {
+        log(`[${scraperKey}] Circuit breaker opened mid-cycle — stopping`);
+        break;
+      }
 
-    // Run all scrapers for this route in parallel
-    const results = await Promise.allSettled(
-      scraperPromises.map(s => s.promise)
-    );
+      const key = `${params.origin}-${params.destination}-${params.date}`;
 
-    const scraperKeyMap: Record<string, string> = { 'ANA': 'ana', 'SQ': 'singapore', 'BA': 'ba-avios' };
-    for (let i = 0; i < results.length; i++) {
-      const result = results[i];
-      const label = scraperPromises[i].label;
-      const scraperKey = scraperKeyMap[label] || label.toLowerCase();
-      if (result.status === 'fulfilled' && result.value.length > 0) {
-        log(`[${label}] ${key}: ${result.value.length} results`);
-        existing.push(...result.value);
-        recordSuccess(scraperKey);
-      } else if (result.status === 'fulfilled') {
+      try {
+        const flights = await withTimeout(entry.search(params), timeoutMs, scraperKey);
+        if (flights.length > 0) {
+          log(`[${scraperKey}] ${key}: ${flights.length} results`);
+          batchResults.get(key)!.push(...flights);
+          if (entry.availabilityType !== 'confirmed') {
+            for (const f of flights) nonConfirmedFlights.add(f);
+          }
+          recordSuccess(scraperKey);
+        }
         // 0 results — not a failure, but not a success either
-      } else {
-        log(`[${label}] Error for ${key}: ${result.reason?.message || result.reason}`);
+      } catch (e: any) {
+        log(`[${scraperKey}] Error for ${key}: ${e?.message || e}`);
         recordFailure(scraperKey);
       }
     }
+  });
 
-    batchResults.set(key, existing);
+  await Promise.allSettled(scraperTasks);
+
+  // Deduplicate overlap across scrapers covering the same alliance
+  for (const [key, results] of batchResults) {
+    if (results.length > 1) batchResults.set(key, deduplicateResults(results));
   }
 
   log(`Memory after searches: ${getRssMB().toFixed(0)}MB RSS`);
@@ -420,11 +421,15 @@ async function runScan() {
     log(`${entry.params.origin}→${entry.params.destination} ${entry.params.date}: ${cabinResults.length} results`);
   }
 
-  // Write confirmed results to price_history for time-series charts
+  // Write confirmed results to price_history for time-series charts.
+  // Calendar/estimated scraper results are excluded (history-writer gate).
   // Best-effort: history write failure must never crash the daemon
   try {
-    const historyCount = await writeHistoryBatch(allResults, 'daemon', 'confirmed', cycleId);
-    if (allResults.length > 0 && historyCount === 0) {
+    const confirmedResults = nonConfirmedFlights.size > 0
+      ? allResults.filter(f => !nonConfirmedFlights.has(f))
+      : allResults;
+    const historyCount = await writeHistoryBatch(confirmedResults, 'daemon', 'confirmed', cycleId);
+    if (confirmedResults.length > 0 && historyCount === 0) {
       log('[daemon] Warning: confirmed scraper returned 0 valid history rows (possible session expiry)');
     }
   } catch (err: any) {
@@ -586,6 +591,7 @@ async function main() {
   log(`Max searches per cycle: ${MAX_SEARCHES_PER_CYCLE}`);
   log(`Max RSS threshold: ${MAX_RSS_MB}MB`);
   log(`Date sampling: every ${DATE_SAMPLING_DAYS} days`);
+  log(`Scraper allowlist (DAEMON_SCRAPERS): ${process.env.DAEMON_SCRAPERS || '(unset — all non-blocked registry entries)'}`);
   log(`Initial memory: ${getRssMB().toFixed(0)}MB RSS`);
   log(`PID: ${process.pid}`);
 

@@ -1,5 +1,6 @@
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { relativeTime } from '@/lib/time';
 import type { EnrichedDeal } from '@/lib/deals';
 
 const TIER_COLORS: Record<string, string> = {
@@ -61,6 +62,9 @@ export function DealCard({ deal }: { deal: EnrichedDeal }) {
         {deal.dealRating && deal.dealRating !== 'unknown' && (
           <div className="mt-1 text-xs text-muted-foreground">{RATING_LABEL[deal.dealRating]}</div>
         )}
+        <div className="mt-1 text-xs text-muted-foreground">
+          Scraped {relativeTime(deal.scrapedAt)}
+        </div>
       </CardContent>
     </Card>
   );

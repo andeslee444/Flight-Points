@@ -347,7 +347,7 @@ export const SCRAPER_REGISTRY: Record<string, ScraperEntry> = {
     name: 'Turkish Miles&Smiles',
     covers: ['star'],
     search: searchTurkishApi,
-    status: 'active',  // 2026-02-26: Official API — no browser, no anti-bot, ~2-5s. TK-operated flights only.
+    status: 'blocked',  // 2026-06-10: credentials never obtained from developer.apim.turkishairlines.com — searchTurkishApi throws without TK_API_KEY/TK_API_SECRET. Flip back to 'active' after tests/test-turkish-api.ts passes.
     coversPrograms: ['turkish'],
     availabilityType: 'confirmed',  // official TK API — pending credential test, confirmed for now
   },
@@ -457,7 +457,8 @@ export function getScraperForPartner(partner: TransferPartner): string | null {
 export function getScrapersForProgram(programSlug: string): string[] {
   const partners = getTransferPartnersForProgram(programSlug);
   const programCodes = new Set(partners.map(p => p.programCode));
-  const alliances = new Set(partners.map(p => p.alliance));
+  // Widen to Set<string> so it can be tested against ScraperEntry.covers (string[])
+  const alliances = new Set<string>(partners.map(p => p.alliance));
   const scraperKeys = new Set<string>();
 
   for (const [key, entry] of Object.entries(SCRAPER_REGISTRY)) {
