@@ -194,8 +194,8 @@ def main():
 
             time.sleep(random.uniform(1, 3))
 
-            # Step 4: Parse results from DOM
-            results = page.evaluate("""(sp) => {
+            # Step 4: Parse results from DOM (nav-race-safe — see safe_evaluate)
+            results = safe_evaluate(page, """(sp) => {
                 const flights = [];
                 // AA migrated this page to Angular: rows are now `.flight-row`
                 // inside `.results-grid-container` (was Foundation `.grid-x.grid-padding-x`).
