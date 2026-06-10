@@ -72,7 +72,13 @@ def create_cdp_browser(profile_name="default"):
     chrome_path = find_chrome_path()
     log(f"Chrome: {chrome_path}")
 
-    user_data_dir = f"/tmp/chrome-cdp-{profile_name}"
+    # Persistent base dir — /tmp is wiped on reboot, which destroyed login
+    # sessions (e.g. Flying Blue). Override with CHROME_CDP_PROFILE_DIR.
+    profile_base = os.environ.get(
+        "CHROME_CDP_PROFILE_DIR",
+        os.path.expanduser("~/.flight-points/chrome-profiles"),
+    )
+    user_data_dir = os.path.join(profile_base, f"chrome-cdp-{profile_name}")
     os.makedirs(user_data_dir, exist_ok=True)
 
     # Try up to 3 random ports

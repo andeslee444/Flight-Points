@@ -5,7 +5,8 @@ Air France / KLM Flying Blue Award Search via real Chrome CDP.
 Launches Chrome normally with --remote-debugging-port and connects via
 Patchright CDP. This bypasses Akamai because Chrome has no automation flags.
 
-Requires one-time login (session persists in Chrome profile at /tmp/chrome-cdp-flyingblue/).
+Requires one-time login (session persists in Chrome profile at
+~/.flight-points/chrome-profiles/chrome-cdp-flyingblue/, override via CHROME_CDP_PROFILE_DIR).
 Login uses OTP via email — run with 'login' arg for interactive login:
   python3 flying-blue-cdp.py login
 

@@ -22,6 +22,27 @@ from urllib.parse import urlencode
 def log(msg):
     print(f"[AA-CDP {time.strftime('%H:%M:%S')}] {msg}", file=sys.stderr)
 
+def safe_content(page, attempts=4):
+    """Read page.content() defensively.
+
+    Chrome 149+ raises "Unable to retrieve content because the page is
+    navigating and changing the content" when content() races an in-flight
+    navigation. Settle the load state and retry on that transient error.
+    """
+    for i in range(attempts):
+        try:
+            try:
+                page.wait_for_load_state("domcontentloaded", timeout=5000)
+            except Exception:
+                pass
+            return page.content()
+        except Exception as e:
+            if "navigating and changing" in str(e) and i < attempts - 1:
+                time.sleep(1.0)
+                continue
+            raise
+    return ""
+
 def validate_params(params):
     for field in ("origin", "destination", "date"):
         if field not in params or not isinstance(params[field], str):
@@ -114,7 +135,7 @@ def main():
                     found_results = True
                     break
                 except Exception:
-                    content = page.content()
+                    content = safe_content(page)
                     lower = content.lower()
                     if "access denied" in lower or "reference #" in lower:
                         log("BLOCKED by Akamai — exit for retry")
@@ -132,7 +153,7 @@ def main():
 
             if not found_results:
                 # One more check — page might have loaded but with different structure
-                content = page.content()
+                content = safe_content(page)
                 if len(content) > 50000:
                     log(f"Large page ({len(content)} bytes) — attempting parse anyway")
                     found_results = True
