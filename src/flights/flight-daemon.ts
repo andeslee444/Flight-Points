@@ -15,7 +15,8 @@
 
 import 'dotenv/config';
 import { SCRAPER_REGISTRY, deduplicateResults } from './scrapers/index.js';
-import { SCRAPER_TIMEOUTS, DEFAULT_SCRAPER_TIMEOUT_MS, ZERO_SUSPECT_THRESHOLD, MAX_REASONABLE_POINTS, MAX_REASONABLE_TAXES_USD } from './scraper-config.js';
+import { SCRAPER_TIMEOUTS, DEFAULT_SCRAPER_TIMEOUT_MS, ZERO_SUSPECT_THRESHOLD } from './scraper-config.js';
+import { generateDates, parseList, isValidFlight } from './daemon-helpers.js';
 import { SearchParams, FlightResult } from './types.js';
 import { matchSweetSpots } from './sweet-spots.js';
 import {
@@ -136,41 +137,6 @@ function isGoodDeal(f: FlightResult): DealCheck {
 
 function alertKey(f: FlightResult): string {
   return `${f.airline}-${f.origin}-${f.destination}-${f.departureDate}-${f.flightNumber}-${f.cabin}`;
-}
-
-function generateDates(startDate?: string, endDate?: string, samplingDays?: number): string[] {
-  const dates: string[] = [];
-  const now = new Date();
-  // Never scrape past dates — unbookable. Clamp the window start to today even
-  // when a signup's stored start_date is in the past (stale watch lists).
-  const todayMidnight = new Date(now.toISOString().slice(0, 10) + 'T00:00:00');
-  const requested = startDate ? new Date(startDate) : new Date(now.getTime() + 7 * 86400000);
-  const start = requested < todayMidnight ? todayMidnight : requested;
-  const end = endDate ? new Date(endDate) : new Date(now.getTime() + 90 * 86400000);
-  const step = samplingDays || DATE_SAMPLING_DAYS;
-
-  const cursor = new Date(start);
-  while (cursor <= end) {
-    dates.push(cursor.toISOString().slice(0, 10));
-    cursor.setDate(cursor.getDate() + step);
-  }
-  return dates;
-}
-
-function parseList(s: string): string[] {
-  return s.split(/[,;]\s*/).map(x => x.trim()).filter(Boolean);
-}
-
-function isValidFlight(f: FlightResult): boolean {
-  if (!f.airline || f.airline.trim() === '' || f.airline === 'N/A' || f.airline === 'Unknown') return false;
-  if (!f.pointsRequired || !Number.isFinite(f.pointsRequired) || f.pointsRequired <= 0) return false;
-  if (f.taxesAndFees == null || !Number.isFinite(f.taxesAndFees) || f.taxesAndFees < 0) return false;
-  // Upper bounds catch parser corruption (e.g. a DOM-drift bug reading a flight
-  // number or row index as a mileage/tax value) before it pollutes price_history.
-  if (f.pointsRequired > MAX_REASONABLE_POINTS) return false;
-  if (f.taxesAndFees > MAX_REASONABLE_TAXES_USD) return false;
-  if (!f.origin || !f.destination || !f.departureDate) return false;
-  return true;
 }
 
 function formatAlert(f: FlightResult, sweetSpot?: string): string {

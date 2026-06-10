@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  TEMPLATE — do NOT load this copy from the repo.
+
+  Golden-route canary launchd agent. Runs src/flights/scraper-canary.ts every
+  6 hours (StartInterval 21600s) to prove each active scraper still returns
+  results. Mirrors com.flightpoints.staleness.plist.
+
+  To install:
+    cp deploy/com.flightpoints.canary.plist ~/Library/LaunchAgents/
+    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.flightpoints.canary.plist
+  To remove:
+    launchctl bootout gui/$(id -u)/com.flightpoints.canary
+
+  Logs land in logs/canary.log. Adjust the node path below if your Node version
+  differs (must match the absolute path of `which node`).
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.flightpoints.canary</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/andeslee/.nvm/versions/node/v24.13.0/bin/node</string>
+        <string>/Users/andeslee/Documents/Cursor-Projects/Flight-Points/node_modules/.bin/tsx</string>
+        <string>src/flights/scraper-canary.ts</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>/Users/andeslee/Documents/Cursor-Projects/Flight-Points</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/Users/andeslee/.nvm/versions/node/v24.13.0/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    </dict>
+    <key>StartInterval</key>
+    <integer>21600</integer>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/Users/andeslee/Documents/Cursor-Projects/Flight-Points/logs/canary.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/andeslee/Documents/Cursor-Projects/Flight-Points/logs/canary.log</string>
+</dict>
+</plist>
