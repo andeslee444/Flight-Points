@@ -261,22 +261,3 @@ export function findBestSweetSpot(programSlug: string, origin: string, destinati
 
   return best?.spot || null;
 }
-
-// Map seats.aero source codes to our program codes
-export const SEATS_AERO_SOURCE_MAP: Record<string, string> = {
-  'united': 'united',
-  'aeroplan': 'aeroplan',
-  'virginatlantic': 'virgin-atlantic',
-  'singapore': 'singapore',
-  'ana': 'ana',
-  'british_airways': 'ba-avios',
-  'american': 'american',
-  'delta': 'delta',
-  'emirates': 'emirates',
-  'turkish': 'turkish',
-  'airfrance': 'air-france-klm',
-  'lifemiles': 'avianca-lifemiles',
-  'qantas': 'qantas',
-  'alaska': 'alaska',
-  'etihad': 'etihad',
-};

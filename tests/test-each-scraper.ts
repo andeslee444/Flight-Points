@@ -152,7 +152,6 @@ const SCRAPER_TESTS: ScraperTest[] = [
     path: 'playwright',
     search: searchUnited,
     envVars: [
-      { name: 'SEATS_AERO_API_KEY', required: false },
       { name: 'PROXY_URL', required: false },
     ],
   },
@@ -207,8 +206,8 @@ const SCRAPER_TESTS: ScraperTest[] = [
     name: 'Cathay Pacific Asia Miles',
     path: 'api',
     search: searchCathay,
-    envVars: [{ name: 'SEATS_AERO_API_KEY', required: false }],
-    notes: 'seats.aero API',
+    envVars: [],
+    notes: 'Cathay AFR public REST API (no auth)',
   },
   // 12. Google Flights
   {

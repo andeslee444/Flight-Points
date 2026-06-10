@@ -9,8 +9,7 @@
  * 
  * NOTE: BA heavily protects their search with bot detection (Akamai).
  * This scraper uses Playwright with stealth measures.
- * If blocked, consider using seats.aero API as fallback.
- * 
+ *
  * Created: 2026-02-16
  */
 
@@ -272,7 +271,7 @@ async function interceptApiResults(page: Page, params: SearchParams): Promise<Fl
 
       // Check for common block messages
       if (pageText.includes('unable to process') || pageText.includes('try again') || pageText.includes('captcha')) {
-        console.warn('[BA Avios] Likely blocked by bot detection (Akamai). Consider using seats.aero API.');
+        console.warn('[BA Avios] Likely blocked by bot detection (Akamai).');
         return [];
       }
 

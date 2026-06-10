@@ -1,16 +1,14 @@
 /**
  * United.com Award Search Scraper
  *
- * Strategy (ordered by reliability):
- * 1. **seats.aero API** (cached award data) — requires SEATS_AERO_API_KEY env var (Pro plan, $10/mo)
- * 2. **Playwright + API interception** — navigate to united.com and intercept /api/flight/FetchFlights
- *    (frequently blocked by Akamai Bot Manager)
+ * Strategy:
+ * - **Playwright + API interception** — navigate to united.com and intercept /api/flight/FetchFlights
+ *   (frequently blocked by Akamai Bot Manager)
  *
  * The ANA scraper already covers Star Alliance partner availability.
  * This scraper is specifically for United MileagePlus pricing.
  *
  * Created: 2026-02-16
- * Updated: 2026-02-16 — Added seats.aero API approach
  */
 
 import { chromium } from 'playwright-extra';
@@ -23,130 +21,7 @@ chromium.use(StealthPlugin());
 
 const SEARCH_TIMEOUT = 45000;
 
-// ─── Approach 1: seats.aero API ───────────────────────────────────────────────
-
-interface SeatsAeroResult {
-  ID: string;
-  RouteID: string;
-  Route: { OriginAirport: string; DestinationAirport: string };
-  Date: string;
-  ParsedDate: string;
-  YAvailable: boolean;
-  WAvailable: boolean;
-  JAvailable: boolean;
-  FAvailable: boolean;
-  YMileageCost: string;
-  WMileageCost: string;
-  JMileageCost: string;
-  FMileageCost: string;
-  YRemainingSeats: number;
-  WRemainingSeats: number;
-  JRemainingSeats: number;
-  FRemainingSeats: number;
-  YDirects: boolean;
-  JDirects: boolean;
-  YTaxesCost: string;
-  JTaxesCost: string;
-  Source: string;
-  CreatedAt: string;
-  UpdatedAt: string;
-}
-
-const CABIN_MAP: Record<string, 'economy' | 'business' | 'first'> = {
-  Y: 'economy',
-  W: 'economy', // premium economy mapped to economy
-  J: 'business',
-  F: 'first',
-};
-
-async function searchSeatsAero(params: SearchParams): Promise<FlightResult[] | null> {
-  const apiKey = process.env.SEATS_AERO_API_KEY;
-  if (!apiKey) {
-    console.log('[United/seats.aero] No SEATS_AERO_API_KEY set, skipping');
-    return null;
-  }
-
-  const cabinLetter = params.cabin === 'first' ? 'F' : params.cabin === 'business' ? 'J' : 'Y';
-
-  try {
-    const url = `https://seats.aero/partnerapi/search?origin=${params.origin}&destination=${params.destination}&cabin=${cabinLetter}&start_date=${params.date}&end_date=${params.date}&take=50&source=united`;
-    console.log(`[United/seats.aero] Searching: ${params.origin} → ${params.destination} on ${params.date}`);
-
-    const resp = await fetch(url, {
-      headers: {
-        'Partner-Authorization': apiKey,
-        'Accept': 'application/json',
-      },
-    });
-
-    if (!resp.ok) {
-      const text = await resp.text();
-      console.log(`[United/seats.aero] API error ${resp.status}: ${text}`);
-      return null;
-    }
-
-    const data = await resp.json() as { data: SeatsAeroResult[] };
-    const results: FlightResult[] = [];
-
-    for (const avail of (data.data || [])) {
-      const date = avail.ParsedDate || avail.Date;
-
-      // Check requested cabin availability
-      const available =
-        params.cabin === 'first' ? avail.FAvailable :
-        params.cabin === 'business' ? avail.JAvailable :
-        avail.YAvailable;
-
-      if (!available) continue;
-
-      const miles =
-        params.cabin === 'first' ? avail.FMileageCost :
-        params.cabin === 'business' ? avail.JMileageCost :
-        avail.YMileageCost;
-
-      const taxes =
-        params.cabin === 'business' ? avail.JTaxesCost :
-        avail.YTaxesCost;
-
-      const seats =
-        params.cabin === 'first' ? avail.FRemainingSeats :
-        params.cabin === 'business' ? avail.JRemainingSeats :
-        avail.YRemainingSeats;
-
-      const isDirect =
-        params.cabin === 'business' ? avail.JDirects :
-        avail.YDirects;
-
-      results.push({
-        source: 'united (seats.aero)',
-        airline: 'United',
-        flightNumber: '', // seats.aero cached data doesn't include flight numbers
-        origin: avail.Route?.OriginAirport || params.origin,
-        destination: avail.Route?.DestinationAirport || params.destination,
-        departureDate: date,
-        departureTime: '',
-        arrivalTime: '',
-        duration: '',
-        stops: isDirect ? 0 : -1, // -1 = unknown
-        cabin: params.cabin,
-        pointsRequired: parseInt(miles) || 0,
-        pointsProgram: 'United MileagePlus',
-        taxesAndFees: parseFloat(taxes) || 0,
-        awardType: 'saver', // seats.aero typically shows saver awards
-        scrapedAt: avail.UpdatedAt || new Date().toISOString(),
-        bookingUrl: buildSearchUrl(params),
-      });
-    }
-
-    console.log(`[United/seats.aero] Found ${results.length} results (data updated: ${data.data?.[0]?.UpdatedAt || 'N/A'})`);
-    return results;
-  } catch (err: any) {
-    console.log(`[United/seats.aero] Error: ${err.message}`);
-    return null;
-  }
-}
-
-// ─── Approach 2: Playwright + API interception (existing) ─────────────────────
+// ─── Playwright + API interception ─────────────────────────────────────────────
 
 function buildSearchUrl(params: SearchParams): string {
   const sc = UNITED_CABIN_CODES[params.cabin] || 7;
@@ -328,15 +203,8 @@ export async function searchUnited(params: SearchParams): Promise<FlightResult[]
     return cached;
   }
 
-  // Strategy 1: seats.aero API (fast, reliable, cached data)
-  const seatsAeroResults = await searchSeatsAero(params);
-  if (seatsAeroResults && seatsAeroResults.length > 0) {
-    setCache(cacheKey, seatsAeroResults);
-    return seatsAeroResults;
-  }
-
-  // Strategy 2: Playwright scraping (slower, frequently blocked)
-  console.log('[United] Falling back to Playwright scraping...');
+  // Playwright scraping (slower, frequently blocked)
+  console.log('[United] Scraping via Playwright...');
   const playwrightResults = await searchPlaywright(params);
   if (playwrightResults.length > 0) {
     setCache(cacheKey, playwrightResults);
