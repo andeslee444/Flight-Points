@@ -141,7 +141,11 @@ function alertKey(f: FlightResult): string {
 function generateDates(startDate?: string, endDate?: string, samplingDays?: number): string[] {
   const dates: string[] = [];
   const now = new Date();
-  const start = startDate ? new Date(startDate) : new Date(now.getTime() + 7 * 86400000);
+  // Never scrape past dates — unbookable. Clamp the window start to today even
+  // when a signup's stored start_date is in the past (stale watch lists).
+  const todayMidnight = new Date(now.toISOString().slice(0, 10) + 'T00:00:00');
+  const requested = startDate ? new Date(startDate) : new Date(now.getTime() + 7 * 86400000);
+  const start = requested < todayMidnight ? todayMidnight : requested;
   const end = endDate ? new Date(endDate) : new Date(now.getTime() + 90 * 86400000);
   const step = samplingDays || DATE_SAMPLING_DAYS;
 
