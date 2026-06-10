@@ -93,7 +93,7 @@ function enrichFlightResult(
     source: f.source,
     bookingUrl,
     points: pointsNeeded,
-    cabinDisplay: cabinDisplayName(f.cabin),
+    cabinDisplay: f.cabinDisplay || cabinDisplayName(f.cabin),
     program: partner?.programCode || f.source,
     programDisplay: transferTarget,
     transferPath,

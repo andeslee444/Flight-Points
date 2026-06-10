@@ -130,7 +130,7 @@ function processScraperResults(
     results.push({
       ...sr,
       id: `${sr.source}-${sr.flightNumber || sr.origin + sr.destination}-${sr.departureDate}-${sr.cabin}`,
-      cabinDisplay: cabinDisplayName(sr.cabin),
+      cabinDisplay: sr.cabinDisplay || cabinDisplayName(sr.cabin),
       program: partner?.programCode || sr.source,
       programDisplay: transferTarget,
       transferPath,

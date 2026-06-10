@@ -43,6 +43,37 @@ def safe_content(page, attempts=4):
             raise
     return ""
 
+def safe_evaluate(page, script, arg=None, attempts=4):
+    """Run page.evaluate() defensively against Chrome 149+ nav races.
+
+    The award results SPA re-routes internally (e.g. to /choose-flights/N),
+    which can destroy the execution context mid-evaluate and raise
+    "Execution context was destroyed, most likely because of a navigation".
+    Settle the load state (and re-wait for a flight row) and retry on that
+    transient error — same strategy as safe_content() above.
+    """
+    for i in range(attempts):
+        try:
+            try:
+                page.wait_for_load_state("domcontentloaded", timeout=5000)
+            except Exception:
+                pass
+            return page.evaluate(script, arg) if arg is not None else page.evaluate(script)
+        except Exception as e:
+            msg = str(e)
+            transient = ("Execution context was destroyed" in msg
+                         or "navigating and changing" in msg)
+            if transient and i < attempts - 1:
+                log(f"evaluate hit nav race (attempt {i+1}/{attempts}), settling and retrying...")
+                time.sleep(1.5)
+                try:
+                    page.wait_for_selector(".flight-row", timeout=8000)
+                except Exception:
+                    pass
+                continue
+            raise
+    return None
+
 def validate_params(params):
     for field in ("origin", "destination", "date"):
         if field not in params or not isinstance(params[field], str):
@@ -216,8 +247,13 @@ def main():
                     };
 
                     for (const cp of cabinPrices) {
+                        // Premium economy folds into the `economy` cabin bucket (house
+                        // convention — cf. united-cdp.py / aa-curlffi.py), but we preserve
+                        // the real label in `cabinDisplay` so the UI can distinguish it.
                         let cabin;
+                        let cabinDisplay;
                         if (cp.cabin === 'main' || cp.cabin === 'economy') cabin = 'economy';
+                        else if (cp.cabin === 'premium economy') { cabin = 'economy'; cabinDisplay = 'Premium Economy'; }
                         else if (cp.cabin === 'business') cabin = 'business';
                         else if (cp.cabin === 'first') cabin = 'first';
                         else cabin = 'economy';
@@ -229,7 +265,7 @@ def main():
                             origin: originCode, destination: destCode,
                             departureDate: sp.date,
                             departureTime: depTime, arrivalTime: arrTime,
-                            duration, stops, cabin,
+                            duration, stops, cabin, cabinDisplay,
                             pointsRequired: cp.miles,
                             pointsProgram: 'AAdvantage',
                             taxesAndFees: cp.taxes,
