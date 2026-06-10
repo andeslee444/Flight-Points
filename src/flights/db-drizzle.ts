@@ -7,7 +7,7 @@
  * scrapers/, etc.) — it would bleed Vercel-only dependencies into daemon builds.
  *
  * Usage (Next.js app route):
- *   import { getDrizzle } from '@/flights/db-drizzle';
+ *   import { getDrizzle } from '@/src/flights/db-drizzle';
  *   const db = getDrizzle();
  *   const rows = await db.select().from(priceHistory).where(...);
  */
