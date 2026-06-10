@@ -75,43 +75,45 @@ async function main() {
   const connectionString = raw.replace(/[?&]sslmode=[^&]*/g, '').replace(/\?$/, '');
   const pool = new pg.Pool({ connectionString, ssl: { rejectUnauthorized: false }, max: 1 });
 
+  // Set exitCode and return inside try/catch so the finally (pool.end) always
+  // runs — process.exit() inside try would skip it and leak the connection.
+  let exitCode = 0;
   try {
     const { rows } = await pool.query(
       'SELECT last_scan_time, status, pid FROM daemon_status WHERE id = 1',
     );
     if (rows.length === 0 || !rows[0].last_scan_time) {
       sendAlert('⚠️ Flight Points daemon: no scan recorded yet (daemon may have never started).');
-      process.exit(0);
-    }
-
-    const lastScan = new Date(rows[0].last_scan_time);
-    const lastScanIso = lastScan.toISOString();
-    const ageMin = (Date.now() - lastScan.getTime()) / 60000;
-    log(`Last scan ${lastScanIso} (${ageMin.toFixed(0)} min ago); threshold ${THRESHOLD_MIN} min.`);
-
-    const state = readState();
-    if (ageMin > THRESHOLD_MIN) {
-      // Only alert once per stale episode (don't spam every run).
-      if (state.lastAlertedScan === lastScanIso) {
-        log('Already alerted for this stale scan — skipping duplicate.');
-      } else {
-        sendAlert(
-          `🚨 Flight Points daemon STALE: last scan ${ageMin.toFixed(0)} min ago ` +
-            `(${lastScanIso}), threshold ${THRESHOLD_MIN} min. status=${rows[0].status} pid=${rows[0].pid}. Check Harbor.`,
-        );
-        writeState({ lastAlertedScan: lastScanIso });
-      }
     } else {
-      log('Daemon healthy.');
-      if (state.lastAlertedScan) writeState({}); // clear once recovered
+      const lastScan = new Date(rows[0].last_scan_time);
+      const lastScanIso = lastScan.toISOString();
+      const ageMin = (Date.now() - lastScan.getTime()) / 60000;
+      log(`Last scan ${lastScanIso} (${ageMin.toFixed(0)} min ago); threshold ${THRESHOLD_MIN} min.`);
+
+      const state = readState();
+      if (ageMin > THRESHOLD_MIN) {
+        // Only alert once per stale episode (don't spam every run).
+        if (state.lastAlertedScan === lastScanIso) {
+          log('Already alerted for this stale scan — skipping duplicate.');
+        } else {
+          sendAlert(
+            `🚨 Flight Points daemon STALE: last scan ${ageMin.toFixed(0)} min ago ` +
+              `(${lastScanIso}), threshold ${THRESHOLD_MIN} min. status=${rows[0].status} pid=${rows[0].pid}. Check Harbor.`,
+          );
+          writeState({ lastAlertedScan: lastScanIso });
+        }
+      } else {
+        log('Daemon healthy.');
+        if (state.lastAlertedScan) writeState({}); // clear once recovered
+      }
     }
-    process.exit(0);
   } catch (e: any) {
     log(`DB error: ${e.message}`);
-    process.exit(1);
+    exitCode = 1;
   } finally {
     await pool.end();
   }
+  process.exit(exitCode);
 }
 
 main();

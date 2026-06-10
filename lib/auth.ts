@@ -14,6 +14,14 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { getDrizzle } from '@/src/flights/db-drizzle';
 import * as schema from '@/src/flights/db-schema';
 
+// Fail loudly rather than fall back to Better Auth's built-in default secret
+// (which only throws in production) — a default secret makes sessions forgeable.
+if (!process.env.BETTER_AUTH_SECRET) {
+  throw new Error('BETTER_AUTH_SECRET is required (generate: openssl rand -hex 32)');
+}
+
+const baseURL = process.env.BETTER_AUTH_URL || 'https://flight-points.vercel.app';
+
 export const auth = betterAuth({
   database: drizzleAdapter(getDrizzle(), {
     provider: 'pg',
@@ -30,5 +38,8 @@ export const auth = betterAuth({
     requireEmailVerification: false,
   },
   secret: process.env.BETTER_AUTH_SECRET,
-  baseURL: process.env.BETTER_AUTH_URL,
+  baseURL,
+  // CSRF: accept the canonical origin plus localhost dev and Vercel preview URLs,
+  // otherwise sign-in fails with a CSRF error off the production domain.
+  trustedOrigins: [baseURL, 'http://localhost:3000', 'https://*.vercel.app'],
 });
