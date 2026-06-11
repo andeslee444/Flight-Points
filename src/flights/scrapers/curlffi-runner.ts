@@ -10,12 +10,21 @@ import { execFile } from 'child_process';
 import { resolve } from 'path';
 import { FlightResult, SearchParams, getCacheKey } from '../types.js';
 import { getCached, setCache } from './cache.js';
+import { resolveProxy } from '../net/proxy-router.js';
+import { fullJitterBackoff } from '../net/rate-limit.js';
 import {
   CURLFFI_SCRAPER_TIMEOUT_MS,
   CURLFFI_MAX_RETRIES,
   CURLFFI_RETRY_BASE_DELAY_MS,
   CURLFFI_BATCH_DELAY_MS,
 } from '../scraper-config.js';
+
+/** Derive a SCRAPER_REGISTRY-ish key from a script filename for proxy routing.
+ *  'alaska-curlffi.py' → 'alaska', 'cathay-curlffi.py' → 'cathay'. Unknown keys
+ *  fall back to the akamai tier in proxy-router, so this is always safe. */
+function scraperKeyFromScript(script: string): string {
+  return script.replace(/\.py$/, '').replace(/-curlffi$/, '').replace(/-fast$/, '');
+}
 
 export interface CurlFfiRunnerOptions {
   /** Display name for logging, e.g. 'DeltaVA-CurlFfi' */
@@ -61,11 +70,19 @@ export function runCurlFfiSearch(
   const retryBaseDelay = opts.retryBaseDelayMs ?? CURLFFI_RETRY_BASE_DELAY_MS;
   const scriptPath = resolve(__dirname, opts.script);
 
+  // Route this scraper through the proxy tier its difficulty calls for
+  // (public→datacenter, akamai→residential, auth→mobile), degrading to the
+  // VPS when higher tiers aren't configured. Passed to Python via PROXY_URL,
+  // which curlffi_base.py already reads.
+  const proxyUrl = resolveProxy(scraperKeyFromScript(opts.script));
+
   return new Promise(async (outerResolve) => {
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       if (attempt > 0) {
-        const delay = retryBaseDelay * Math.pow(2, attempt - 1);
-        log(`Retry ${attempt}/${maxRetries - 1} after ${delay}ms...`);
+        // Full jitter (not fixed exponential): parallel scrapers retrying on
+        // the shared IP must not synchronize and amplify a block.
+        const delay = fullJitterBackoff(attempt - 1, retryBaseDelay);
+        log(`Retry ${attempt}/${maxRetries - 1} after ${delay}ms (jittered)...`);
         await new Promise(r => setTimeout(r, delay));
       }
 
@@ -74,7 +91,11 @@ export function runCurlFfiSearch(
         execFile('python3', [scriptPath, paramsJson], {
           timeout: opts.timeoutMs,
           maxBuffer: 10 * 1024 * 1024,
-          env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' },
+          env: {
+            ...process.env,
+            PYTHONDONTWRITEBYTECODE: '1',
+            ...(proxyUrl ? { PROXY_URL: proxyUrl } : {}),
+          },
         }, (error: Error | null, stdout: string, stderr: string) => {
           if (stderr) {
             const lines = stderr.split('\n').filter(Boolean);

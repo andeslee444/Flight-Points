@@ -9,9 +9,10 @@
     "serve": "tsx src/flights/web-server.ts",
     "daemon": "tsx src/flights/flight-daemon.ts",
     "search": "tsx src/flights/scrapers/index.ts",
-    "test": "tsx tests/run-unit.ts",
+    "test": "tsx tests/run-unit.ts && tsx tests/run-approach-tests.ts",
     "next-dev": "next dev",
-    "next-build": "next build --webpack"
+    "next-build": "next build --webpack",
+    "test:approach": "tsx tests/run-approach-tests.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.1",

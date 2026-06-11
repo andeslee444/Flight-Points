@@ -26,6 +26,14 @@ import {
 } from './airports.js';
 import { execFileSync } from 'child_process';
 import { recordSuccess, recordFailure, recordZero, isScraperAvailable, writeHealthFile, getSuspectScrapers } from './scraper-health.js';
+import { recordObservation, checkAnomaly as checkRouteAnomaly } from './monitoring/route-baseline.js';
+import { auditCurrent as auditFingerprintCoherence } from './net/fingerprint-coherence.js';
+import { SessionPool } from './net/session-pool.js';
+
+// Per-host session identity + health tracker (proxy/fingerprint binding, retire
+// on repeated soft-block). Persists across cycles so health accrues; surfaced
+// in the cycle log. (Cookie-reuse round-trip into the Python tiers is the next step.)
+const sessionPool = new SessionPool();
 import { checkAlerts } from './alert-checker.js';
 import { writeHistoryBatch } from './history-writer.js';
 import {
@@ -332,6 +340,7 @@ async function runScan() {
     let cycleGot = 0;
     let cycleErrored = 0;
     let cycleRan = 0;
+    const session = sessionPool.acquire(scraperKey);
 
     for (const params of paramsList) {
       if (shuttingDown) break;
@@ -355,6 +364,20 @@ async function runScan() {
           }
           cycleGot += flights.length;
           recordSuccess(scraperKey);
+
+          // Soft-block detection beyond plain zero: compare this result to the
+          // route's rolling baseline. A sharp count drop or out-of-range miles
+          // (parser capturing blanks) is the DOM-drift/partial-block signal a
+          // zero-check misses. Check BEFORE recording so we compare to history.
+          const obs = {
+            count: flights.length,
+            sampleMiles: flights.map(f => f.pointsRequired || 0).filter(m => m > 0).slice(0, 20),
+          };
+          const anomaly = checkRouteAnomaly(scraperKey, key, obs);
+          if (anomaly.anomaly) {
+            log(`[${scraperKey}] ⚠️ SOFT-BLOCK suspected on ${key}: ${anomaly.reasons.join('; ')}`);
+          }
+          recordObservation(scraperKey, key, obs);
         }
         // 0 results on this search — tallied below at cycle granularity
       } catch (e: any) {
@@ -363,6 +386,11 @@ async function runScan() {
         recordFailure(scraperKey);
       }
     }
+
+    // Feed the per-host session pool: results = healthy session; errors = a
+    // soft-block signal that retires the session after maxBlocks.
+    if (cycleGot > 0) sessionPool.markSuccess(session);
+    else if (cycleErrored > 0) sessionPool.markBlocked(session);
 
     // If the scraper ran searches, hit no errors, and returned nothing all
     // cycle, record a clean-zero. Repeated across cycles flips it to "suspect".
@@ -384,6 +412,8 @@ async function runScan() {
   if (suspects.length > 0) {
     log(`⚠️ Suspect scrapers (stuck returning 0): ${suspects.join(', ')} — verify they aren't silently blocked`);
   }
+  const poolStats = sessionPool.stats();
+  log(`Session pool: ${poolStats.totalSessions} live across ${poolStats.hosts} hosts (${poolStats.created} created, ${poolStats.retired} retired)`);
 
   // Deduplicate overlap across scrapers covering the same alliance
   for (const [key, results] of batchResults) {
@@ -647,6 +677,16 @@ async function main() {
   process.on('unhandledRejection', onFatal('unhandledRejection'));
 
   log('Signal handlers registered (SIGTERM, SIGINT, uncaughtException, unhandledRejection)');
+
+  // Audit stealth-config coherence at boot: a TLS fingerprint that doesn't match
+  // the UA, or a locale that doesn't match the proxy geo, is itself a detection
+  // signal. Log a warning so config drift is visible (non-fatal).
+  const coherence = auditFingerprintCoherence();
+  if (!coherence.coherent) {
+    log(`⚠️ Fingerprint/proxy incoherence: ${coherence.issues.join('; ')} — these mismatches are themselves a bot signal`);
+  } else {
+    log('Fingerprint/proxy coherence: OK');
+  }
 
   await dbWriteDaemonStatus({
     pid: process.pid,
