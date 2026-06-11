@@ -29,11 +29,33 @@ import { recordSuccess, recordFailure, recordZero, isScraperAvailable, writeHeal
 import { recordObservation, checkAnomaly as checkRouteAnomaly } from './monitoring/route-baseline.js';
 import { auditCurrent as auditFingerprintCoherence } from './net/fingerprint-coherence.js';
 import { SessionPool } from './net/session-pool.js';
+import { Singleflight } from './scrapers/singleflight.js';
+import { RunHistory, PgRunStore } from './monitoring/run-history.js';
+import { makeJobQueue } from './queue/job-queue.js';
+import { buildJobs, type ScrapeJob } from './queue/producer.js';
+import { runWorkers } from './queue/worker-pool.js';
+import { crawlScore } from './scheduling/crawl-score.js';
+import { getPool } from './db.js';
 
 // Per-host session identity + health tracker (proxy/fingerprint binding, retire
 // on repeated soft-block). Persists across cycles so health accrues; surfaced
 // in the cycle log. (Cookie-reuse round-trip into the Python tiers is the next step.)
 const sessionPool = new SessionPool();
+
+// Coalesce identical in-flight scrapes (daemon + on-demand live search hitting the
+// same route) so we never double-pay proxy GB or double-trip a block on one call.
+const singleflight = new Singleflight();
+
+// Durable per-scraper run ledger (survives restart, unlike the in-memory health
+// Map) + per-INDIVIDUAL-scraper rot alert (today only whole-daemon staleness alerts).
+const runHistory = new RunHistory(new PgRunStore(getPool));
+runHistory.onAlert((a) => log(`🚨 SCRAPER ROT: ${a.scraper} — ${a.runs.length} consecutive unproductive runs (last outcomes: ${a.runs.map(r => r.outcome).join(',')})`));
+
+// Keystone scale path (opt-in): when USE_QUEUE=1, fan scrapes out through a job
+// queue with crawl-score priority + bounded worker concurrency instead of the
+// per-scraper serial loop. Default off → the proven production loop is unchanged.
+const USE_QUEUE = process.env.USE_QUEUE === '1';
+const QUEUE_CONCURRENCY = parseInt(process.env.QUEUE_CONCURRENCY || '8', 10);
 import { checkAlerts } from './alert-checker.js';
 import { writeHistoryBatch } from './history-writer.js';
 import {
@@ -325,85 +347,111 @@ async function runScan() {
   const scraperKeys = getDaemonScraperKeys();
   log(`Registry scrapers this cycle: ${scraperKeys.join(', ') || '(none)'}`);
 
-  const scraperTasks = scraperKeys.map(async (scraperKey) => {
+  // Per-scraper cycle counters, shared by both the legacy loop and the queue path.
+  const perScraper = new Map<string, { got: number; errored: number; ran: number }>();
+  const bump = (k: string, field: 'got' | 'errored' | 'ran', n = 1) => {
+    const c = perScraper.get(k) || { got: 0, errored: 0, ran: 0 };
+    c[field] += n;
+    perScraper.set(k, c);
+  };
+
+  // Run ONE (scraper, params) search: singleflight-coalesced + timed out; results →
+  // batchResults + health + soft-block baseline + durable run ledger. Shared so the
+  // legacy serial loop and the queue path behave identically per search.
+  const runSearch = async (scraperKey: string, params: SearchParams): Promise<void> => {
     const entry = SCRAPER_REGISTRY[scraperKey];
     const timeoutMs = SCRAPER_TIMEOUTS[scraperKey] ?? DEFAULT_SCRAPER_TIMEOUT_MS;
-
-    if (!isScraperAvailable(scraperKey)) {
-      log(`[${scraperKey}] Circuit breaker open — skipping this cycle`);
-      return;
-    }
-
-    // Per-cycle outcome: distinguish "ran clean but every search was empty"
-    // (silent-zero — could be a soft block / DOM drift / expired session) from
-    // a healthy cycle (any search returned results) or an errored one.
-    let cycleGot = 0;
-    let cycleErrored = 0;
-    let cycleRan = 0;
-    const session = sessionPool.acquire(scraperKey);
-
-    for (const params of paramsList) {
-      if (shuttingDown) break;
-
-      // Circuit may trip mid-cycle after consecutive failures
-      if (!isScraperAvailable(scraperKey)) {
-        log(`[${scraperKey}] Circuit breaker opened mid-cycle — stopping`);
-        break;
-      }
-
-      const key = `${params.origin}-${params.destination}-${params.date}`;
-      cycleRan++;
-
-      try {
-        const flights = await withTimeout(entry.search(params), timeoutMs, scraperKey);
-        if (flights.length > 0) {
-          log(`[${scraperKey}] ${key}: ${flights.length} results`);
-          batchResults.get(key)!.push(...flights);
-          if (entry.availabilityType !== 'confirmed') {
-            for (const f of flights) nonConfirmedFlights.add(f);
-          }
-          cycleGot += flights.length;
-          recordSuccess(scraperKey);
-
-          // Soft-block detection beyond plain zero: compare this result to the
-          // route's rolling baseline. A sharp count drop or out-of-range miles
-          // (parser capturing blanks) is the DOM-drift/partial-block signal a
-          // zero-check misses. Check BEFORE recording so we compare to history.
-          const obs = {
-            count: flights.length,
-            sampleMiles: flights.map(f => f.pointsRequired || 0).filter(m => m > 0).slice(0, 20),
-          };
-          const anomaly = checkRouteAnomaly(scraperKey, key, obs);
-          if (anomaly.anomaly) {
-            log(`[${scraperKey}] ⚠️ SOFT-BLOCK suspected on ${key}: ${anomaly.reasons.join('; ')}`);
-          }
-          recordObservation(scraperKey, key, obs);
+    const key = `${params.origin}-${params.destination}-${params.date}`;
+    bump(scraperKey, 'ran');
+    try {
+      const flights = await singleflight.run(
+        `${scraperKey}:${key}`,
+        () => withTimeout(entry.search(params), timeoutMs, scraperKey),
+      );
+      if (flights.length > 0) {
+        log(`[${scraperKey}] ${key}: ${flights.length} results`);
+        batchResults.get(key)!.push(...flights);
+        if (entry.availabilityType !== 'confirmed') {
+          for (const f of flights) nonConfirmedFlights.add(f);
         }
-        // 0 results on this search — tallied below at cycle granularity
-      } catch (e: any) {
-        log(`[${scraperKey}] Error for ${key}: ${e?.message || e}`);
-        cycleErrored++;
-        recordFailure(scraperKey);
+        bump(scraperKey, 'got', flights.length);
+        recordSuccess(scraperKey);
+        const obs = {
+          count: flights.length,
+          sampleMiles: flights.map(f => f.pointsRequired || 0).filter(m => m > 0).slice(0, 20),
+        };
+        const anomaly = checkRouteAnomaly(scraperKey, key, obs);
+        if (anomaly.anomaly) {
+          log(`[${scraperKey}] ⚠️ SOFT-BLOCK suspected on ${key}: ${anomaly.reasons.join('; ')}`);
+        }
+        recordObservation(scraperKey, key, obs);
+        runHistory.recordRun({ scraper: scraperKey, route: key, outcome: 'ok', count: flights.length }).catch(() => {});
+      } else {
+        runHistory.recordRun({ scraper: scraperKey, route: key, outcome: 'empty', count: 0 }).catch(() => {});
       }
+    } catch (e: any) {
+      log(`[${scraperKey}] Error for ${key}: ${e?.message || e}`);
+      bump(scraperKey, 'errored');
+      recordFailure(scraperKey);
+      runHistory.recordRun({ scraper: scraperKey, route: key, outcome: 'error', count: 0 }).catch(() => {});
     }
+  };
 
-    // Feed the per-host session pool: results = healthy session; errors = a
-    // soft-block signal that retires the session after maxBlocks.
-    if (cycleGot > 0) sessionPool.markSuccess(session);
-    else if (cycleErrored > 0) sessionPool.markBlocked(session);
-
-    // If the scraper ran searches, hit no errors, and returned nothing all
-    // cycle, record a clean-zero. Repeated across cycles flips it to "suspect".
-    if (cycleRan > 0 && cycleGot === 0 && cycleErrored === 0) {
+  // After a scraper's searches: session health, silent-zero flag, durable rot check.
+  const finalizeScraper = async (scraperKey: string): Promise<void> => {
+    const c = perScraper.get(scraperKey) || { got: 0, errored: 0, ran: 0 };
+    const session = sessionPool.acquire(scraperKey);
+    if (c.got > 0) sessionPool.markSuccess(session);
+    else if (c.errored > 0) sessionPool.markBlocked(session);
+    if (c.ran > 0 && c.got === 0 && c.errored === 0) {
       const newlySuspect = recordZero(scraperKey);
-      log(`[${scraperKey}] 0 results across ${cycleRan} searches this cycle (clean zero)`);
+      log(`[${scraperKey}] 0 results across ${c.ran} searches this cycle (clean zero)`);
       if (newlySuspect) {
         log(`[${scraperKey}] ⚠️ SUSPECT — returned 0 results for ${ZERO_SUSPECT_THRESHOLD}+ consecutive cycles; likely soft-blocked, DOM-drifted, or session expired`);
       }
     }
-  });
+    await runHistory.detectScraperRot(scraperKey).catch(() => {});
+  };
 
-  await Promise.allSettled(scraperTasks);
+  if (USE_QUEUE) {
+    // Keystone scale path: fan ALL (scraper × search) work out through a priority
+    // queue with bounded worker concurrency, instead of ~one-task-per-scraper.
+    const specs = scraperKeys.flatMap(sk => paramsList.map(p => ({ scraperKey: sk, params: p })));
+    const jobs = buildJobs(specs, (s) => Math.round(crawlScore({
+      // Cheap signal available here: how many signups watch this route (demand).
+      userDemand: Math.min(1, (signupCabins.get(`${s.params.origin}-${s.params.destination}-${s.params.date}`)?.size || 0) / 3),
+      milesVolatility: 0.5,
+      dealLikelihood: 0.5,
+      stalenessHours: 0,
+    }) * 1000));
+    const queue = makeJobQueue<ScrapeJob>('daemon-scrape');
+    for (const j of jobs) await queue.add(j, { priority: j.priority, dedupeKey: j.dedupeKey });
+    log(`[queue] enqueued ${jobs.length} jobs @ concurrency ${QUEUE_CONCURRENCY}`);
+    await runWorkers(queue, QUEUE_CONCURRENCY, async (job) => {
+      if (shuttingDown || !isScraperAvailable(job.scraperKey)) return;
+      await runSearch(job.scraperKey, { origin: job.origin, destination: job.destination, date: job.date, cabin: job.cabin });
+    });
+    await queue.drain();
+    for (const sk of scraperKeys) await finalizeScraper(sk);
+  } else {
+    // Legacy path (default): each scraper runs in parallel, its searches serial.
+    const scraperTasks = scraperKeys.map(async (scraperKey) => {
+      if (!isScraperAvailable(scraperKey)) {
+        log(`[${scraperKey}] Circuit breaker open — skipping this cycle`);
+        return;
+      }
+      for (const params of paramsList) {
+        if (shuttingDown) break;
+        if (!isScraperAvailable(scraperKey)) {
+          log(`[${scraperKey}] Circuit breaker opened mid-cycle — stopping`);
+          break;
+        }
+        await runSearch(scraperKey, params);
+      }
+      await finalizeScraper(scraperKey);
+    });
+    await Promise.allSettled(scraperTasks);
+  }
 
   // Surface any scrapers stuck at clean-zero — the silent-block signal that
   // (one level up) caused the 4-month outage. The staleness watchdog / canary

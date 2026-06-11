@@ -9,14 +9,16 @@
     "serve": "tsx src/flights/web-server.ts",
     "daemon": "tsx src/flights/flight-daemon.ts",
     "search": "tsx src/flights/scrapers/index.ts",
-    "test": "tsx tests/run-unit.ts && tsx tests/run-approach-tests.ts",
+    "test": "tsx tests/run-unit.ts && tsx tests/run-approach-tests.ts && tsx tests/run-frontier-tests.ts",
     "next-dev": "next dev",
     "next-build": "next build --webpack",
-    "test:approach": "tsx tests/run-approach-tests.ts"
+    "test:approach": "tsx tests/run-approach-tests.ts",
+    "test:frontier": "tsx tests/run-frontier-tests.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.1",
     "better-auth": "^1.6.16",
+    "bullmq": "^5.78.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",

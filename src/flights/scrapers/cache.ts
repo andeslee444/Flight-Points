@@ -13,7 +13,9 @@ import * as path from 'path';
 import { atomicWriteFileSync } from '../utils.js';
 import { CACHE_TTL_MS, CACHE_MAX_ENTRIES } from '../scraper-config.js';
 
-const cache = new Map<string, { results: FlightResult[]; timestamp: number }>();
+// Per-entry ttlMs lets the volatility-keyed TTL policy (scheduling/ttl-policy.ts)
+// expire volatile routes fast and stable ones slowly. Defaults to CACHE_TTL_MS.
+const cache = new Map<string, { results: FlightResult[]; timestamp: number; ttlMs: number }>();
 const DISK_DIR = process.env.SCRAPER_CACHE_DIR || '';
 
 function diskPath(key: string): string {
@@ -25,10 +27,10 @@ function diskPath(key: string): string {
  * Evict expired entries, then oldest entries if still over max size.
  */
 function evictIfNeeded(): void {
-  // First pass: remove expired
+  // First pass: remove expired (per-entry ttl)
   const now = Date.now();
   for (const [key, entry] of cache) {
-    if (now - entry.timestamp > CACHE_TTL_MS) {
+    if (now - entry.timestamp > entry.ttlMs) {
       cache.delete(key);
     }
   }
@@ -47,7 +49,7 @@ export function getCached(key: string): FlightResult[] | null {
   // Fast path: in-memory
   const entry = cache.get(key);
   if (entry) {
-    if (Date.now() - entry.timestamp > CACHE_TTL_MS) {
+    if (Date.now() - entry.timestamp > entry.ttlMs) {
       cache.delete(key);
     } else {
       return entry.results;
@@ -60,8 +62,9 @@ export function getCached(key: string): FlightResult[] | null {
       const fp = diskPath(key);
       if (fs.existsSync(fp)) {
         const data = JSON.parse(fs.readFileSync(fp, 'utf-8'));
-        if (Date.now() - data.timestamp <= CACHE_TTL_MS) {
-          cache.set(key, { results: data.results, timestamp: data.timestamp });
+        const ttlMs = data.ttlMs ?? CACHE_TTL_MS;
+        if (Date.now() - data.timestamp <= ttlMs) {
+          cache.set(key, { results: data.results, timestamp: data.timestamp, ttlMs });
           return data.results;
         }
       }
@@ -73,9 +76,10 @@ export function getCached(key: string): FlightResult[] | null {
   return null;
 }
 
-export function setCache(key: string, results: FlightResult[]): void {
+/** @param ttlMs Optional per-entry TTL (volatility-keyed). Defaults to CACHE_TTL_MS. */
+export function setCache(key: string, results: FlightResult[], ttlMs: number = CACHE_TTL_MS): void {
   const timestamp = Date.now();
-  cache.set(key, { results, timestamp });
+  cache.set(key, { results, timestamp, ttlMs });
 
   // Evict if over limit
   evictIfNeeded();
@@ -86,7 +90,7 @@ export function setCache(key: string, results: FlightResult[]): void {
       if (!fs.existsSync(DISK_DIR)) {
         fs.mkdirSync(DISK_DIR, { recursive: true });
       }
-      atomicWriteFileSync(diskPath(key), JSON.stringify({ results, timestamp }));
+      atomicWriteFileSync(diskPath(key), JSON.stringify({ results, timestamp, ttlMs }));
     } catch (e: any) {
       console.warn(`[Cache] Disk write error for ${key}: ${e.message}`);
     }
