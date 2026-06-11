@@ -280,6 +280,15 @@ def main():
 
             log(f"Found {len(results)} results")
 
+            # Anomaly: page loaded but parsed nothing. Capture a screenshot so
+            # vision-verify can classify why (blocked / login / DOM-drift / empty).
+            if not results:
+                try:
+                    from chrome_cdp import save_diagnostic_screenshot
+                    save_diagnostic_screenshot(page, "aa")
+                except Exception:
+                    pass
+
         finally:
             cleanup()
 

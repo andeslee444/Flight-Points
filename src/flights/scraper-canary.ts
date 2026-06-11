@@ -35,6 +35,7 @@ import * as path from 'path';
 import { SCRAPER_REGISTRY } from './scrapers/index.js';
 import { recordSuccess, recordZero, recordFailure, writeHealthFile } from './scraper-health.js';
 import { atomicWriteFileSync } from './utils.js';
+import { classifyAnomaly, findLatestDiagnostic, type AnomalyDiagnosis } from './vision-verify.js';
 import type { CabinCode, FlightResult, SearchParams } from './types.js';
 
 // ============================================================
@@ -101,7 +102,10 @@ interface CanaryResult {
   count: number;
   ms: number;
   error?: string;
+  diagnosis?: AnomalyDiagnosis; // vision classification (CANARY_VISION=1, on EMPTY/FAIL)
 }
+
+const DIAGNOSTIC_DIR = path.join(DATA_DIR, 'diagnostics');
 
 interface PlannedRoute {
   key: string;
@@ -226,6 +230,7 @@ function writeReport(date: string, results: CanaryResult[]): void {
       count: r.count,
       ms: r.ms,
       error: r.error,
+      diagnosis: r.diagnosis,
     })),
   };
   try {
@@ -263,11 +268,29 @@ export async function runCanary(): Promise<boolean> {
 
   log(`Canarying ${planned.length} scraper(s) for ${date}: ${planned.map((p) => p.key).join(', ')}`);
 
+  const visionOn = process.env.CANARY_VISION === '1';
   const results: CanaryResult[] = [];
   for (const p of planned) {
     log(`→ ${p.key}: ${p.route} [${p.cabin}]`);
     const r = await canaryOne(p.key, date);
     log(`← ${p.key}: ${r.verdict} (${r.count} results, ${(r.ms / 1000).toFixed(1)}s)${r.error ? ` — ${r.error}` : ''}`);
+
+    // On a non-PASS, classify WHY from the scraper's failure-time screenshot.
+    // Gated behind CANARY_VISION so a missing API key never affects the core
+    // regression. No-ops cleanly if no screenshot or no key.
+    if (visionOn && r.verdict !== 'PASS') {
+      const shot = findLatestDiagnostic(p.key, DIAGNOSTIC_DIR);
+      if (shot) {
+        const diagnosis = await classifyAnomaly(shot, `${p.name} ${p.route} [${p.cabin}]; scraper verdict ${r.verdict}`);
+        if (diagnosis) {
+          r.diagnosis = diagnosis;
+          log(`  ⮑ vision: ${diagnosis.label} (conf ${diagnosis.confidence.toFixed(2)}) — ${diagnosis.evidence}`);
+        }
+      } else {
+        log(`  ⮑ vision: no diagnostic screenshot found for ${p.key} (only CDP scrapers emit them)`);
+      }
+    }
+
     results.push(r);
   }
 

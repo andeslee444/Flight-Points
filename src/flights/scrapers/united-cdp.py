@@ -485,6 +485,15 @@ def main():
             log(f"No results found. URL: {page.url}")
             log(f"Page preview: {body_preview[:200]}")
 
+        # Anomaly: returned nothing. Capture a screenshot so vision-verify can
+        # later classify why (blocked / login-wall / DOM-drift / genuinely-empty).
+        if not results:
+            try:
+                from chrome_cdp import save_diagnostic_screenshot
+                save_diagnostic_screenshot(page, "united")
+            except Exception:
+                pass
+
         log(f"Total: {len(results)} results")
 
     except Exception as e:

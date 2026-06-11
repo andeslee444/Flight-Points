@@ -23,6 +23,29 @@ import platform
 import signal
 
 
+def save_diagnostic_screenshot(page, scraper_name):
+    """Capture a screenshot when a CDP scraper hits an anomaly (0 results or a
+    block), so the vision-verify layer can later classify WHY it failed —
+    blocked vs login-wall vs DOM-drift vs genuinely-empty. Best-effort: never
+    raises (a screenshot failure must not break the scraper). Returns the path
+    written, or None. Logs '[SCREENSHOT] <path>' to stderr so the TS runner can
+    pick it up. Override the directory with CDP_DIAGNOSTIC_DIR."""
+    try:
+        base = os.environ.get(
+            "CDP_DIAGNOSTIC_DIR",
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "data", "diagnostics"),
+        )
+        os.makedirs(base, exist_ok=True)
+        ts = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
+        out = os.path.abspath(os.path.join(base, f"{scraper_name}-{ts}.png"))
+        page.screenshot(path=out)
+        print(f"[SCREENSHOT] {out}", file=sys.stderr, flush=True)
+        return out
+    except Exception as e:
+        print(f"[SCREENSHOT] failed: {e}", file=sys.stderr, flush=True)
+        return None
+
+
 def log(msg):
     print(f"[ChromeCDP {time.strftime('%H:%M:%S')}] {msg}", file=sys.stderr)
 
