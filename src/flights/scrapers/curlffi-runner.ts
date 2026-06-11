@@ -10,7 +10,8 @@ import { execFile } from 'child_process';
 import { resolve } from 'path';
 import { FlightResult, SearchParams, getCacheKey } from '../types.js';
 import { getCached, setCache } from './cache.js';
-import { resolveProxy } from '../net/proxy-router.js';
+import { resolveProxyBudgeted } from '../net/proxy-router.js';
+import { getSharedBudget } from '../scheduling/cost-budget.js';
 import { fullJitterBackoff } from '../net/rate-limit.js';
 import {
   CURLFFI_SCRAPER_TIMEOUT_MS,
@@ -41,6 +42,8 @@ export interface CurlFfiRunnerOptions {
   retryBaseDelayMs?: number;
   /** Delay between batch searches in ms (default: 5000) */
   batchDelayMs?: number;
+  /** Route crawl-score priority 0..1 (cost-budget escalation gate; default 0.5). */
+  routePriority?: number;
 }
 
 function makeLogger(label: string) {
@@ -73,8 +76,16 @@ export function runCurlFfiSearch(
   // Route this scraper through the proxy tier its difficulty calls for
   // (public→datacenter, akamai→residential, auth→mobile), degrading to the
   // VPS when higher tiers aren't configured. Passed to Python via PROXY_URL,
-  // which curlffi_base.py already reads.
-  const proxyUrl = resolveProxy(scraperKeyFromScript(opts.script));
+  // which curlffi_base.py already reads. When COST_BUDGET_USD is set, the budget
+  // gates escalation: low-priority routes / an exhausted budget stay on the
+  // cheap datacenter tier even if a residential/mobile proxy is configured.
+  const scraperKey = scraperKeyFromScript(opts.script);
+  const routed = resolveProxyBudgeted(scraperKey, opts.routePriority ?? 0.5);
+  const proxyUrl = routed.proxyUrl;
+  const budget = getSharedBudget();
+  if (budget && routed.degradedForBudget) {
+    log(`Budget exhausted — degraded ${scraperKey} to ${routed.tier} (est $${routed.estCostUsd.toFixed(3)})`);
+  }
 
   return new Promise(async (outerResolve) => {
     for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -127,11 +138,15 @@ export function runCurlFfiSearch(
         if (result.length > 0) {
           setCache(cacheKey, result);
         }
+        // Meter the marginal cost of this proxied job against the shared budget
+        // (once per logical search, not per retry — a first-order estimate).
+        if (budget && routed.estCostUsd > 0) budget.recordSpend(routed.estCostUsd);
         outerResolve(result);
         return;
       }
     }
 
+    if (budget && routed.estCostUsd > 0) budget.recordSpend(routed.estCostUsd);
     log(`All ${maxRetries} attempts failed`);
     outerResolve([]);
   });

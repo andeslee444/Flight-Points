@@ -35,6 +35,8 @@ import { makeJobQueue } from './queue/job-queue.js';
 import { buildJobs, type ScrapeJob } from './queue/producer.js';
 import { runWorkers } from './queue/worker-pool.js';
 import { crawlScore } from './scheduling/crawl-score.js';
+import { HostConcurrency } from './scheduling/adaptive-cadence.js';
+import { getSharedBudget, costPerConfirmedDeal } from './scheduling/cost-budget.js';
 import { getPool } from './db.js';
 
 // Per-host session identity + health tracker (proxy/fingerprint binding, retire
@@ -56,6 +58,13 @@ runHistory.onAlert((a) => log(`🚨 SCRAPER ROT: ${a.scraper} — ${a.runs.lengt
 // per-scraper serial loop. Default off → the proven production loop is unchanged.
 const USE_QUEUE = process.env.USE_QUEUE === '1';
 const QUEUE_CONCURRENCY = parseInt(process.env.QUEUE_CONCURRENCY || '8', 10);
+
+// Adaptive cadence (opt-in: ADAPTIVE_CADENCE=1). A fleet-level AIMD controller
+// over worker concurrency in the queue path: a cycle where hosts pushed back
+// (blocks > successes) multiplicatively halves the pool; a clean cycle additively
+// climbs it back toward QUEUE_CONCURRENCY. Default off → fixed QUEUE_CONCURRENCY.
+const ADAPTIVE_CADENCE = process.env.ADAPTIVE_CADENCE === '1';
+const fleetConcurrency = new HostConcurrency({ min: 2, max: QUEUE_CONCURRENCY, start: QUEUE_CONCURRENCY });
 import { checkAlerts } from './alert-checker.js';
 import { writeHistoryBatch } from './history-writer.js';
 import {
@@ -426,8 +435,9 @@ async function runScan() {
     }) * 1000));
     const queue = makeJobQueue<ScrapeJob>('daemon-scrape');
     for (const j of jobs) await queue.add(j, { priority: j.priority, dedupeKey: j.dedupeKey });
-    log(`[queue] enqueued ${jobs.length} jobs @ concurrency ${QUEUE_CONCURRENCY}`);
-    await runWorkers(queue, QUEUE_CONCURRENCY, async (job) => {
+    const effectiveConcurrency = ADAPTIVE_CADENCE ? fleetConcurrency.current() : QUEUE_CONCURRENCY;
+    log(`[queue] enqueued ${jobs.length} jobs @ concurrency ${effectiveConcurrency}${ADAPTIVE_CADENCE ? ` (adaptive, max ${QUEUE_CONCURRENCY})` : ''}`);
+    await runWorkers(queue, effectiveConcurrency, async (job) => {
       if (shuttingDown || !isScraperAvailable(job.scraperKey)) return;
       await runSearch(job.scraperKey, { origin: job.origin, destination: job.destination, date: job.date, cabin: job.cabin });
     });
@@ -462,6 +472,27 @@ async function runScan() {
   }
   const poolStats = sessionPool.stats();
   log(`Session pool: ${poolStats.totalSessions} live across ${poolStats.hosts} hosts (${poolStats.created} created, ${poolStats.retired} retired)`);
+
+  // Adaptive cadence AIMD feedback: a cycle where more scrapers were blocked
+  // than productive halves next cycle's worker pool; a healthy cycle climbs it
+  // back. Reading-only outside the queue path, so it's a no-op cost when off.
+  if (ADAPTIVE_CADENCE) {
+    let blocked = 0, productive = 0;
+    for (const [, c] of perScraper) {
+      if (c.got > 0) productive++;
+      else if (c.errored > 0) blocked++;
+    }
+    if (blocked > productive) fleetConcurrency.onBlock();
+    else fleetConcurrency.onSuccess();
+    log(`[adaptive-cadence] fleet=${blocked > productive ? 'BLOCK ↓' : 'OK ↑'} (blocked ${blocked} / productive ${productive}) → next concurrency ${fleetConcurrency.current()}`);
+  }
+
+  // Cost-budget accounting: when a budget is active, report spend + efficiency.
+  const budget = getSharedBudget();
+  if (budget) {
+    const dealsThisCycle = [...batchResults.values()].reduce((n, rs) => n + rs.filter(f => isGoodDeal(f).isDeal).length, 0);
+    log(`[cost-budget] spent $${budget.spent().toFixed(2)} / $${budget.ceiling().toFixed(2)} ceiling (remaining $${budget.remaining().toFixed(2)})${budget.isExhausted() ? ' — EXHAUSTED, premium tiers degraded' : ''}; $/deal=${costPerConfirmedDeal(budget.spent(), dealsThisCycle).toFixed(3)}`);
+  }
 
   // Deduplicate overlap across scrapers covering the same alliance
   for (const [key, results] of batchResults) {

@@ -129,6 +129,88 @@ export interface RoutingEntry {
   proxyUrl: string | undefined;
 }
 
+// ---------------------------------------------------------------------------
+// Budget-aware tier selection (cost-budget integration, opt-in)
+// ---------------------------------------------------------------------------
+
+import { getSharedBudget, type CostTier } from '../scheduling/cost-budget.js';
+
+/** Map a cost-budget CostTier onto a concrete proxy tier (browser cost is a
+ *  separate dimension; cloud-browser still egresses over residential IPs). */
+function costTierToProxyTier(tier: CostTier): ProxyTier {
+  switch (tier) {
+    case 'residential':
+    case 'cloud-browser':
+      return 'residential';
+    case 'mobile':
+      return 'mobile';
+    default:
+      return 'datacenter';
+  }
+}
+
+/** The outcome of a budget-aware proxy decision. */
+export interface BudgetedProxy {
+  proxyUrl: string | undefined;
+  /** Proxy tier actually used, or 'direct' when no proxy is configured. */
+  tier: ProxyTier | 'direct';
+  /** Estimated marginal cost of this job at the chosen tier (USD), 0 when no budget. */
+  estCostUsd: number;
+  /** True when the budget downgraded a high-priority route because it was exhausted. */
+  degradedForBudget: boolean;
+}
+
+/**
+ * Resolve the proxy for a scraper, gated by the shared cost budget.
+ *
+ * When COST_BUDGET_USD is unset (getSharedBudget() === null) this is exactly
+ * resolveProxy(): walk the difficulty's tier preference and use the first
+ * configured URL. When a budget IS active, the budget decides whether this
+ * route has *earned* an escalation to a pricier proxy tier — cheap routes and
+ * an exhausted budget stay on datacenter even if a residential/mobile proxy is
+ * configured. The caller is responsible for recording the returned estCostUsd
+ * against the same shared budget after the job runs.
+ *
+ * Pure w.r.t. inputs: chooseTier only reads the budget's remaining(); it does
+ * NOT mutate spend. (recordSpend is the caller's job, post-run.)
+ */
+export function resolveProxyBudgeted(scraperKey: string, routePriority = 0.5): BudgetedProxy {
+  const budget = getSharedBudget();
+  if (!budget) {
+    const proxyUrl = resolveProxy(scraperKey);
+    return { proxyUrl, tier: proxyUrl ? tierForUrl(scraperKey, proxyUrl) : 'direct', estCostUsd: 0, degradedForBudget: false };
+  }
+
+  const difficulty = difficultyFor(scraperKey);
+  const decision = budget.chooseTier(difficulty, routePriority);
+  const wantTier = costTierToProxyTier(decision.tier);
+
+  // Walk the difficulty's preference list but cap escalation at the budget's
+  // chosen tier — never use a proxy pricier than the budget approved.
+  const cap = TIER_RANK[wantTier];
+  for (const tier of TIER_PREFERENCE[difficulty]) {
+    if (TIER_RANK[tier] > cap) continue; // budget didn't approve this pricey a tier
+    const url = tierUrl(tier);
+    if (url) return { proxyUrl: url, tier, estCostUsd: decision.estCostUsd, degradedForBudget: decision.degradedForBudget };
+  }
+  const fallback = tierUrl('datacenter');
+  return {
+    proxyUrl: fallback,
+    tier: fallback ? 'datacenter' : 'direct',
+    estCostUsd: decision.estCostUsd,
+    degradedForBudget: decision.degradedForBudget,
+  };
+}
+
+/** Cheapest→priciest rank for ProxyTier, so we can cap escalation. */
+const TIER_RANK: Record<ProxyTier, number> = { datacenter: 0, residential: 1, mobile: 2 };
+
+/** Identify which tier produced a resolved URL (first match in preference order). */
+function tierForUrl(scraperKey: string, proxyUrl: string): ProxyTier {
+  const difficulty = difficultyFor(scraperKey);
+  return TIER_PREFERENCE[difficulty].find((t) => tierUrl(t) === proxyUrl) ?? 'datacenter';
+}
+
 /** Return one RoutingEntry per known scraper, reflecting current env. */
 export function listRouting(): RoutingEntry[] {
   return Object.keys(DIFFICULTY).map((scraperKey) => {

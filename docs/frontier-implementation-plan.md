@@ -50,7 +50,14 @@ health Map resets). Alert when an **individual** scraper flips `suspect`.
 
 ---
 
-## Milestone 2 — Intelligence & self-healing
+## Milestone 2 — Intelligence & self-healing  ✅ built + integrated (flag-gated)
+
+> Status: all three modules built, proof-tested, and wired live behind flags.
+> `ADAPTIVE_CADENCE=1` feeds a fleet AIMD into the queue worker count;
+> `COST_BUDGET_USD=<n>` gates curl_cffi proxy-tier escalation + meters spend;
+> `PARSER_AUTOREPAIR=1` fires `attemptRepair` on a vision `layout_changed` verdict
+> (LLM dormant w/o `ANTHROPIC_API_KEY`; validator rejects unproven selectors).
+> Master loop is 9/9 (added `budget-proxy-routing` live-wiring proof).
 
 ### 2.1 Adaptive cadence (`scheduling/adaptive-cadence.ts`)
 Per-route poll interval (tightens when volatile/near-deal, relaxes when flat) + per-host

@@ -13,11 +13,18 @@ import { execFileSync } from 'child_process';
 import * as path from 'path';
 
 const TESTS = [
+  // M1 — Foundation
   ['queue', 'throughput scales with workers + fan-out + priority + dedupe'],
   ['crawl-score', 'high-value routes prioritized over cold'],
   ['singleflight', '100 concurrent identical calls → 1 execution'],
   ['ttl-policy', 'volatile routes expire faster than stable'],
   ['run-history', 'per-scraper rot detected, fires once, recovers'],
+  // M2 — Intelligence & self-healing
+  ['adaptive-cadence', 'AIMD sawtooth + hot routes polled tighter than cold'],
+  ['cost-budget', 'cheap-first, escalate high-priority, degrade at ceiling'],
+  ['parser-autorepair', 'good selector hot-swapped, bad/hallucinated rejected'],
+  // M2 — live-wiring integration proof
+  ['budget-proxy-routing', 'budget gates proxy escalation (low cheap, high escalates, exhausted degrades)'],
 ];
 
 const dir = path.join('tests', 'frontier');

@@ -36,6 +36,12 @@ import { SCRAPER_REGISTRY } from './scrapers/index.js';
 import { recordSuccess, recordZero, recordFailure, writeHealthFile } from './scraper-health.js';
 import { atomicWriteFileSync } from './utils.js';
 import { classifyAnomaly, findLatestDiagnostic, type AnomalyDiagnosis } from './vision-verify.js';
+import {
+  ParserAutoRepair,
+  DiskSelectorStore,
+  defaultLlmRepairFn,
+  type ValidateFn,
+} from './healing/parser-autorepair.js';
 import type { CabinCode, FlightResult, SearchParams } from './types.js';
 
 // ============================================================
@@ -57,6 +63,49 @@ const GOLDEN_DATE_OFFSET_DAYS = 45;
 // CommonJS output (matching staleness-check.ts, which also derives paths at runtime).
 const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), 'data');
 const REPORT_PATH = path.join(DATA_DIR, 'canary-report.json');
+
+// Self-healing parser auto-repair (opt-in: PARSER_AUTOREPAIR=1; the repair LLM
+// is itself dormant without ANTHROPIC_API_KEY). When vision says a non-PASS was
+// `layout_changed` — page HAS results but our DOM selector drifted — we ask the
+// LLM for a fresh selector and VALIDATE it against the golden page before any
+// hot-swap. Persisted selectors live in data/selectors.json across runs.
+const AUTOREPAIR_ON = process.env.PARSER_AUTOREPAIR === '1';
+const SELECTOR_STORE_PATH = path.join(DATA_DIR, 'selectors.json');
+
+/** Latest saved DOM snapshot for a scraper (CDP scrapers dump `{key}-*.html`). */
+function findLatestDiagnosticHtml(scraperKey: string, dir: string): string | null {
+  try {
+    if (!fs.existsSync(dir)) return null;
+    const prefix = `${scraperKey}-`;
+    const matches = fs
+      .readdirSync(dir)
+      .filter((f) => f.startsWith(prefix) && f.endsWith('.html'))
+      .map((f) => ({ f, t: fs.statSync(path.join(dir, f)).mtimeMs }))
+      .sort((a, b) => b.t - a.t);
+    return matches.length ? path.join(dir, matches[0].f) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Conservative validator: without a DOM engine or per-scraper selector injection
+ * we cannot yet *prove* a candidate reproduces the golden extraction, so we
+ * REJECT by default (count 0) and surface the proposal for manual review. This
+ * upholds the module's safety invariant — an unvalidated selector never ships —
+ * while keeping the detect→propose loop live. To enable true auto-hot-swap,
+ * replace this with a real validator (DOM-parse the golden HTML, or re-run the
+ * scraper with the candidate selector) that returns the actual count + miles.
+ */
+function makeCanaryValidator(scraperKey: string): ValidateFn {
+  return async (selector: string) => {
+    log(
+      `  ⮑ autorepair: PROPOSED selector for ${scraperKey}: ${selector} ` +
+        `— validation requires DOM-parse/selector-injection (not yet wired), rejecting for safety. Review manually.`,
+    );
+    return { count: 0, sampleMiles: [] };
+  };
+}
 
 /**
  * Today + GOLDEN_DATE_OFFSET_DAYS, formatted YYYY-MM-DD.
@@ -285,6 +334,28 @@ export async function runCanary(): Promise<boolean> {
         if (diagnosis) {
           r.diagnosis = diagnosis;
           log(`  ⮑ vision: ${diagnosis.label} (conf ${diagnosis.confidence.toFixed(2)}) — ${diagnosis.evidence}`);
+
+          // Self-healing trigger: layout drift is the ONE non-PASS class a
+          // selector repair can fix. Attempt it (dormant w/o key; never swaps an
+          // unvalidated selector). Other labels (block/login/no-availability)
+          // are not selector problems, so we don't touch them.
+          if (AUTOREPAIR_ON && diagnosis.label === 'layout_changed') {
+            const htmlPath = findLatestDiagnosticHtml(p.key, DIAGNOSTIC_DIR);
+            const domHtml = htmlPath ? fs.readFileSync(htmlPath, 'utf-8') : '';
+            const repair = new ParserAutoRepair({
+              llm: defaultLlmRepairFn,
+              validate: makeCanaryValidator(p.key),
+              store: new DiskSelectorStore(SELECTOR_STORE_PATH),
+            });
+            const outcome = await repair.attemptRepair(p.key, {
+              domHtml,
+              screenshotPath: shot,
+              // The page shows results (that's what layout_changed means), so a
+              // correct selector must extract at least 1 row.
+              expected: { cabin: p.cabin, minCount: 1 },
+            });
+            log(`  ⮑ autorepair: ${outcome.repaired ? 'HOT-SWAPPED' : 'no swap'} — ${outcome.reason}`);
+          }
         }
       } else {
         log(`  ⮑ vision: no diagnostic screenshot found for ${p.key} (only CDP scrapers emit them)`);
