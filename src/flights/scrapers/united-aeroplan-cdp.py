@@ -50,6 +50,110 @@ def human_type(page, selector, text, delay_range=(50, 150)):
             if random.random() < 0.1:
                 time.sleep(random.uniform(0.1, 0.3))
 
+def solve_and_inject_captcha(page, login_frame, username, password):
+    """
+    Attempt to clear the Gigya reCAPTCHA that blocks Aeroplan login (errorCode
+    401020). DORMANT-SAFE: returns False immediately when CAPSOLVER_API_KEY is
+    unset (caller then keeps today's "blocked" bail-out), and never raises.
+
+    Steps: (1) extract the reCAPTCHA sitekey from the login frame DOM,
+    (2) solve via CapSolver (paid; only runs when the key is set),
+    (3) inject the token into the g-recaptcha-response field + fire grecaptcha's
+        callback, then re-submit the Gigya login,
+    (4) report whether the login iframe went away (success).
+
+    The injection step (3) needs live tuning against the real Gigya screenset
+    once a key is configured — we attempt the standard mechanisms and log each so
+    the first live run is diagnosable.
+    """
+    try:
+        from captcha_solver import solve_captcha, is_captcha_solver_configured
+    except Exception as e:  # noqa: BLE001
+        log(f"captcha_solver import failed: {e}")
+        return False
+
+    if not is_captcha_solver_configured():
+        log("CAPSOLVER_API_KEY not set — cannot solve reCAPTCHA, leaving blocked.")
+        return False
+
+    # (1) Find the reCAPTCHA sitekey: a [data-sitekey] attr, or the k= param on
+    # the google recaptcha iframe src. Search the login frame first.
+    try:
+        sitekey = login_frame.evaluate(
+            """() => {
+                const el = document.querySelector('[data-sitekey]');
+                if (el) return el.getAttribute('data-sitekey');
+                const ifr = document.querySelector('iframe[src*="recaptcha"]');
+                if (ifr) {
+                    const m = ifr.src.match(/[?&]k=([^&]+)/);
+                    if (m) return m[1];
+                }
+                return null;
+            }"""
+        )
+    except Exception as e:  # noqa: BLE001
+        log(f"sitekey extraction failed: {e}")
+        sitekey = None
+
+    if not sitekey:
+        log("reCAPTCHA sitekey not found in login frame — cannot solve.")
+        return False
+    log(f"Found reCAPTCHA sitekey: {sitekey[:12]}…")
+
+    # (2) Solve (paid). websiteUrl is the Air Canada auth page hosting the widget.
+    token = solve_captcha(
+        {
+            "type": "recaptcha_v2",
+            "websiteUrl": "https://www.aircanada.com/ca/en/aco/home.html?isAuth=true",
+            "websiteKey": sitekey,
+        }
+    )
+    if not token:
+        log("CapSolver returned no token — leaving login blocked.")
+        return False
+    log("Got captcha token — injecting and re-submitting login.")
+
+    # (3) Inject the token into every g-recaptcha-response field, invoke the
+    # grecaptcha callback if one is registered, then re-run gigya.accounts.login.
+    try:
+        login_frame.evaluate(
+            """(args) => {
+                const [token, loginID, password] = args;
+                document.querySelectorAll('textarea#g-recaptcha-response, textarea[name="g-recaptcha-response"]')
+                    .forEach(t => { t.value = token; t.dispatchEvent(new Event('change', { bubbles: true })); });
+                try {
+                    if (window.___grecaptcha_cfg && window.___grecaptcha_cfg.clients) {
+                        // Best-effort: fire any registered reCAPTCHA callback with the token.
+                        for (const k of Object.keys(window.___grecaptcha_cfg.clients)) {
+                            const client = window.___grecaptcha_cfg.clients[k];
+                            JSON.stringify(client, (key, val) => {
+                                if (val && typeof val.callback === 'function') { try { val.callback(token); } catch (e) {} }
+                                return val;
+                            });
+                        }
+                    }
+                } catch (e) {}
+                try {
+                    if (typeof gigya !== 'undefined' && gigya.accounts) {
+                        gigya.accounts.login({ loginID, password, 'g-recaptcha-response': token });
+                    }
+                } catch (e) {}
+            }""",
+            [token, username, password],
+        )
+    except Exception as e:  # noqa: BLE001
+        log(f"token injection failed: {e}")
+        return False
+
+    random_delay(6, 9)
+    still_iframe = any('clogin' in f.url for f in page.frames)
+    if still_iframe:
+        log("Login iframe still present after captcha injection — solve did not clear login.")
+        return False
+    log("reCAPTCHA cleared — login succeeded via CapSolver.")
+    return True
+
+
 def main():
     if len(sys.argv) < 2:
         print("[]")
@@ -207,10 +311,15 @@ def main():
                     # Check for captcha error
                     error_text = login_frame.evaluate("() => document.body?.innerText || ''")
                     if 'robot' in error_text.lower() or 'captcha' in error_text.lower():
-                        log("Login blocked by reCAPTCHA — cannot proceed")
-                        print("[]")
-                        sys.exit(0)
-                    log(f"Login may have failed: {error_text[:100]}")
+                        # reCAPTCHA wall. Try the CapSolver path (dormant + safe
+                        # without CAPSOLVER_API_KEY → returns False → bail as before).
+                        log("Login blocked by reCAPTCHA — attempting CapSolver…")
+                        if not solve_and_inject_captcha(page, login_frame, username, password):
+                            log("reCAPTCHA not cleared — cannot proceed")
+                            print("[]")
+                            sys.exit(0)
+                    else:
+                        log(f"Login may have failed: {error_text[:100]}")
                 else:
                     log("Login successful!")
 
