@@ -25,6 +25,11 @@ const TESTS = [
   ['parser-autorepair', 'good selector hot-swapped, bad/hallucinated rejected'],
   // M2 — live-wiring integration proof
   ['budget-proxy-routing', 'budget gates proxy escalation (low cheap, high escalates, exhausted degrades)'],
+  // M3 — scale-out adapters & scaffolds (dormant without credentials)
+  ['cloud-browser', 'only high-priority hard routes route to cloud; dormant w/o config'],
+  ['captcha-solver', 'dormant w/o key; solves to token via injected http; never throws'],
+  ['contribute-relay', 'signed payload ingests; unsigned/malformed/dormant rejected'],
+  ['fleet-dockerfile', 'worker image valid-by-construction (dual-runtime, cache order, self-verify CMD)'],
 ];
 
 const dir = path.join('tests', 'frontier');

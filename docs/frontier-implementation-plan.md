@@ -79,7 +79,19 @@ LLM call injectable for tests.
 
 ---
 
-## Milestone 3 — Scale-out adapters & strategic scaffolds (dormant/scaffold)
+## Milestone 3 — Scale-out adapters & strategic scaffolds (dormant/scaffold)  ✅ built + proof-tested
+
+> Status: all four scaffolds built, proof-tested, dormant-by-default.
+> `net/cloud-browser.ts` (CLOUD_BROWSER_URL), `net/captcha-solver.ts`
+> (CAPSOLVER_API_KEY — paid service, confirm before activating),
+> `contribute/relay.ts` + `extension/` (CONTRIBUTE_SECRET; relay mounted live at
+> POST /api/flights/contribute, dormant→503), `Dockerfile` + `.dockerignore` +
+> `docs/fleet-deploy.md` (self-verifying worker image). Master loop now 13/13.
+> Follow-ups before activation: cloud-browser needs vendor session handshake +
+> CDP-runner wiring; captcha-solver needs login-adapter wiring + user sign-off on
+> the paid service; relay's live route should capture the raw body via
+> express.json({verify}) for byte-exact HMAC; Dockerfile `docker build` is the
+> operator's step.
 
 ### 3.1 Cloud browser pool adapter (`net/cloud-browser.ts`)
 Browserbase/Steel client; CDP tiers use it when `CLOUD_BROWSER_URL` set, gated to

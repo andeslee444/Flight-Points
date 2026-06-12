@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Flight-Points Contributor",
+  "version": "0.1.0",
+  "description": "Opt-in: harvests award availability from YOUR OWN logged-in airline tabs and contributes it (signed) to Flight-Points. No credentials are ever read or sent.",
+  "permissions": [
+    "activeTab"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "_comment_host_permissions": "Placeholder <all_urls>. Before publishing, narrow to the specific airline award-portal origins the content script actually parses, e.g. 'https://*.aeroplan.com/*', 'https://*.united.com/*', 'https://*.aa.com/*' — least privilege.",
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "_comment_matches": "Placeholder. Narrow to airline award-search result URLs only so the parser never runs on unrelated pages.",
+      "js": ["content-script.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "Flight-Points Contributor (opt-in)"
+  }
+}

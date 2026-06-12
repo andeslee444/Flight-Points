@@ -34,10 +34,18 @@ import {
   getCacheEntries, getAllCacheEntries, getCacheRoutes,
   addSignup, upsertLiveCacheResults,
 } from './db.js';
+import { registerContributeRoute } from './contribute/relay.js';
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// ── Crowdsource contribution relay (M3.3) ───────────────────
+// Accepts HMAC-signed award rows harvested from volunteers' own logged-in airline
+// tabs. DORMANT + flag-gated: with CONTRIBUTE_SECRET unset the handler returns 503
+// and writes nothing, so the running daemon/server is unaffected. (Default no-op
+// writer for now — wire a real DB writer here once the schema lands.)
+registerContributeRoute(app);
 
 const PUBLIC_DIR = path.join(__dirname, '../../web/public');
 

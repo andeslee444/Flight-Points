@@ -1,0 +1,48 @@
+# .dockerignore — keep the build context lean and the image clean.  [M3.4]
+#
+# WHAT: excludes local-only / regenerable artifacts so they never get COPY'd into
+#       the image. WHY: (1) faster, more cache-stable builds (a smaller context),
+#       (2) we re-run `npm ci` / `pip install` inside the image, so host
+#       node_modules/.venv must NOT leak in (host binaries can be wrong-arch),
+#       (3) SECURITY: .env holds airline creds + DB/proxy URLs and must never be
+#       baked into a layer.
+
+# --- JS / build outputs (reinstalled or recompiled inside the image) ---
+node_modules
+dist
+.next
+public
+tsconfig.tsbuildinfo
+next-env.d.ts
+
+# --- Python local artifacts ---
+.venv
+__pycache__
+*.pyc
+
+# --- Secrets & local config (NEVER ship these) ---
+.env
+.env.*
+config/keys
+config/airline-accounts.json
+
+# --- Mutable runtime state (worker writes its own; host copy is stale) ---
+data
+logs
+*.log
+
+# --- Chrome / browser profiles (heavy, host-specific, and not used by the
+#     light curl_cffi tier this image runs) ---
+.playwright-mcp
+chrome-cdp-*
+**/chrome-cdp-*
+
+# --- VCS / tooling / infra-as-code not needed at runtime ---
+.git
+.gitignore
+.githooks
+.vercel
+.planning
+terraform
+*.tfstate
+*.tfstate.backup
